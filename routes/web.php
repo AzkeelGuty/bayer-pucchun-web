@@ -1,0 +1,25 @@
+<?php
+use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController};
+$router->get('/', fn()=> auth_user()?redirect('/dashboard'):redirect('/login'));
+$router->get('/login',[AuthController::class,'showLogin']);
+$router->post('/login',[AuthController::class,'login']);
+$router->post('/logout',[AuthController::class,'logout']);
+$router->get('/dashboard',[DashboardController::class,'index']);
+$router->get('/documentos',[DocumentController::class,'index']);
+$router->get('/documentos/nuevo',[DocumentController::class,'create']);
+$router->post('/documentos/guardar',[DocumentController::class,'store']);
+$router->post('/documentos/estado',[DocumentController::class,'changeStatus']);
+$router->get('/guias',[GuideController::class,'index']);
+$router->get('/guias/nuevo',[GuideController::class,'create']);
+$router->post('/guias/guardar',[GuideController::class,'store']);
+$router->post('/guias/estado',[GuideController::class,'changeStatus']);
+$router->get('/stock',[StockController::class,'index']);
+$router->get('/stock/nuevo',[StockController::class,'create']);
+$router->post('/stock/guardar',[StockController::class,'store']);
+$router->post('/stock/estado',[StockController::class,'changeStatus']);
+$router->get('/bayer',[BayerController::class,'index']);
+$router->get('/bayer/datos',[BayerController::class,'data']);
+$router->get('/export',[ExportController::class,'export']);
+$router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
+$router->get('/api/v1/bayer/shipments',[ApiController::class,'shipments']);
+$router->get('/api/v1/bayer/inventory',[ApiController::class,'inventory']);

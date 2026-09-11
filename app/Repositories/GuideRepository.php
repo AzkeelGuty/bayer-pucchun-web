@@ -1,0 +1,8 @@
+<?php
+namespace App\Repositories;
+use App\Services\MasterDataService;
+class GuideRepository {
+    public function create(array $d): int {$m=new MasterDataService();$pdo=\db();$pdo->beginTransaction();try{$company=$m->company($d);$geo=$m->district($d['department'],$d['province'],$d['district']);$branch=$m->branch($d,$company,$geo[2]);$client=$m->client($d,$geo);$seller=$m->seller($d);$unit=$m->unit($d);$product=$m->product($d,$unit);$st=$pdo->prepare('INSERT INTO guias_cabecera(numero,fecha,cliente_id,vendedor_id,sucursal_id,departamento_id,provincia_id,distrito_id,estado_registro,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,\'BORRADOR\',?,NOW())');$st->execute([$d['documentNumber'],$d['documentDate'],$client,$seller,$branch,$geo[0],$geo[1],$geo[2],\auth_user()['id']]);$id=(int)$pdo->lastInsertId();$st=$pdo->prepare('INSERT INTO guias_detalle(guia_id,producto_id,unidad_id,cantidad) VALUES(?,?,?,?)');$st->execute([$id,$product,$unit,$d['quantity']]);$pdo->commit();return $id;}catch(\Throwable $e){$pdo->rollBack();throw $e;}}
+    public function all(): array {return \db()->query("SELECT gc.id,gc.numero,gc.fecha,gc.estado_registro,c.razon_social cliente,v.nombres vendedor,s.nombre sucursal,COUNT(gd.id) items,SUM(gd.cantidad) cantidad FROM guias_cabecera gc JOIN clientes c ON c.id=gc.cliente_id JOIN vendedores v ON v.id=gc.vendedor_id JOIN sucursales s ON s.id=gc.sucursal_id JOIN guias_detalle gd ON gd.guia_id=gc.id GROUP BY gc.id ORDER BY gc.id DESC LIMIT 300")->fetchAll();}
+    public function status(int $id,string $status): void {$st=\db()->prepare('UPDATE guias_cabecera SET estado_registro=?,published_at=IF(?=\'PUBLICADO\',NOW(),published_at) WHERE id=?');$st->execute([$status,$status,$id]);}
+}

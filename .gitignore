@@ -1,0 +1,10 @@
+.env
+/storage/logs/*.log
+/storage/cache/*
+/storage/temp/*
+/storage/sessions/*
+/storage/published/documents/*
+/storage/published/guides/*
+/storage/published/stock/*
+!/storage/**/.gitkeep
+/vendor/*

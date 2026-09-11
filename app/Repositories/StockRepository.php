@@ -1,0 +1,8 @@
+<?php
+namespace App\Repositories;
+use App\Services\MasterDataService;
+class StockRepository {
+    public function create(array $d): int {$m=new MasterDataService();$pdo=\db();$pdo->beginTransaction();try{$company=$m->company($d);$warehouse=$m->warehouse($d,$company);$unit=$m->unit($d);$product=$m->product($d,$unit);$lot=null;if(!empty($d['batch'])){$st=$pdo->prepare('SELECT id FROM lotes WHERE producto_id=? AND codigo_lote=?');$st->execute([$product,$d['batch']]);$lot=$st->fetchColumn();if(!$lot){$st=$pdo->prepare('INSERT INTO lotes(producto_id,codigo_lote,fecha_vencimiento,estado) VALUES(?,?,?,1)');$st->execute([$product,$d['batch'],$d['expirationDate']?:null]);$lot=$pdo->lastInsertId();}}$st=$pdo->prepare('INSERT INTO stock_cabecera(fecha_stock,almacen_id,estado_registro,created_by,created_at) VALUES(?,?,\'BORRADOR\',?,NOW())');$st->execute([$d['stockDate'],$warehouse,\auth_user()['id']]);$id=(int)$pdo->lastInsertId();$st=$pdo->prepare('INSERT INTO stock_detalle(stock_id,lote_id,producto_id,unidad_id,cantidad) VALUES(?,?,?,?,?)');$st->execute([$id,$lot?:null,$product,$unit,$d['quantity']]);$pdo->commit();return $id;}catch(\Throwable $e){$pdo->rollBack();throw $e;}}
+    public function all(): array {return \db()->query("SELECT sc.id,sc.fecha_stock,sc.estado_registro,a.nombre almacen,COUNT(sd.id) items,SUM(sd.cantidad) cantidad FROM stock_cabecera sc JOIN almacenes a ON a.id=sc.almacen_id JOIN stock_detalle sd ON sd.stock_id=sc.id GROUP BY sc.id ORDER BY sc.id DESC LIMIT 300")->fetchAll();}
+    public function status(int $id,string $status): void {$st=\db()->prepare('UPDATE stock_cabecera SET estado_registro=?,published_at=IF(?=\'PUBLICADO\',NOW(),published_at) WHERE id=?');$st->execute([$status,$status,$id]);}
+}
