@@ -1,8 +1,7 @@
 <?php
-use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController};
+use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController};
 use App\Middleware\{AuthMiddleware,RoleMiddleware};
 use App\Policies\AccessPolicy;
-use App\Exceptions\HttpException;
 
 $router->before(static function (string $path): void {
     (new AuthMiddleware())->refresh();
@@ -24,20 +23,16 @@ $router->post('/login',[AuthController::class,'login']);
 $router->post('/logout',[AuthController::class,'logout'],[new AuthMiddleware()]);
 $router->get('/dashboard',[DashboardController::class,'index'],$internal);
 
-// The v1 capture forms require the Day 2 Service/normalized-master contract.
-// Until connected, fail explicitly instead of calling removed Repository methods.
-$pendingCapture = static function (): void {
-    throw new HttpException(503, 'Captura en preparación: pendiente de conectar los formularios con Schema v2.');
-};
-$pendingWorkflow = static function (): void {
-    throw new HttpException(503, 'Acción pendiente de integrar con validaciones y workflow.');
-};
 foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::class,'stock'=>StockController::class] as $path=>$controller) {
     $router->get('/'.$path,[$controller,'index'],$internal);
-    $router->get('/'.$path.'/nuevo',$pendingCapture,$capture);
-    $router->post('/'.$path.'/guardar',$pendingCapture,$capture);
-    $router->post('/'.$path.'/estado',$pendingWorkflow,$review);
+    $router->get('/'.$path.'/nuevo',[$controller,'create'],$capture);
+    $router->post('/'.$path.'/guardar',[$controller,'store'],$capture);
+    $router->post('/'.$path.'/estado',[$controller,'changeStatus'],$review);
 }
+
+$router->get('/configuracion/identidad',[BrandingController::class,'index'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/configuracion/identidad',[BrandingController::class,'update'],[new RoleMiddleware(['ADMIN'])]);
+
 $router->get('/bayer',[BayerController::class,'index'],$published);
 $router->get('/bayer/datos',[BayerController::class,'data'],$published);
 $router->get('/export',[ExportController::class,'export'],$published);
