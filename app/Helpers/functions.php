@@ -40,7 +40,8 @@ function verify_csrf(): void
     $sessionToken = $_SESSION['_csrf'] ?? null;
     $submittedToken = $_POST['_csrf'] ?? null;
     if (!is_string($sessionToken) || !is_string($submittedToken) || $sessionToken === '' || $submittedToken === '' || !hash_equals($sessionToken, $submittedToken)) {
-        throw new App\Exceptions\HttpException(419, 'La sesión del formulario expiró. Vuelva a intentarlo.');
+        http_response_code(419);
+        exit('CSRF token inválido.');
     }
 }
 function auth_user(): ?array { return $_SESSION['auth_user'] ?? null; }
