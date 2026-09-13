@@ -94,12 +94,12 @@ $partnerLogo = branding_logo_url('logo_partner');
             <?php endif; ?>
             <span class="brand-copy">
                 <strong><?= has_role('BAYER') ? e($brand['partner_name']) : e($brand['system_name']) ?></strong>
-                <small><?= has_role('BAYER') ? 'Portal de consulta' : 'Sistema de información' ?></small>
+                <small><?= has_role('BAYER') ? e($brand['partner_subtitle']) : e($brand['system_subtitle']) ?></small>
             </span>
         </a>
     </div>
 
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" id="sidebarNav" data-scroll-key="<?=e((string)($u['id']??0).'-'.(string)($u['role']??'role'))?>">
         <?php foreach($sections as $section=>$items): ?>
             <div class="sidebar-label"><?=e($section)?></div>
             <?php foreach($items as [$href,$icon,$label]):
