@@ -1,6 +1,5 @@
 <?php
 $internal = !has_role('BAYER');
-
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $currentPath = parse_url($requestUri, PHP_URL_PATH) ?: '/';
 $currentQuery = [];
@@ -8,23 +7,6 @@ parse_str((string) (parse_url($requestUri, PHP_URL_QUERY) ?? ''), $currentQuery)
 $basePath = rtrim((string) (parse_url((string) config('app.url', ''), PHP_URL_PATH) ?: ''), '/');
 if ($basePath && ($currentPath === $basePath || str_starts_with($currentPath, $basePath . '/'))) {
     $currentPath = substr($currentPath, strlen($basePath)) ?: '/';
-}
-
-$items = [];
-if (has_role('BAYER')) {
-    $items = [
-        ['/bayer', 'DB', 'Dashboard Bayer'],
-        ['/bayer/datos?type=documents', 'DC', 'Documentos publicados'],
-        ['/bayer/datos?type=guides', 'GR', 'Guías publicadas'],
-        ['/bayer/datos?type=stock', 'ST', 'Stock publicado'],
-    ];
-} else {
-    if (has_role('ADMIN','SUPERVISOR','GERENCIA')) $items[] = ['/dashboard', 'DB', 'Dashboard'];
-    $items[] = ['/documentos', 'DC', 'Documentos'];
-    $items[] = ['/guias', 'GR', 'Guías de remisión'];
-    $items[] = ['/stock', 'ST', 'Stock'];
-    if (has_role('ADMIN','SUPERVISOR','GERENCIA')) $items[] = ['/bayer', 'PB', 'Portal Bayer'];
-    if (has_role('ADMIN')) $items[] = ['/configuracion/identidad', 'ID', 'Identidad visual'];
 }
 
 $isActive = static function (string $href) use ($currentPath, $currentQuery): bool {
@@ -40,8 +22,67 @@ $isActive = static function (string $href) use ($currentPath, $currentQuery): bo
     return $currentPath === $pathOnly || str_starts_with($currentPath, $pathOnly . '/');
 };
 
+$sections=[];
+if (has_role('BAYER')) {
+    $sections=[
+        'PORTAL BAYER'=>[
+            ['/bayer','DB','Dashboard'],
+            ['/bayer/datos?type=documents','DC','Documentos publicados'],
+            ['/bayer/datos?type=guides','GR','Guías publicadas'],
+            ['/bayer/datos?type=stock','ST','Stock publicado'],
+            ['/bayer/exportaciones','EX','Exportaciones'],
+            ['/bayer/descargas','HI','Historial de descargas'],
+        ],
+    ];
+} else {
+    if (has_role('ADMIN','SUPERVISOR','GERENCIA')) {
+        $sections['ANALÍTICA']=[['/dashboard','DB','Dashboard Pucchún']];
+    }
+
+    $operations=[];
+    if (has_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA')) {
+        $operations=[
+            ['/documentos','DC','Documentos'],
+            ['/guias','GR','Guías de remisión'],
+            ['/stock','ST','Stock'],
+        ];
+    }
+    if ($operations) $sections['OPERACIÓN']=$operations;
+
+    if (has_role('ADMIN','SUPERVISOR')) {
+        $sections['CALIDAD']=[
+            ['/validacion','VA','Validación y publicación'],
+            ['/homologaciones','HO','Homologaciones Bayer'],
+        ];
+    }
+
+    if (has_role('ADMIN','SUPERVISOR','GERENCIA','DIGITADOR')) {
+        $sections['CONFIGURACIÓN BASE']=[
+            ['/maestros','MA','Catálogos maestros'],
+        ];
+    }
+
+    if (has_role('ADMIN','SUPERVISOR','GERENCIA')) {
+        $sections['INFORMACIÓN']=[
+            ['/reportes','RE','Reportes y exportaciones'],
+            ['/publicaciones','PU','Publicaciones'],
+            ['/auditoria','AU','Auditoría'],
+            ['/bayer','PB','Vista Portal Bayer'],
+        ];
+    }
+
+    if (has_role('ADMIN')) {
+        $sections['ADMINISTRACIÓN']=[
+            ['/seguridad','US','Usuarios y accesos'],
+            ['/configuracion/identidad','ID','Identidad visual'],
+            ['/evolucion','AP','API / ERP futuro'],
+        ];
+    }
+}
+
 $brand = branding();
 $primaryLogo = branding_logo_url('logo_primary');
+$partnerLogo = branding_logo_url('logo_partner');
 ?>
 <aside class="app-sidebar" id="appSidebar" aria-label="Navegación principal">
     <div class="brand-block">
@@ -49,29 +90,31 @@ $primaryLogo = branding_logo_url('logo_primary');
             <?php if($primaryLogo): ?>
                 <span class="brand-logo-box"><img src="<?=e($primaryLogo)?>" alt=""></span>
             <?php else: ?>
-                <span class="brand-mark" aria-hidden="true">P</span>
+                <span class="brand-mark" aria-hidden="true"><?= has_role('BAYER') ? 'B' : 'P' ?></span>
             <?php endif; ?>
-            <span>
-                <strong><?=e($brand['system_name'])?></strong>
-                <small>Sistema de información</small>
+            <span class="brand-copy">
+                <strong><?= has_role('BAYER') ? e($brand['partner_name']) : e($brand['system_name']) ?></strong>
+                <small><?= has_role('BAYER') ? 'Portal de consulta' : 'Sistema de información' ?></small>
             </span>
         </a>
     </div>
 
     <nav class="sidebar-nav">
-        <div class="sidebar-label"><?= $internal ? 'GESTIÓN' : 'CONSULTA' ?></div>
-        <?php foreach ($items as [$href, $icon, $label]):
-            $active = $isActive($href);
-        ?>
-            <a class="sidebar-link<?=$active ? ' active' : ''?>" href="<?=url($href)?>" <?=$active ? 'aria-current="page"' : ''?>>
-                <span class="sidebar-icon" aria-hidden="true"><?=e($icon)?></span>
-                <span><?=e($label)?></span>
-            </a>
+        <?php foreach($sections as $section=>$items): ?>
+            <div class="sidebar-label"><?=e($section)?></div>
+            <?php foreach($items as [$href,$icon,$label]):
+                $active=$isActive($href);
+            ?>
+                <a class="sidebar-link<?=$active?' active':''?>" href="<?=url($href)?>" <?=$active?'aria-current="page"':''?>>
+                    <span class="sidebar-icon" aria-hidden="true"><?=e($icon)?></span>
+                    <span><?=e($label)?></span>
+                </a>
+            <?php endforeach; ?>
         <?php endforeach; ?>
     </nav>
 
     <div class="sidebar-footer">
-        <div class="sidebar-status"><span class="status-dot" aria-hidden="true"></span><span>Conectado</span></div>
+        <div class="sidebar-status"><span class="status-dot" aria-hidden="true"></span><span>Sesión activa</span></div>
         <small><?=e($u['role'])?></small>
     </div>
 </aside>
