@@ -1,8 +1,8 @@
 <?php if($u): ?>
         </main>
         <footer class="app-footer">
-            <span>Bayer - Pucchún · Data Hub</span>
-            <span>Datos confiables · Procesos controlados · Trazabilidad</span>
+            <span><?=e(branding()['system_name'])?> · Sistema de Gestión de Información</span>
+            <span><?= has_role('BAYER') ? 'Consulta de información publicada' : 'Operación, control y trazabilidad' ?></span>
         </footer>
     </section>
 </div>
