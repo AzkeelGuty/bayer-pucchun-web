@@ -58,23 +58,69 @@ function branding(): array
 {
     $defaults = [
         'system_name' => 'Pucchún',
+        'system_subtitle' => 'Sistema de información',
         'partner_name' => 'Bayer',
+        'partner_subtitle' => 'Portal de consulta',
+        'internal_title' => 'Pucchún Data Hub',
+        'portal_title' => 'Portal Bayer',
+        'login_kicker' => 'PLATAFORMA DE INFORMACIÓN',
+        'login_title' => 'Datos confiables. Decisiones claras.',
+        'login_message' => 'Captura, validación, consulta y entrega en un solo entorno.',
+        'footer_text' => 'Sistema de Gestión de Información',
         'primary_color' => '#075B9F',
         'accent_color' => '#168C5B',
+        'sidebar_color' => '#0A2F55',
+        'background_color' => '#F4F7FB',
+        'sidebar_theme' => 'dark',
         'logo_primary' => null,
         'logo_partner' => null,
+        'favicon' => null,
     ];
+
     $file = base_path('storage/config/branding.json');
     if (!is_file($file)) return $defaults;
+
     $raw = @file_get_contents($file);
     $data = is_string($raw) ? json_decode($raw, true) : null;
     if (!is_array($data)) return $defaults;
+
     $brand = array_merge($defaults, array_intersect_key($data, $defaults));
-    foreach (['primary_color','accent_color'] as $key) {
+
+    foreach (['primary_color','accent_color','sidebar_color','background_color'] as $key) {
         if (!is_string($brand[$key]) || !preg_match('/^#[0-9A-Fa-f]{6}$/', $brand[$key])) {
             $brand[$key] = $defaults[$key];
         }
+        $brand[$key] = strtoupper($brand[$key]);
     }
+
+    $textLimits = [
+        'system_name'=>80,
+        'system_subtitle'=>100,
+        'partner_name'=>80,
+        'partner_subtitle'=>100,
+        'internal_title'=>100,
+        'portal_title'=>100,
+        'login_kicker'=>80,
+        'login_title'=>120,
+        'login_message'=>220,
+        'footer_text'=>140,
+    ];
+    foreach ($textLimits as $key=>$limit) {
+        if (!is_string($brand[$key]) || trim($brand[$key]) === '' || mb_strlen($brand[$key]) > $limit) {
+            $brand[$key] = $defaults[$key];
+        } else {
+            $brand[$key] = trim($brand[$key]);
+        }
+    }
+
+    if (!in_array($brand['sidebar_theme'], ['dark','light'], true)) {
+        $brand['sidebar_theme'] = $defaults['sidebar_theme'];
+    }
+
+    foreach (['logo_primary','logo_partner','favicon'] as $key) {
+        if ($brand[$key] !== null && !is_string($brand[$key])) $brand[$key] = null;
+    }
+
     return $brand;
 }
 
