@@ -21,9 +21,9 @@ $partnerLogo = branding_logo_url('logo_partner');
         </div>
 
         <div class="login-brand-message">
-            <span class="login-kicker">PLATAFORMA DE INFORMACIÓN</span>
-            <h1>Datos confiables.<br>Decisiones claras.</h1>
-            <p>Captura, validación, consulta y entrega en un solo entorno.</p>
+            <span class="login-kicker"><?=e($brand['login_kicker'])?></span>
+            <h1><?=e($brand['login_title'])?></h1>
+            <p><?=e($brand['login_message'])?></p>
         </div>
 
         <div class="login-brand-line"></div>
