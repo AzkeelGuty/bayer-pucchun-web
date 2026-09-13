@@ -51,6 +51,18 @@
         });
     }
 
+    const syncColor = (pickerId, inputId) => {
+        const picker = document.getElementById(pickerId);
+        const input = document.getElementById(inputId);
+        if (!picker || !input) return;
+        picker.addEventListener('input', () => { input.value = picker.value.toUpperCase(); });
+        input.addEventListener('input', () => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(input.value)) picker.value = input.value;
+        });
+    };
+    syncColor('primary_color_picker', 'primary_color');
+    syncColor('accent_color_picker', 'accent_color');
+
     if (!window.dashboardData || typeof Chart === 'undefined') return;
 
     const series = window.dashboardData.series || [];
