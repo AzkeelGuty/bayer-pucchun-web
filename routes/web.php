@@ -1,11 +1,11 @@
 <?php
-use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController};
+use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController};
 use App\Middleware\{AuthMiddleware,RoleMiddleware};
 use App\Policies\AccessPolicy;
 
 $router->before(static function (string $path): void {
     (new AuthMiddleware())->refresh();
-    if (preg_match('~^/(documentos|guias|stock|dashboard|usuarios|roles|permisos|maestros|configuracion|auditoria)(/|$)~', $path)) {
+    if (preg_match('~^/(documentos|guias|stock|dashboard|usuarios|roles|permisos|maestros|homologaciones|validacion|publicaciones|reportes|configuracion|auditoria|evolucion)(/|$)~', $path)) {
         require_role(...AccessPolicy::INTERNAL);
     }
     if (preg_match('~^/(usuarios|roles|permisos|configuracion)(/|$)~', $path)) {
@@ -29,6 +29,15 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
     $router->post('/'.$path.'/guardar',[$controller,'store'],$capture);
     $router->post('/'.$path.'/estado',[$controller,'changeStatus'],$review);
 }
+
+$router->get('/maestros',[BackofficeController::class,'masters'],$internal);
+$router->get('/homologaciones',[BackofficeController::class,'homologations'],[new RoleMiddleware(['ADMIN','SUPERVISOR'])]);
+$router->get('/validacion',[BackofficeController::class,'validation'],[new RoleMiddleware(['ADMIN','SUPERVISOR'])]);
+$router->get('/publicaciones',[BackofficeController::class,'publications'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
+$router->get('/reportes',[BackofficeController::class,'reports'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
+$router->get('/auditoria',[BackofficeController::class,'audit'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
+$router->get('/seguridad',[BackofficeController::class,'security'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/evolucion',[BackofficeController::class,'evolution'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
 
 $router->get('/configuracion/identidad',[BrandingController::class,'index'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/configuracion/identidad',[BrandingController::class,'update'],[new RoleMiddleware(['ADMIN'])]);
