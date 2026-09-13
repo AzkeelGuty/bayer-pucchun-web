@@ -105,6 +105,52 @@
         });
     }
 
+    const statusCanvas = document.getElementById('statusChart');
+    if (statusCanvas) {
+        const rows = window.dashboardData.statuses || [];
+        new Chart(statusCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: rows.map(item => item.estado_registro),
+                datasets: [{
+                    data: rows.map(item => Number(item.total)),
+                    backgroundColor: ['#168c5b','#075b9f','#f59e0b','#d92d20','#6b7f92'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } } }
+            }
+        });
+    }
+
+    const distributionCanvas = document.getElementById('distributionChart');
+    if (distributionCanvas) {
+        const rows = window.dashboardData.distribution || [];
+        new Chart(distributionCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: rows.map(item => item.label),
+                datasets: [{
+                    data: rows.map(item => Number(item.value)),
+                    backgroundColor: [blue, green, '#f59e0b'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '66%',
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } } }
+            }
+        });
+    }
+
     const topCanvas = document.getElementById('topChart');
     if (topCanvas) {
         new Chart(topCanvas, {
