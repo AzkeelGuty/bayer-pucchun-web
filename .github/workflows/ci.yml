@@ -55,3 +55,6 @@ jobs:
           php tests/integration/schema_v2_test.php
           php tests/integration/repositories_test.php
           php tests/integration/core_security_test.php
+          php tests/integration/master_data_test.php
+          php tests/integration/master_data_maintenance_test.php
+          php tests/integration/data_hub_test.php

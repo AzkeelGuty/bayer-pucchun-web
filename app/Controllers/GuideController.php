@@ -1,3 +1,9 @@
 <?php
-namespace App\Controllers; use App\Repositories\GuideRepository; use App\Validators\BayerDataValidator;
-class GuideController {private GuideRepository $r;public function __construct(){$this->r=new GuideRepository();}public function index():void{\require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');\view('guias.index',['rows'=>$this->r->all()]);}public function create():void{\require_role('ADMIN','DIGITADOR','SUPERVISOR');\view('guias.form');}public function store():void{\require_role('ADMIN','DIGITADOR','SUPERVISOR');$d=$_POST;$e=(new BayerDataValidator())->validate($d,'guides');if($e){$_SESSION['_old']=$d;$_SESSION['_errors']=$e;\redirect('/guias/nuevo');}try{$id=$this->r->create($d);\audit('guias','crear',$id);\flash('success','Guía registrada en borrador.');}catch(\Throwable $x){\log_event('guide_store_error',['e'=>$x->getMessage()]);\flash('error','No se pudo registrar la guía.');}\redirect('/guias');}public function changeStatus():void{\require_role('ADMIN','SUPERVISOR');$id=(int)\input('id');$s=(string)\input('status');if(!in_array($s,['BORRADOR','VALIDADO','PUBLICADO'],true))$s='BORRADOR';$this->r->status($id,$s);\audit('guias','estado_'.$s,$id);\redirect('/guias');}}
+declare(strict_types=1);
+namespace App\Controllers;
+
+final class GuideController extends OperationalController
+{
+    protected const MODULE = 'guides';
+    protected const PATH = 'guias';
+}

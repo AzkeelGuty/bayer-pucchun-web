@@ -24,18 +24,19 @@ $router->post('/login',[AuthController::class,'login']);
 $router->post('/logout',[AuthController::class,'logout'],[new AuthMiddleware()]);
 $router->get('/dashboard',[DashboardController::class,'index'],$internal);
 
-// The v1 capture forms require the Day 2 Service/normalized-master contract.
-// Until connected, fail explicitly instead of calling removed Repository methods.
-$pendingCapture = static function (): void {
-    throw new HttpException(503, 'Captura en preparación: pendiente de conectar los formularios con Schema v2.');
-};
+// Workflow remains disabled until the Day 3 implementation.
 $pendingWorkflow = static function (): void {
     throw new HttpException(503, 'Acción pendiente de integrar con validaciones y workflow.');
 };
 foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::class,'stock'=>StockController::class] as $path=>$controller) {
-    $router->get('/'.$path,[$controller,'index'],$internal);
-    $router->get('/'.$path.'/nuevo',$pendingCapture,$capture);
-    $router->post('/'.$path.'/guardar',$pendingCapture,$capture);
+    $module = ['documentos'=>'documents','guias'=>'guides','stock'=>'stock'][$path];
+    $read = [...$internal, new \App\Middleware\PermissionMiddleware($module.'.read')];
+    $write = [...$capture, new \App\Middleware\PermissionMiddleware($module.'.create')];
+    $router->get('/'.$path,[$controller,'index'],$read);
+    $router->get('/'.$path.'/ver',[$controller,'show'],$read);
+    $router->get('/'.$path.'/maestros',[$controller,'masters'],$write);
+    $router->get('/'.$path.'/nuevo',[$controller,'create'],$write);
+    $router->post('/'.$path.'/guardar',[$controller,'store'],$write);
     $router->post('/'.$path.'/estado',$pendingWorkflow,$review);
 }
 $router->get('/bayer',[BayerController::class,'index'],$published);

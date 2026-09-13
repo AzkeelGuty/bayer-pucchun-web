@@ -29,7 +29,7 @@ try {
     ensure($upgrade->pdo->query('SELECT idempotency_key FROM stock_cabecera')->fetchColumn() === 'legacy-stock-1', 'Legacy snapshot identity');
     ensure((string) $upgrade->pdo->query('SELECT cantidad FROM stock_detalle')->fetchColumn() === '0.000', 'Zero stock remains valid');
     ensure((int) $upgrade->pdo->query('SELECT COUNT(*) FROM stock_cabecera')->fetchColumn() === 2, 'Migration preserves separate same-day loads');
-    $legacyStock = new App\Repositories\StockRepository($upgrade->pdo);
+    $legacyStock = new App\Repositories\Operations\StockRepository($upgrade->pdo);
     ensure($legacyStock->updateDraft(1, 1, stockHeader('legacy-stock-1'), lines(true), 1) === 2, 'Migrated draft can be edited with its reserved key');
     rejects(fn() => $legacyStock->create(stockHeader('legacy-stock-999', '2026-09-12'), lines(true), 1), InvalidArgumentException::class);
 
