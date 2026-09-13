@@ -1,5 +1,5 @@
 <?php
-use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController};
+use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController};
 use App\Middleware\{AuthMiddleware,RoleMiddleware};
 use App\Policies\AccessPolicy;
 
@@ -37,6 +37,9 @@ $router->get('/publicaciones',[BackofficeController::class,'publications'],[new 
 $router->get('/reportes',[BackofficeController::class,'reports'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
 $router->get('/auditoria',[BackofficeController::class,'audit'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
 $router->get('/seguridad',[BackofficeController::class,'security'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/seguridad/usuarios/guardar',[UserAdminController::class,'store'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/seguridad/usuarios/estado',[UserAdminController::class,'status'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/seguridad/usuarios/rol',[UserAdminController::class,'role'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/evolucion',[BackofficeController::class,'evolution'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
 
 $router->get('/configuracion/identidad',[BrandingController::class,'index'],[new RoleMiddleware(['ADMIN'])]);
