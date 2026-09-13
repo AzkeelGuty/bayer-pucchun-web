@@ -455,3 +455,14 @@ button,input,select,textarea{font:inherit}
  .module-header{flex-direction:column}.module-header>.btn{width:100%}
  .filter-buttons{display:grid;grid-template-columns:1fr 1fr}
 }
+
+.inline-admin-form{display:flex;align-items:center;gap:6px;min-width:240px}
+.inline-admin-form .form-select{min-width:120px}
+.role-list{display:flex;flex-direction:column}
+.role-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #edf2f5}
+.role-row:last-child{border-bottom:0}
+.role-row>div{display:flex;flex-direction:column}
+.role-row strong{color:var(--bp-navy);font-size:.82rem}
+.role-row small{color:var(--bp-muted);font-size:.68rem;margin-top:2px}
+.role-row>span{color:var(--bp-muted);font-size:.72rem;white-space:nowrap}
+@media(max-width:575.98px){.inline-admin-form{min-width:220px}.role-row{align-items:flex-start;flex-direction:column}}
