@@ -9,8 +9,8 @@ final class ErrorHandler
 {
     public static function render(\Throwable $error): void
     {
-        $status = $error instanceof HttpException ? $error->status : 500;
-        $message = $error instanceof HttpException ? $error->getMessage() : 'Ocurrió un error interno. Inténtelo nuevamente.';
+        $status = $error instanceof \App\Exceptions\ValidationException ? 422 : ($error instanceof HttpException ? $error->status : 500);
+        $message = ($error instanceof HttpException || $error instanceof \App\Exceptions\ValidationException) ? $error->getMessage() : 'Ocurrió un error interno. Inténtelo nuevamente.';
         if ($status === 500) {
             // Do not copy SQL, connection strings, request payloads or exception messages to logs.
             \log_event('internal_error', ['type' => get_class($error), 'code' => (string) $error->getCode()]);
@@ -19,7 +19,9 @@ final class ErrorHandler
         header('Cache-Control: no-store');
         if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => false, 'code' => $status, 'message' => $message], JSON_UNESCAPED_UNICODE);
+            $body = ['success'=>false,'code'=>$status,'message'=>$message];
+            if ($error instanceof \App\Exceptions\ValidationException) $body['errors'] = $error->errors;
+            echo json_encode($body, JSON_UNESCAPED_UNICODE);
             return;
         }
         header('Content-Type: text/html; charset=utf-8');
