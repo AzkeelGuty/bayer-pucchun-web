@@ -1,7 +1,8 @@
 <?php
 function field($name,$label,$type='text',$required=true)
 {
-    $old=$_SESSION['_old'][$name]??'';
+    global $defaults;
+    $old=$_SESSION['_old'][$name]??($defaults[$name]??'');
     $err=$_SESSION['_errors'][$name]??'';
     $step=$type==='number' ? ' step="any"' : '';
     $req=$required ? ' required' : '';
