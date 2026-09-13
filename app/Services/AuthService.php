@@ -58,9 +58,15 @@ class AuthService
 
     private function blocked(?int $userId): bool
     {
-        $cutoff = date('Y-m-d H:i:s', time() - max(60, (int) \config('app.login_window', 900)));
-        $st = $this->connection()->prepare("SELECT COUNT(*) FROM bitacora_acceso WHERE accion='login_failed' AND fecha_hora>=? AND (usuario_id=? OR ip=?)");
-        $st->execute([$cutoff, $userId, self::ip()]);
+        $window = max(60, (int) \config('app.login_window', 900));
+        // Use the database clock so the lock window is not affected by PHP/DB timezone differences.
+        $st = $this->connection()->prepare(
+            "SELECT COUNT(*) FROM bitacora_acceso
+             WHERE accion='login_failed'
+               AND fecha_hora >= TIMESTAMPADD(SECOND, -?, CURRENT_TIMESTAMP)
+               AND (usuario_id=? OR ip=?)"
+        );
+        $st->execute([$window, $userId, self::ip()]);
         return (int) $st->fetchColumn() >= max(1, (int) \config('app.login_max_attempts', 5));
     }
 
