@@ -466,3 +466,12 @@ button,input,select,textarea{font:inherit}
 .role-row small{color:var(--bp-muted);font-size:.68rem;margin-top:2px}
 .role-row>span{color:var(--bp-muted);font-size:.72rem;white-space:nowrap}
 @media(max-width:575.98px){.inline-admin-form{min-width:220px}.role-row{align-items:flex-start;flex-direction:column}}
+
+.row-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:330px}
+.row-actions form{margin:0}
+.row-actions .workflow-form{min-width:0;flex:1 1 250px}
+@media(max-width:767.98px){
+  .row-actions{min-width:290px;align-items:stretch}
+  .row-actions .workflow-form{flex:1 0 100%;display:grid;grid-template-columns:1fr 1fr auto}
+  .row-actions .workflow-form .form-select,.row-actions .workflow-form .form-control{width:100%;min-width:0}
+}
