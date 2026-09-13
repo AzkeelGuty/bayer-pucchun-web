@@ -40,6 +40,9 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
 }
 $router->get('/bayer',[BayerController::class,'index'],$published);
 $router->get('/bayer/datos',[BayerController::class,'data'],$published);
+# Nueva ruta para exportaciones
+$router->get('/exportaciones',[ExportController::class,'index'],$published);
+
 $router->get('/export',[ExportController::class,'export'],$published);
 $router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
 $router->get('/api/v1/bayer/shipments',[ApiController::class,'shipments']);
