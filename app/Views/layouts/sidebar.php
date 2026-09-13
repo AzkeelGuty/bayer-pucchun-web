@@ -35,7 +35,7 @@ if (has_role('BAYER')) {
         ],
     ];
 } else {
-    if (has_role('ADMIN','SUPERVISOR','GERENCIA')) {
+    if (has_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA')) {
         $sections['ANALÍTICA']=[['/dashboard','DB','Dashboard Pucchún']];
     }
 
@@ -52,13 +52,13 @@ if (has_role('BAYER')) {
     if (has_role('ADMIN','SUPERVISOR')) {
         $sections['CALIDAD']=[
             ['/validacion','VA','Validación y publicación'],
-            ['/homologaciones','HO','Homologaciones Bayer'],
         ];
     }
 
-    if (has_role('ADMIN','SUPERVISOR','GERENCIA','DIGITADOR')) {
+    if (has_role('ADMIN')) {
         $sections['CONFIGURACIÓN BASE']=[
             ['/maestros','MA','Catálogos maestros'],
+            ['/homologaciones','HO','Homologaciones Bayer'],
         ];
     }
 
