@@ -11,7 +11,7 @@ final class BackofficeController
 {
     public function masters(): void
     {
-        \require_role('ADMIN','SUPERVISOR','GERENCIA','DIGITADOR');
+        \require_role('ADMIN');
         $key=(string)($_GET['tab'] ?? 'clientes');
         $catalogs=[
             'clientes'=>['Clientes',"SELECT c.id,c.codigo,c.tipo_doc,c.nro_doc,c.razon_social,d.nombre distrito,p.nombre provincia,dp.nombre departamento FROM clientes c LEFT JOIN distritos d ON d.id=c.distrito_id LEFT JOIN provincias p ON p.id=c.provincia_id LEFT JOIN departamentos dp ON dp.id=c.departamento_id ORDER BY c.razon_social LIMIT 300"],
@@ -32,7 +32,7 @@ final class BackofficeController
 
     public function homologations(): void
     {
-        \require_role('ADMIN','SUPERVISOR');
+        \require_role('ADMIN');
         $key=(string)($_GET['tab'] ?? 'productos');
         $maps=[
             'productos'=>['Productos Bayer',"SELECT h.id,p.nombre partner,pr.codigo codigo_interno,pr.nombre producto,h.material_id codigo_bayer,h.material_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_productos_bayer h JOIN partners p ON p.id=h.partner_id JOIN productos pr ON pr.id=h.producto_id ORDER BY h.id DESC LIMIT 300"],
