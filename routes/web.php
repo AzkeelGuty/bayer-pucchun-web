@@ -31,7 +31,7 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
 }
 
 $router->get('/maestros',[BackofficeController::class,'masters'],$internal);
-$router->get('/homologaciones',[BackofficeController::class,'homologations'],[new RoleMiddleware(['ADMIN','SUPERVISOR'])]);
+$router->get('/homologaciones',[BackofficeController::class,'homologations'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/validacion',[BackofficeController::class,'validation'],[new RoleMiddleware(['ADMIN','SUPERVISOR'])]);
 $router->get('/publicaciones',[BackofficeController::class,'publications'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
 $router->get('/reportes',[BackofficeController::class,'reports'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
