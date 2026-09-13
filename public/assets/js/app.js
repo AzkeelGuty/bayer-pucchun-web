@@ -4,6 +4,43 @@
     const backdrop = document.getElementById('sidebarBackdrop');
     const sidebar = document.getElementById('appSidebar');
 
+    const sidebarNav = document.getElementById('sidebarNav');
+    if (sidebarNav) {
+        const scrollKey = 'bp-sidebar-scroll:' + (sidebarNav.dataset.scrollKey || 'default');
+        let scrollFrame = null;
+
+        const saveSidebarScroll = () => {
+            try { sessionStorage.setItem(scrollKey, String(sidebarNav.scrollTop)); } catch (_) {}
+        };
+
+        const restoreSidebarScroll = () => {
+            let restored = false;
+            try {
+                const raw = sessionStorage.getItem(scrollKey);
+                if (raw !== null) {
+                    const saved = Number(raw);
+                    if (Number.isFinite(saved) && saved >= 0) {
+                        sidebarNav.scrollTop = saved;
+                        restored = true;
+                    }
+                }
+            } catch (_) {}
+
+            if (!restored) {
+                const active = sidebarNav.querySelector('.sidebar-link.active');
+                if (active) active.scrollIntoView({block: 'nearest'});
+            }
+        };
+
+        requestAnimationFrame(restoreSidebarScroll);
+        sidebarNav.addEventListener('scroll', () => {
+            if (scrollFrame) cancelAnimationFrame(scrollFrame);
+            scrollFrame = requestAnimationFrame(saveSidebarScroll);
+        }, {passive: true});
+        sidebarNav.querySelectorAll('a').forEach((link) => link.addEventListener('click', saveSidebarScroll));
+        window.addEventListener('pagehide', saveSidebarScroll);
+    }
+
     const setSidebar = (open) => {
         body.classList.toggle('sidebar-open', open);
         if (toggle) {
@@ -62,6 +99,90 @@
     };
     syncColor('primary_color_picker', 'primary_color');
     syncColor('accent_color_picker', 'accent_color');
+    syncColor('sidebar_color_picker', 'sidebar_color');
+    syncColor('background_color_picker', 'background_color');
+
+    const brandingPreview = document.getElementById('brandingPreview');
+    const brandingLoginPreview = document.getElementById('brandingLoginPreview');
+
+    const readColor = (id, fallback) => {
+        const input = document.getElementById(id);
+        return input && /^#[0-9A-Fa-f]{6}$/.test(input.value) ? input.value.toUpperCase() : fallback;
+    };
+
+    const refreshBrandPreview = () => {
+        if (!brandingPreview && !brandingLoginPreview) return;
+        const primary = readColor('primary_color', '#075B9F');
+        const accent = readColor('accent_color', '#168C5B');
+        const sidebarColor = readColor('sidebar_color', '#0A2F55');
+        const background = readColor('background_color', '#F4F7FB');
+
+        [brandingPreview, brandingLoginPreview].filter(Boolean).forEach((preview) => {
+            preview.style.setProperty('--preview-primary', primary);
+            preview.style.setProperty('--preview-accent', accent);
+            preview.style.setProperty('--preview-sidebar', sidebarColor);
+            preview.style.setProperty('--preview-bg', background);
+        });
+
+        const theme = document.getElementById('sidebar_theme');
+        if (brandingPreview && theme) {
+            brandingPreview.classList.toggle('sidebar-light', theme.value === 'light');
+            brandingPreview.classList.toggle('sidebar-dark', theme.value !== 'light');
+        }
+    };
+
+    document.querySelectorAll('.brand-live-text').forEach((input) => {
+        const target = document.getElementById(input.dataset.preview || '');
+        if (!target) return;
+        input.addEventListener('input', () => { target.textContent = input.value || '—'; });
+    });
+
+    ['primary_color','accent_color','sidebar_color','background_color'].forEach((id) => {
+        const input = document.getElementById(id);
+        const picker = document.getElementById(id + '_picker');
+        if (input) input.addEventListener('input', refreshBrandPreview);
+        if (picker) picker.addEventListener('input', () => requestAnimationFrame(refreshBrandPreview));
+    });
+
+    const sidebarTheme = document.getElementById('sidebar_theme');
+    if (sidebarTheme) sidebarTheme.addEventListener('change', refreshBrandPreview);
+
+    const applyBrandPalette = (palette) => {
+        const map = {
+            primary_color: palette.primary,
+            accent_color: palette.accent,
+            sidebar_color: palette.sidebar,
+            background_color: palette.background
+        };
+        Object.entries(map).forEach(([id, value]) => {
+            if (!value) return;
+            const input = document.getElementById(id);
+            const picker = document.getElementById(id + '_picker');
+            if (input) input.value = value.toUpperCase();
+            if (picker) picker.value = value;
+        });
+        refreshBrandPreview();
+    };
+
+    document.querySelectorAll('.brand-preset').forEach((button) => {
+        button.addEventListener('click', () => applyBrandPalette(button.dataset));
+    });
+
+    const defaultsButton = document.getElementById('brandingDefaults');
+    if (defaultsButton) {
+        defaultsButton.addEventListener('click', () => {
+            applyBrandPalette({
+                primary: '#075B9F',
+                accent: '#168C5B',
+                sidebar: '#0A2F55',
+                background: '#F4F7FB'
+            });
+            if (sidebarTheme) sidebarTheme.value = 'dark';
+            refreshBrandPreview();
+        });
+    }
+
+    refreshBrandPreview();
 
     if (!window.dashboardData || typeof Chart === 'undefined') return;
 
