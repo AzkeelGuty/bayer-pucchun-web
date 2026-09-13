@@ -27,6 +27,9 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
     $router->get('/'.$path,[$controller,'index'],$internal);
     $router->get('/'.$path.'/nuevo',[$controller,'create'],$capture);
     $router->post('/'.$path.'/guardar',[$controller,'store'],$capture);
+    $router->get('/'.$path.'/editar',[$controller,'edit'],$capture);
+    $router->post('/'.$path.'/actualizar',[$controller,'update'],$capture);
+    $router->post('/'.$path.'/eliminar',[$controller,'destroy'],$capture);
     $router->post('/'.$path.'/estado',[$controller,'changeStatus'],$review);
 }
 
