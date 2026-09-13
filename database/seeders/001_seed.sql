@@ -34,12 +34,12 @@ SELECT r.id,p.id FROM roles r CROSS JOIN permisos p WHERE r.nombre='ADMIN';
 
 -- DIGITADOR: captura y consulta operativa.
 INSERT IGNORE INTO rol_permiso(rol_id,permiso_id)
-SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo IN ('catalogs.view','operations.capture','operations.view')
+SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo IN ('catalogs.view','operations.capture','operations.view','dashboard.puchun.view')
 WHERE r.nombre='DIGITADOR';
 
 -- SUPERVISOR: calidad, publicación y control.
 INSERT IGNORE INTO rol_permiso(rol_id,permiso_id)
-SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo IN ('catalogs.view','homologations.manage','operations.view','validation.review','publications.publish','dashboard.puchun.view','exports.create','audit.view')
+SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo IN ('catalogs.view','operations.view','validation.review','publications.publish','dashboard.puchun.view','exports.create','audit.view')
 WHERE r.nombre='SUPERVISOR';
 
 -- GERENCIA: analítica y reportes sin captura.
