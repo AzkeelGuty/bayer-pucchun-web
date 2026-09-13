@@ -3,8 +3,9 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#063b67">
     <title><?=e(config('app.name'))?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?=url('/assets/css/app.css')?>">
@@ -14,17 +15,28 @@
 <?php if($u): ?>
 <div class="app-shell">
     <?php require base_path('app/Views/layouts/sidebar.php'); ?>
+    <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Cerrar menú"></button>
+
     <section class="app-workspace">
         <header class="topbar">
             <div class="topbar-left">
-                <button class="sidebar-toggle" type="button" id="sidebarToggle" aria-label="Abrir o cerrar menú">☰</button>
-                <div>
+                <button
+                    class="sidebar-toggle"
+                    type="button"
+                    id="sidebarToggle"
+                    aria-label="Abrir menú"
+                    aria-controls="appSidebar"
+                    aria-expanded="false"
+                >
+                    <span aria-hidden="true">☰</span>
+                </button>
+                <div class="topbar-heading">
                     <div class="topbar-kicker">Sistema de Gestión de Información</div>
                     <div class="topbar-title"><?= has_role('BAYER') ? 'Portal Bayer' : 'Backoffice Pucchún' ?></div>
                 </div>
             </div>
             <div class="topbar-right">
-                <div class="user-chip">
+                <div class="user-chip" title="<?=e($u['nombre'])?> · <?=e($u['role'])?>">
                     <span class="user-avatar"><?=e(strtoupper(substr((string)$u['nombre'],0,1)))?></span>
                     <span class="user-copy">
                         <strong><?=e($u['nombre'])?></strong>
