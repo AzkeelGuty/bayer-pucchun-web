@@ -1,10 +1,53 @@
 (() => {
     const body = document.body;
     const toggle = document.getElementById('sidebarToggle');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const sidebar = document.getElementById('appSidebar');
+
+    const setSidebar = (open) => {
+        body.classList.toggle('sidebar-open', open);
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            toggle.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+        }
+    };
+
     if (toggle) {
-        toggle.addEventListener('click', () => body.classList.toggle('sidebar-open'));
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') body.classList.remove('sidebar-open');
+        toggle.addEventListener('click', () => setSidebar(!body.classList.contains('sidebar-open')));
+    }
+
+    if (backdrop) {
+        backdrop.addEventListener('click', () => setSidebar(false));
+    }
+
+    if (sidebar) {
+        sidebar.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', () => {
+                if (window.matchMedia('(max-width: 991.98px)').matches) {
+                    setSidebar(false);
+                }
+            });
+        });
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') setSidebar(false);
+    });
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 991.98) setSidebar(false);
+    });
+
+    const password = document.getElementById('password');
+    const passwordToggle = document.getElementById('passwordToggle');
+    if (password && passwordToggle) {
+        passwordToggle.addEventListener('click', () => {
+            const show = password.type === 'password';
+            password.type = show ? 'text' : 'password';
+            passwordToggle.textContent = show ? 'Ocultar' : 'Ver';
+            passwordToggle.setAttribute('aria-pressed', show ? 'true' : 'false');
+            passwordToggle.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+            password.focus({preventScroll:true});
         });
     }
 
