@@ -36,22 +36,11 @@ function csrf_token(): string { if(empty($_SESSION['_csrf'])) $_SESSION['_csrf']
 function csrf_field(): string { return '<input type="hidden" name="_csrf" value="'.e(csrf_token()).'">'; }
 function verify_csrf(): void
 {
-    if (request_method() !== 'POST') {
-        return;
-    }
-
+    if (request_method() !== 'POST') return;
     $sessionToken = $_SESSION['_csrf'] ?? null;
     $submittedToken = $_POST['_csrf'] ?? null;
-
-    if (
-        !is_string($sessionToken) ||
-        !is_string($submittedToken) ||
-        $sessionToken === '' ||
-        $submittedToken === '' ||
-        !hash_equals($sessionToken, $submittedToken)
-    ) {
-        http_response_code(419);
-        exit('CSRF token inválido.');
+    if (!is_string($sessionToken) || !is_string($submittedToken) || $sessionToken === '' || $submittedToken === '' || !hash_equals($sessionToken, $submittedToken)) {
+        throw new App\Exceptions\HttpException(419, 'La sesión del formulario expiró. Vuelva a intentarlo.');
     }
 }
 function auth_user(): ?array { return $_SESSION['auth_user'] ?? null; }
@@ -61,3 +50,38 @@ function require_role(string ...$roles): void { require_auth(); if(!has_role(...
 function view(string $name, array $data=[]): void { extract($data); $view=base_path('app/Views/'.str_replace('.','/',$name).'.php'); require base_path('app/Views/layouts/header.php'); require $view; require base_path('app/Views/layouts/footer.php'); }
 function log_event(string $message, array $context=[]): void { @file_put_contents(base_path('storage/logs/app.log'), '['.date('c').'] '.$message.' '.json_encode($context,JSON_UNESCAPED_UNICODE).PHP_EOL, FILE_APPEND | LOCK_EX); }
 function audit(string $module,string $action,?int $entityId=null): void { $u=auth_user(); if(!$u)return; try{$st=db()->prepare('INSERT INTO auditoria_acciones(usuario_id,modulo,accion,entidad_id,fecha_hora) VALUES(?,?,?,?,NOW())');$st->execute([$u['id'],$module,$action,$entityId]);}catch(Throwable $e){log_event('audit_error',['e'=>$e->getMessage()]);} }
+
+function is_local_env(): bool { return strtolower((string) config('app.env', 'production')) === 'local'; }
+
+function branding(): array
+{
+    $defaults = [
+        'system_name' => 'Pucchún',
+        'partner_name' => 'Bayer',
+        'primary_color' => '#075B9F',
+        'accent_color' => '#168C5B',
+        'logo_primary' => null,
+        'logo_partner' => null,
+    ];
+    $file = base_path('storage/config/branding.json');
+    if (!is_file($file)) return $defaults;
+    $raw = @file_get_contents($file);
+    $data = is_string($raw) ? json_decode($raw, true) : null;
+    if (!is_array($data)) return $defaults;
+    $brand = array_merge($defaults, array_intersect_key($data, $defaults));
+    foreach (['primary_color','accent_color'] as $key) {
+        if (!is_string($brand[$key]) || !preg_match('/^#[0-9A-Fa-f]{6}$/', $brand[$key])) {
+            $brand[$key] = $defaults[$key];
+        }
+    }
+    return $brand;
+}
+
+function branding_logo_url(string $key): ?string
+{
+    $brand = branding();
+    $relative = $brand[$key] ?? null;
+    if (!is_string($relative) || $relative === '') return null;
+    $absolute = base_path('public/' . ltrim($relative, '/'));
+    return is_file($absolute) ? url('/' . ltrim($relative, '/')) : null;
+}
