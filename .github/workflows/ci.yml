@@ -1,0 +1,57 @@
+name: PHP CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    env:
+      TEST_DB_HOST: 127.0.0.1
+      TEST_DB_PORT: 3306
+      TEST_DB_USER: root
+      TEST_DB_PASS: root
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, mbstring, json, zip
+          coverage: none
+
+      - name: PHP syntax check
+        run: |
+          find app config public routes scripts tests -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Unit tests
+        run: |
+          php -d zend.assertions=1 -d assert.exception=1 tests/unit/validator_test.php
+          php -d zend.assertions=1 -d assert.exception=1 tests/unit/core_security_test.php
+          php -d zend.assertions=1 -d assert.exception=1 tests/unit/csrf_test.php
+
+      - name: Integration tests
+        run: |
+          php tests/integration/schema_v2_test.php
+          php tests/integration/repositories_test.php
+          php tests/integration/core_security_test.php
