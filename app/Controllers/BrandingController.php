@@ -7,6 +7,19 @@ use App\Exceptions\HttpException;
 
 final class BrandingController
 {
+    private const TEXT_LIMITS = [
+        'system_name'=>80,
+        'system_subtitle'=>100,
+        'partner_name'=>80,
+        'partner_subtitle'=>100,
+        'internal_title'=>100,
+        'portal_title'=>100,
+        'login_kicker'=>80,
+        'login_title'=>120,
+        'login_message'=>220,
+        'footer_text'=>140,
+    ];
+
     public function index(): void
     {
         \require_role('ADMIN');
@@ -18,42 +31,40 @@ final class BrandingController
         \require_role('ADMIN');
 
         $current = \branding();
-        $systemName = trim((string) ($_POST['system_name'] ?? 'Pucchún'));
-        $partnerName = trim((string) ($_POST['partner_name'] ?? 'Bayer'));
-        $primary = strtoupper(trim((string) ($_POST['primary_color'] ?? '#075B9F')));
-        $accent = strtoupper(trim((string) ($_POST['accent_color'] ?? '#168C5B')));
+        $next = $current;
 
-        if ($systemName === '' || mb_strlen($systemName) > 80) {
-            throw new HttpException(422, 'El nombre principal es obligatorio y debe tener máximo 80 caracteres.');
-        }
-        if ($partnerName === '' || mb_strlen($partnerName) > 80) {
-            throw new HttpException(422, 'El nombre del aliado es obligatorio y debe tener máximo 80 caracteres.');
-        }
-        foreach ([$primary, $accent] as $color) {
-            if (!preg_match('/^#[0-9A-F]{6}$/', $color)) {
-                throw new HttpException(422, 'Color de identidad inválido.');
+        foreach (self::TEXT_LIMITS as $key=>$limit) {
+            $value=trim((string)($_POST[$key] ?? $current[$key] ?? ''));
+            if($value==='' || mb_strlen($value)>$limit){
+                throw new HttpException(422, 'Revise los textos de identidad: hay un campo vacío o demasiado largo.');
             }
+            $next[$key]=$value;
         }
 
-        $next = [
-            'system_name' => $systemName,
-            'partner_name' => $partnerName,
-            'primary_color' => $primary,
-            'accent_color' => $accent,
-            'logo_primary' => $current['logo_primary'] ?? null,
-            'logo_partner' => $current['logo_partner'] ?? null,
-        ];
+        foreach (['primary_color','accent_color','sidebar_color','background_color'] as $key) {
+            $value=strtoupper(trim((string)($_POST[$key] ?? $current[$key] ?? '')));
+            if(!preg_match('/^#[0-9A-F]{6}$/',$value)){
+                throw new HttpException(422, 'Uno de los colores de identidad no es válido.');
+            }
+            $next[$key]=$value;
+        }
 
-        if (!empty($_POST['remove_logo_primary'])) $this->removeLogo($next, 'logo_primary');
-        if (!empty($_POST['remove_logo_partner'])) $this->removeLogo($next, 'logo_partner');
+        $theme=strtolower(trim((string)($_POST['sidebar_theme'] ?? 'dark')));
+        if(!in_array($theme,['dark','light'],true)){
+            throw new HttpException(422, 'Tema del menú lateral inválido.');
+        }
+        $next['sidebar_theme']=$theme;
 
-        $next['logo_primary'] = $this->storeUpload('logo_primary', $next['logo_primary']);
-        $next['logo_partner'] = $this->storeUpload('logo_partner', $next['logo_partner']);
+        foreach (['logo_primary','logo_partner','favicon'] as $asset) {
+            if (!empty($_POST['remove_'.$asset])) $this->removeAsset($next, $asset);
+            $next[$asset] = $this->storeUpload($asset, $next[$asset] ?? null);
+        }
 
         $dir = \base_path('storage/config');
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
             throw new HttpException(500, 'No se pudo preparar la carpeta de configuración.');
         }
+
         $payload = json_encode($next, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($payload === false || @file_put_contents($dir . '/branding.json', $payload . PHP_EOL, LOCK_EX) === false) {
             throw new HttpException(500, 'No se pudo guardar la identidad visual.');
@@ -71,51 +82,131 @@ final class BrandingController
             return $current;
         }
         if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-            throw new HttpException(422, 'No se pudo cargar uno de los logotipos.');
+            throw new HttpException(422, 'No se pudo cargar uno de los archivos de identidad.');
         }
         if (($file['size'] ?? 0) < 1 || (int) $file['size'] > 2 * 1024 * 1024) {
-            throw new HttpException(422, 'Cada logotipo debe pesar como máximo 2 MB.');
-        }
-        $tmp = (string) ($file['tmp_name'] ?? '');
-        if (!is_uploaded_file($tmp)) {
-            throw new HttpException(422, 'Archivo de logotipo inválido.');
+            throw new HttpException(422, 'Cada archivo de identidad debe pesar como máximo 2 MB.');
         }
 
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mime = $finfo->file($tmp);
-        $extensions = [
-            'image/png' => 'png',
-            'image/jpeg' => 'jpg',
-            'image/webp' => 'webp',
-        ];
-        if (!isset($extensions[$mime])) {
-            throw new HttpException(422, 'Formato no permitido. Use PNG, JPG o WEBP.');
+        $tmp=(string)($file['tmp_name'] ?? '');
+        if(!is_uploaded_file($tmp)){
+            throw new HttpException(422, 'Archivo de identidad inválido.');
         }
 
-        $dir = \base_path('public/uploads/branding');
-        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
-            throw new HttpException(500, 'No se pudo preparar la carpeta de logotipos.');
-        }
-        $filename = $field . '-' . bin2hex(random_bytes(8)) . '.' . $extensions[$mime];
-        $target = $dir . DIRECTORY_SEPARATOR . $filename;
-        if (!move_uploaded_file($tmp, $target)) {
-            throw new HttpException(500, 'No se pudo guardar el logotipo.');
+        $originalExtension=strtolower(pathinfo((string)($file['name'] ?? ''),PATHINFO_EXTENSION));
+        $extension=null;
+        $sanitizedSvg=null;
+
+        if($originalExtension==='svg'){
+            $sanitizedSvg=$this->sanitizeSvg($tmp);
+            $extension='svg';
+        }else{
+            $finfo=new \finfo(FILEINFO_MIME_TYPE);
+            $mime=$finfo->file($tmp);
+            $extensions=[
+                'image/png'=>'png',
+                'image/jpeg'=>'jpg',
+                'image/webp'=>'webp',
+            ];
+            if(!isset($extensions[$mime])){
+                throw new HttpException(422, 'Formato no permitido. Use SVG, PNG, JPG o WEBP.');
+            }
+            $extension=$extensions[$mime];
         }
 
-        if ($current) {
-            $old = \base_path('public/' . ltrim($current, '/'));
-            if (is_file($old)) @unlink($old);
+        $dir=\base_path('public/uploads/branding');
+        if(!is_dir($dir) && !@mkdir($dir,0775,true) && !is_dir($dir)){
+            throw new HttpException(500, 'No se pudo preparar la carpeta de identidad visual.');
         }
-        return 'uploads/branding/' . $filename;
+
+        $filename=$field.'-'.bin2hex(random_bytes(8)).'.'.$extension;
+        $target=$dir.DIRECTORY_SEPARATOR.$filename;
+
+        $saved=$sanitizedSvg!==null
+            ? @file_put_contents($target,$sanitizedSvg,LOCK_EX)!==false
+            : move_uploaded_file($tmp,$target);
+
+        if(!$saved){
+            throw new HttpException(500, 'No se pudo guardar el archivo de identidad.');
+        }
+
+        if($current){
+            $old=\base_path('public/'.ltrim($current,'/'));
+            if(is_file($old)) @unlink($old);
+        }
+
+        return 'uploads/branding/'.$filename;
     }
 
-    private function removeLogo(array &$branding, string $key): void
+    private function sanitizeSvg(string $tmp): string
     {
-        $relative = $branding[$key] ?? null;
-        if (is_string($relative) && $relative !== '') {
-            $absolute = \base_path('public/' . ltrim($relative, '/'));
-            if (is_file($absolute)) @unlink($absolute);
+        $raw=@file_get_contents($tmp);
+        if(!is_string($raw) || trim($raw)===''){
+            throw new HttpException(422,'SVG vacío o inválido.');
         }
-        $branding[$key] = null;
+        if(stripos($raw,'<!DOCTYPE')!==false || stripos($raw,'<!ENTITY')!==false){
+            throw new HttpException(422,'El SVG contiene declaraciones no permitidas.');
+        }
+
+        $dom=new \DOMDocument();
+        $previous=libxml_use_internal_errors(true);
+        $loaded=$dom->loadXML($raw, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        if(!$loaded || !$dom->documentElement || strtolower($dom->documentElement->localName)!=='svg'){
+            throw new HttpException(422,'El archivo SVG no es válido.');
+        }
+
+        $forbidden=['script','foreignobject','iframe','object','embed','audio','video','style'];
+        $remove=[];
+        foreach($dom->getElementsByTagName('*') as $node){
+            if(in_array(strtolower($node->localName),$forbidden,true)){
+                $remove[]=$node;
+                continue;
+            }
+
+            $attrs=[];
+            foreach($node->attributes ?? [] as $attr) $attrs[]=$attr;
+            foreach($attrs as $attr){
+                $name=strtolower($attr->name);
+                $value=trim((string)$attr->value);
+
+                if(str_starts_with($name,'on')){
+                    $node->removeAttributeNode($attr);
+                    continue;
+                }
+
+                if(in_array($name,['href','xlink:href','src'],true) && $value!=='' && !str_starts_with($value,'#')){
+                    $node->removeAttributeNode($attr);
+                    continue;
+                }
+
+                if($name==='style' && preg_match('/url\s*\(|expression\s*\(|javascript\s*:|@import/i',$value)){
+                    $node->removeAttributeNode($attr);
+                }
+            }
+        }
+
+        foreach($remove as $node){
+            $node->parentNode?->removeChild($node);
+        }
+
+        $safe=$dom->saveXML($dom->documentElement);
+        if(!is_string($safe) || trim($safe)===''){
+            throw new HttpException(422,'No se pudo procesar el SVG.');
+        }
+
+        return $safe;
+    }
+
+    private function removeAsset(array &$branding, string $key): void
+    {
+        $relative=$branding[$key] ?? null;
+        if(is_string($relative) && $relative!==''){
+            $absolute=\base_path('public/'.ltrim($relative,'/'));
+            if(is_file($absolute)) @unlink($absolute);
+        }
+        $branding[$key]=null;
     }
 }
