@@ -28,7 +28,20 @@
                             <td><?=e($r['sucursal'])?></td>
                             <td><?=e($r['cantidad'])?></td>
                             <td><span class="badge-status status-<?=e(strtolower($r['estado_registro']))?>"><?=e($r['estado_registro'])?></span></td>
-                            <td><?php workflow_control('guias',$r); ?></td>
+                            <td>
+    <div class="row-actions">
+        <?php if(($r['estado_registro']??'')==='BORRADOR' && has_role('ADMIN','DIGITADOR')): ?>
+            <a class="btn btn-sm btn-outline-primary" href="<?=url('/guias/editar?id='.urlencode((string)$r['id']))?>">Editar</a>
+            <form method="post" action="<?=url('/guias/eliminar')?>" onsubmit="return confirm('¿Eliminar este borrador?');">
+                <?=csrf_field()?>
+                <input type="hidden" name="id" value="<?=e($r['id'])?>">
+                <input type="hidden" name="version" value="<?=e($r['version'])?>">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
+            </form>
+        <?php endif; ?>
+        <?php workflow_control('guias',$r); ?>
+    </div>
+</td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
