@@ -44,6 +44,8 @@ $router->post('/configuracion/identidad',[BrandingController::class,'update'],[n
 
 $router->get('/bayer',[BayerController::class,'index'],$published);
 $router->get('/bayer/datos',[BayerController::class,'data'],$published);
+$router->get('/bayer/exportaciones',[BayerController::class,'exports'],$published);
+$router->get('/bayer/descargas',[BayerController::class,'downloads'],$published);
 $router->get('/export',[ExportController::class,'export'],$published);
 $router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
 $router->get('/api/v1/bayer/shipments',[ApiController::class,'shipments']);
