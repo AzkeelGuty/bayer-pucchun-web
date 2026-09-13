@@ -55,9 +55,9 @@ final class BackofficeController
         $guides=(new GuideRepository())->all([],100,0);
         $stock=(new StockRepository())->all([],100,0);
         $rows=[];
-        foreach($docs as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['dataset'=>'Documentos',...$r];
-        foreach($guides as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['dataset'=>'Guías',...$r];
-        foreach($stock as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['dataset'=>'Stock',...$r];
+        foreach($docs as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'documentos','dataset'=>'Documentos',...$r];
+        foreach($guides as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'guias','dataset'=>'Guías',...$r];
+        foreach($stock as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'stock','dataset'=>'Stock',...$r];
         \view('backoffice.validation',['rows'=>$rows]);
     }
 
