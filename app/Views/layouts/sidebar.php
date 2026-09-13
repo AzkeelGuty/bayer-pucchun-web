@@ -83,12 +83,13 @@ if (has_role('BAYER')) {
 $brand = branding();
 $primaryLogo = branding_logo_url('logo_primary');
 $partnerLogo = branding_logo_url('logo_partner');
+$sidebarLogo = has_role('BAYER') ? ($partnerLogo ?: $primaryLogo) : $primaryLogo;
 ?>
 <aside class="app-sidebar" id="appSidebar" aria-label="Navegación principal">
     <div class="brand-block">
         <a class="brand-link" href="<?=url(App\Policies\AccessPolicy::landing($u))?>">
-            <?php if($primaryLogo): ?>
-                <span class="brand-logo-box"><img src="<?=e($primaryLogo)?>" alt=""></span>
+            <?php if($sidebarLogo): ?>
+                <span class="brand-logo-box"><img src="<?=e($sidebarLogo)?>" alt=""></span>
             <?php else: ?>
                 <span class="brand-mark" aria-hidden="true"><?= has_role('BAYER') ? 'B' : 'P' ?></span>
             <?php endif; ?>
