@@ -61,3 +61,23 @@ function require_role(string ...$roles): void { require_auth(); if(!has_role(...
 function view(string $name, array $data=[]): void { extract($data); $view=base_path('app/Views/'.str_replace('.','/',$name).'.php'); require base_path('app/Views/layouts/header.php'); require $view; require base_path('app/Views/layouts/footer.php'); }
 function log_event(string $message, array $context=[]): void { @file_put_contents(base_path('storage/logs/app.log'), '['.date('c').'] '.$message.' '.json_encode($context,JSON_UNESCAPED_UNICODE).PHP_EOL, FILE_APPEND | LOCK_EX); }
 function audit(string $module,string $action,?int $entityId=null): void { $u=auth_user(); if(!$u)return; try{$st=db()->prepare('INSERT INTO auditoria_acciones(usuario_id,modulo,accion,entidad_id,fecha_hora) VALUES(?,?,?,?,NOW())');$st->execute([$u['id'],$module,$action,$entityId]);}catch(Throwable $e){log_event('audit_error',['e'=>$e->getMessage()]);} }
+
+#Añadido funciones para el manejo de formularios y errores
+function old(string $key, mixed $default=''): mixed { return $_SESSION['_old'][$key] ?? $default; }
+function form_error(string $key): string { return $_SESSION['_errors'][$key] ?? ''; }
+/** Re-key a list of rows by one of their columns, e.g. index_by($productos, 'id')[$id]['nombre']. */
+function index_by(array $rows, string $key): array { $out = []; foreach ($rows as $row) $out[$row[$key]] = $row; return $out; }
+
+/** Bootstrap badge class per workflow state (BORRADOR/VALIDADO/PUBLICADO/OBSERVADO/ANULADO). */
+function estado_badge(?string $estado): string
+{
+    $classes = [
+        'BORRADOR' => 'bg-secondary',
+        'VALIDADO' => 'bg-info text-dark',
+        'PUBLICADO' => 'bg-success',
+        'OBSERVADO' => 'bg-warning text-dark',
+        'ANULADO' => 'bg-danger',
+    ];
+    $class = $classes[$estado] ?? 'bg-secondary';
+    return '<span class="badge ' . $class . '">' . e($estado ?? '—') . '</span>';
+}
