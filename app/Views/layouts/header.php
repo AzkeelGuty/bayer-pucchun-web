@@ -1,6 +1,7 @@
 <?php
 $u=auth_user();
 $brand = branding();
+$favicon = branding_logo_url('favicon');
 ?>
 <!doctype html>
 <html lang="es">
@@ -9,18 +10,21 @@ $brand = branding();
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="color-scheme" content="light">
     <meta name="theme-color" content="<?=e($brand['primary_color'])?>">
-    <title><?=e(config('app.name'))?></title>
+    <title><?=e($brand['system_name'])?> · <?=e(has_role('BAYER') ? $brand['portal_title'] : $brand['internal_title'])?></title>
+    <?php if($favicon): ?><link rel="icon" href="<?=e($favicon)?>"><?php endif; ?>
     <style>
         :root{
             --brand-primary:<?=e($brand['primary_color'])?>;
             --brand-accent:<?=e($brand['accent_color'])?>;
+            --brand-sidebar:<?=e($brand['sidebar_color'])?>;
+            --brand-background:<?=e($brand['background_color'])?>;
         }
     </style>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?=url('/assets/css/app.css')?>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
-<body class="<?= $u ? 'app-authenticated' : 'app-guest' ?>">
+<body class="<?= $u ? 'app-authenticated' : 'app-guest' ?> sidebar-theme-<?=e($brand['sidebar_theme'])?>">
 <?php if($u): ?>
 <div class="app-shell">
     <?php require base_path('app/Views/layouts/sidebar.php'); ?>
@@ -34,7 +38,7 @@ $brand = branding();
                 </button>
                 <div class="topbar-heading">
                     <div class="topbar-kicker"><?= has_role('BAYER') ? 'CONSULTA EXTERNA' : 'GESTIÓN INTERNA' ?></div>
-                    <div class="topbar-title"><?= has_role('BAYER') ? 'Portal Bayer' : 'Pucchún Data Hub' ?></div>
+                    <div class="topbar-title"><?=e(has_role('BAYER') ? $brand['portal_title'] : $brand['internal_title'])?></div>
                 </div>
             </div>
             <div class="topbar-right">
