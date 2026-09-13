@@ -1,7 +1,7 @@
 <?php if($u): ?>
         </main>
         <footer class="app-footer">
-            <span><?=e(branding()['system_name'])?> · Sistema de Gestión de Información</span>
+            <span><?=e(branding()['system_name'])?> · <?=e(branding()['footer_text'])?></span>
             <span><?= has_role('BAYER') ? 'Consulta de información publicada' : 'Operación, control y trazabilidad' ?></span>
         </footer>
     </section>
