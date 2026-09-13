@@ -1,0 +1,7 @@
+<section class="page-header portal-page-header"><div><div class="page-eyebrow">ENTREGA DE INFORMACIÓN</div><h1 class="page-title">Exportaciones</h1><p class="page-subtitle">Descarga información publicada en el formato que necesites.</p></div><span class="published-lock">Solo lectura</span></section>
+<div class="portal-export-grid">
+<?php foreach(['documents'=>['Documentos','Información comercial publicada'],'guides'=>['Guías de remisión','Despachos publicados'],'stock'=>['Stock','Inventario publicado']] as $type=>$meta): ?>
+<article class="card portal-export-card"><div class="card-body"><div class="portal-export-icon"><?=strtoupper(substr($meta[0],0,2))?></div><h3><?=e($meta[0])?></h3><p><?=e($meta[1])?></p><a class="btn btn-primary" href="<?=url('/bayer/datos?type='.$type)?>">Consultar y exportar</a></div></article>
+<?php endforeach;?>
+</div>
+<div class="format-legend"><span>XLSX · análisis</span><span>CSV · intercambio</span><span>JSON · interoperabilidad</span><span>TXT · formato plano</span><span>PDF · reporte</span></div>
