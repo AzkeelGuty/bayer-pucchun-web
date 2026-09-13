@@ -54,7 +54,7 @@ try {
         $st->execute([$id,$role,strtolower($role).'@example.invalid',password_hash($password,PASSWORD_BCRYPT,['cost'=>4])]);
         $pdo->exec("INSERT INTO usuario_rol(usuario_id,rol_id) VALUES($id,$id)");
     }
-    $docs = new App\Repositories\DocumentRepository($pdo);
+    $docs = new App\Repositories\Operations\DocumentRepository($pdo);
     foreach (['BORRADOR','VALIDADO','PUBLICADO','OBSERVADO','ANULADO'] as $state) {
         $id = $docs->create(docHeader($state.'-ONLY'), lines(), $ids['ADMIN']);
         if ($state !== 'BORRADOR') $docs->markValidated($id,1,$ids['SUPERVISOR']);
@@ -156,14 +156,35 @@ try {
     $pdo->exec('DELETE FROM usuario_rol WHERE usuario_id=14');
     ensure(request('/bayer',$bayer)['status']===302,'Removed roles revoked');
 
+    // Datos propios y ajenos para verificar el alcance en los tres listados.
+    $docs->create(docHeader('DOC-PROPIO'), lines(), $ids['DIGITADOR']);
+    $guides = new App\Repositories\Operations\GuideRepository($pdo);
+    $guides->create(guideHeader('GUIA-PROPIA'), lines(), $ids['DIGITADOR']);
+    $guides->create(guideHeader('GUIA-AJENA'), lines(), $ids['ADMIN']);
+    $stocks = new App\Repositories\Operations\StockRepository($pdo);
+    $stocks->create(stockHeader('stock-propio', '2026-08-20'), lines(true), $ids['DIGITADOR']);
+    $stocks->create(stockHeader('stock-ajeno', '2026-08-21'), lines(true), $ids['ADMIN']);
+
     $digitador=[];loginAs('DIGITADOR',$digitador);
     ensure(request('/documentos',$digitador)['status']===200,'Digitador listing');
     $page=request('/documentos',$digitador);
+    foreach (['documentos'=>['DOC-PROPIO','BORRADOR-ONLY'], 'guias'=>['GUIA-PROPIA','GUIA-AJENA'], 'stock'=>['2026-08-20','2026-08-21']] as $module=>$markers) {
+        $own = request('/'.$module.'?created_by='.$ids['ADMIN'], $digitador);
+        ensure($own['status'] === 200 && str_contains($own['body'], $markers[0]), 'Digitador consulta su carga: '.$module);
+        ensure(!str_contains($own['body'], $markers[1]), 'El parámetro HTTP no permite consultar cargas ajenas: '.$module);
+    }
+    ensure(!str_contains($page['body'], '>Portal Bayer</a>'), 'El menú del Digitador respeta el acceso al portal');
+    ensure(request('/export?type=documents&format=csv',$digitador)['status'] === 403, 'Digitador no exporta');
     ensure(request('/documentos/estado',$digitador,['_csrf'=>token($page),'status'=>'PUBLICADO'])['status']===403,'Digitador cannot publish');
     ensure(request('/documentos/guardar',$digitador,['_csrf'=>token($page)])['status']===503,'Day 2 capture is explicitly pending, no old create signature');
     $supervisor=[];loginAs('SUPERVISOR',$supervisor);
     ensure(request('/guias',$supervisor)['status']===200,'Supervisor review listing');
     ensure(request('/guias/nuevo',$supervisor)['status']===403,'Supervisor does not capture');
+    $export = request('/export?type=documents&format=csv', $supervisor);
+    ensure($export['status'] === 200 && str_contains($export['body'], 'PUBLICADO-ONLY'), 'Supervisor exporta datos publicados');
+    ensure(!str_contains($export['body'], 'BORRADOR-ONLY'), 'Supervisor no exporta borradores');
+    $reviewList = request('/guias', $supervisor);
+    ensure(str_contains($reviewList['body'], 'GUIA-PROPIA') && str_contains($reviewList['body'], 'GUIA-AJENA'), 'Supervisor consulta las cargas del equipo');
     $gerencia=[];loginAs('GERENCIA',$gerencia);
     ensure(request('/stock',$gerencia)['status']===200,'Gerencia query');
     ensure(request('/stock/nuevo',$gerencia)['status']===403,'Gerencia does not capture');

@@ -2,9 +2,9 @@
 declare(strict_types=1);
 require __DIR__ . '/bootstrap.php';
 
-use App\Repositories\DocumentRepository;
-use App\Repositories\GuideRepository;
-use App\Repositories\StockRepository;
+use App\Repositories\Operations\DocumentRepository;
+use App\Repositories\Operations\GuideRepository;
+use App\Repositories\Operations\StockRepository;
 
 // Two independent PHP/PDO workers exercise real unique-key and optimistic-lock races.
 if (($argv[1] ?? '') === '--worker') {
