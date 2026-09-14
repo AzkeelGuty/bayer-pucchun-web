@@ -4,4 +4,4 @@
 <article class="card portal-export-card"><div class="card-body"><div class="portal-export-icon"><i class="bi <?=$type==='documents'?'bi-file-earmark-text':($type==='guides'?'bi-truck':'bi-box-seam')?>"></i></div><h3><?=e($meta[0])?></h3><p><?=e($meta[1])?></p><a class="btn btn-primary btn-with-icon" href="<?=url('/bayer/datos?type='.$type)?>"><i class="bi bi-search"></i><span>Consultar y exportar</span></a></div></article>
 <?php endforeach;?>
 </div>
-<div class="format-legend"><span>XLSX · análisis</span><span>CSV · intercambio</span><span>JSON · interoperabilidad</span><span>TXT · formato plano</span><span>PDF · reporte</span></div>
+<div class="format-legend"><span>XLSX · análisis</span><span>JSON · interoperabilidad</span><span>TXT · formato plano</span><span>PDF · reporte</span></div>
