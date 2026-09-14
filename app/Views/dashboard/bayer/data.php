@@ -29,7 +29,7 @@ $queryBase=http_build_query(array_filter(['type'=>$type,'from'=>$filters['from']
     <div class="format-actions"><?php foreach(['xlsx'=>'bi-file-earmark-spreadsheet','json'=>'bi-braces','txt'=>'bi-filetype-txt','pdf'=>'bi-filetype-pdf'] as $format=>$icon): ?><a href="<?=url('/export?'.$queryBase.'&format='.$format)?>" class="format-chip format-<?=$format?>"><i class="bi <?=e($icon)?>"></i><?=strtoupper($format)?></a><?php endforeach;?></div>
 </div>
 
-<div class="card">
+<div class="card" data-live-refresh="5000" data-live-refresh-key="bayer-published-data">
     <div class="card-body p-0">
         <?php if(!$rows): ?><div class="empty-state"><strong>No hay resultados publicados.</strong><span>Ajusta el periodo o los filtros de consulta.</span></div>
         <?php else: ?><div class="table-responsive"><table class="table app-table published-table mb-0"><thead><tr><?php foreach(array_keys($rows[0]) as $h): ?><th><?=e(ucwords(preg_replace('/([a-z])([A-Z])/','$1 $2',$h)))?></th><?php endforeach;?></tr></thead><tbody><?php foreach($rows as $row): ?><tr><?php foreach($row as $value): ?><td><?=e($value??'—')?></td><?php endforeach;?></tr><?php endforeach;?></tbody></table></div><?php endif;?>
