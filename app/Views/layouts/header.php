@@ -21,6 +21,7 @@ $favicon = branding_logo_url('favicon');
         }
     </style>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?=url('/assets/css/app.css')?>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
@@ -60,9 +61,19 @@ $favicon = branding_logo_url('favicon');
 <main class="guest-main">
 <?php endif; ?>
 
+<div class="app-notifications" aria-live="polite" aria-atomic="true">
 <?php if($m=flash('success')): ?>
-    <div class="alert alert-success app-alert" role="alert"><?=e($m)?></div>
+    <div class="alert alert-success app-alert app-alert-floating alert-dismissible fade show js-auto-dismiss" role="alert">
+        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+        <div><strong>Operación completada</strong><span><?=e($m)?></span></div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
 <?php endif; ?>
 <?php if($m=flash('error')): ?>
-    <div class="alert alert-danger app-alert" role="alert"><?=e($m)?></div>
+    <div class="alert alert-danger app-alert app-alert-floating alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        <div><strong>No se pudo completar</strong><span><?=e($m)?></span></div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+    </div>
 <?php endif; ?>
+</div>
