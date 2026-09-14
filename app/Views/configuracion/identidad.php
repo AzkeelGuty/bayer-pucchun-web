@@ -5,7 +5,7 @@ $favicon = branding_logo_url('favicon');
 ?>
 <section class="page-header">
     <div>
-        <div class="page-eyebrow">CONFIGURACIÓN</div>
+        <div class="page-eyebrow"><i class="bi bi-palette2"></i> CONFIGURACIÓN</div>
         <h1 class="page-title">Identidad visual</h1>
         <p class="page-subtitle">Personaliza nombres, textos, paleta, menú, logotipos y favicon sin tocar el código.</p>
     </div>
@@ -84,7 +84,7 @@ $favicon = branding_logo_url('favicon');
                 <div class="card-body p-4">
                     <div class="branding-section-head branding-section-head-actions">
                         <div><span>03</span><div><h5>Paleta y apariencia</h5><p>Colores generales y estilo del menú lateral.</p></div></div>
-                        <button class="btn btn-sm btn-outline-secondary" type="button" id="brandingDefaults">Restablecer sugeridos</button>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" id="brandingDefaults"><i class="bi bi-arrow-counterclockwise"></i> Restablecer sugeridos</button>
                     </div>
 
                     <div class="brand-presets" aria-label="Paletas rápidas">
@@ -162,8 +162,8 @@ $favicon = branding_logo_url('favicon');
                     <small>Incluye login, barra superior, menú, pie y portal Bayer.</small>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                    <a class="btn btn-outline-primary" href="<?=url('/dashboard')?>">Volver</a>
-                    <button class="btn btn-primary" type="submit">Guardar identidad</button>
+                    <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/dashboard')?>"><i class="bi bi-arrow-left"></i><span>Volver</span></a>
+                    <button class="btn btn-primary btn-with-icon" type="submit"><i class="bi bi-floppy"></i><span>Guardar identidad</span></button>
                 </div>
             </div>
         </div>
