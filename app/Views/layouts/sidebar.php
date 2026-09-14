@@ -26,56 +26,56 @@ $sections=[];
 if (has_role('BAYER')) {
     $sections=[
         'PORTAL BAYER'=>[
-            ['/bayer','DB','Dashboard'],
-            ['/bayer/datos?type=documents','DC','Documentos publicados'],
-            ['/bayer/datos?type=guides','GR','Guías publicadas'],
-            ['/bayer/datos?type=stock','ST','Stock publicado'],
-            ['/bayer/exportaciones','EX','Exportaciones'],
-            ['/bayer/descargas','HI','Historial de descargas'],
+            ['/bayer','bi-speedometer2','Dashboard'],
+            ['/bayer/datos?type=documents','bi-file-earmark-check','Documentos publicados'],
+            ['/bayer/datos?type=guides','bi-truck','Guías publicadas'],
+            ['/bayer/datos?type=stock','bi-box-seam','Stock publicado'],
+            ['/bayer/exportaciones','bi-download','Exportaciones'],
+            ['/bayer/descargas','bi-clock-history','Historial de descargas'],
         ],
     ];
 } else {
     if (has_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA')) {
-        $sections['ANALÍTICA']=[['/dashboard','DB','Dashboard Pucchún']];
+        $sections['ANALÍTICA']=[['/dashboard','bi-speedometer2','Dashboard Pucchún']];
     }
 
     $operations=[];
     if (has_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA')) {
         $operations=[
-            ['/documentos','DC','Documentos'],
-            ['/guias','GR','Guías de remisión'],
-            ['/stock','ST','Stock'],
+            ['/documentos','bi-file-earmark-text','Documentos'],
+            ['/guias','bi-truck','Guías de remisión'],
+            ['/stock','bi-box-seam','Stock'],
         ];
     }
     if ($operations) $sections['OPERACIÓN']=$operations;
 
     if (has_role('ADMIN','SUPERVISOR')) {
         $sections['CALIDAD']=[
-            ['/validacion','VA','Validación y publicación'],
+            ['/validacion','bi-patch-check','Validación y publicación'],
         ];
     }
 
     if (has_role('ADMIN')) {
         $sections['CONFIGURACIÓN BASE']=[
-            ['/maestros','MA','Catálogos maestros'],
-            ['/homologaciones','HO','Homologaciones Bayer'],
+            ['/maestros','bi-database-gear','Catálogos maestros'],
+            ['/homologaciones','bi-diagram-3','Homologaciones Bayer'],
         ];
     }
 
     if (has_role('ADMIN','SUPERVISOR','GERENCIA')) {
         $sections['INFORMACIÓN']=[
-            ['/reportes','RE','Reportes y exportaciones'],
-            ['/publicaciones','PU','Publicaciones'],
-            ['/auditoria','AU','Auditoría'],
-            ['/bayer','PB','Vista Portal Bayer'],
+            ['/reportes','bi-bar-chart-line','Reportes y exportaciones'],
+            ['/publicaciones','bi-cloud-check','Publicaciones'],
+            ['/auditoria','bi-shield-check','Auditoría'],
+            ['/bayer','bi-window-sidebar','Vista Portal Bayer'],
         ];
     }
 
     if (has_role('ADMIN')) {
         $sections['ADMINISTRACIÓN']=[
-            ['/seguridad','US','Usuarios y accesos'],
-            ['/configuracion/identidad','ID','Identidad visual'],
-            ['/evolucion','AP','API / ERP futuro'],
+            ['/seguridad','bi-people','Usuarios y accesos'],
+            ['/configuracion/identidad','bi-palette','Identidad visual'],
+            ['/evolucion','bi-plug','API / ERP futuro'],
         ];
     }
 }
@@ -107,7 +107,7 @@ $sidebarLogo = has_role('BAYER') ? ($partnerLogo ?: $primaryLogo) : $primaryLogo
                 $active=$isActive($href);
             ?>
                 <a class="sidebar-link<?=$active?' active':''?>" href="<?=url($href)?>" <?=$active?'aria-current="page"':''?>>
-                    <span class="sidebar-icon" aria-hidden="true"><?=e($icon)?></span>
+                    <span class="sidebar-icon" aria-hidden="true"><i class="bi <?=e($icon)?>"></i></span>
                     <span><?=e($label)?></span>
                 </a>
             <?php endforeach; ?>
