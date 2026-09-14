@@ -680,3 +680,9 @@ button,input,select,textarea{font:inherit}
     .app-notifications{top:12px;right:14px}
     .security-card-heading>div{align-items:flex-start}
 }
+
+.sidebar-icon .bi{font-size:1rem;line-height:1}
+.kpi-mini-icon .bi{font-size:1rem;line-height:1}
+.portal-action-card>span .bi,.portal-export-icon .bi,.export-card-icon .bi{font-size:1.15rem;line-height:1}
+.format-chip .bi,.export-actions .bi{font-size:.82rem}
+.workflow-summary span .bi{margin-right:4px}
