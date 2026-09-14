@@ -195,6 +195,76 @@
 
     refreshBrandPreview();
 
+    /*
+     * Actualización automática de tablas.
+     * Pensado para hosting compartido: polling ligero, sin WebSockets ni recarga completa.
+     * Solo se ejecuta mientras la pestaña del navegador está visible.
+     */
+    const liveElements = Array.from(document.querySelectorAll('[data-live-refresh][data-live-refresh-key]'));
+    const liveRefreshMap = new Map();
+
+    const refreshLiveElement = async (element) => {
+        if (!element || !element.isConnected || document.hidden) return;
+        const key = element.dataset.liveRefreshKey;
+        if (!key || liveRefreshMap.get(key)) return;
+
+        liveRefreshMap.set(key, true);
+        try {
+            const response = await fetch(window.location.href, {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            if (!response.ok) return;
+
+            const html = await response.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const fresh = doc.querySelector('[data-live-refresh-key="' + CSS.escape(key) + '"]');
+            if (!fresh) return;
+
+            const currentHtml = element.innerHTML;
+            if (currentHtml !== fresh.innerHTML) {
+                element.innerHTML = fresh.innerHTML;
+                element.dataset.liveUpdatedAt = new Date().toISOString();
+            }
+        } catch (_) {
+            // Una caída temporal de red no debe interrumpir la pantalla.
+        } finally {
+            liveRefreshMap.set(key, false);
+        }
+    };
+
+    liveElements.forEach((element) => {
+        const interval = Math.max(2000, Number(element.dataset.liveRefresh || 5000));
+        const schedule = () => {
+            window.setTimeout(async () => {
+                if (element.isConnected) {
+                    await refreshLiveElement(element);
+                    schedule();
+                }
+            }, interval);
+        };
+        schedule();
+    });
+
+    // Después de generar una exportación, refrescar el historial sin F5.
+    document.querySelectorAll('a.export-format, .format-actions a').forEach((link) => {
+        link.addEventListener('click', () => {
+            liveElements.forEach((element) => {
+                window.setTimeout(() => refreshLiveElement(element), 450);
+                window.setTimeout(() => refreshLiveElement(element), 1400);
+            });
+        });
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) liveElements.forEach((element) => refreshLiveElement(element));
+    });
+
     if (!window.dashboardData || typeof Chart === 'undefined') return;
 
     const series = window.dashboardData.series || [];
