@@ -30,7 +30,7 @@ $metrics=[
 <a class="portal-action-card" href="<?=url('/bayer/datos?type=documents')?>"><span><i class="bi bi-file-earmark-text"></i></span><div><strong>Documentos</strong><small>Consultar datos publicados</small></div><b><i class="bi bi-arrow-right"></i></b></a>
 <a class="portal-action-card" href="<?=url('/bayer/datos?type=guides')?>"><span><i class="bi bi-truck"></i></span><div><strong>Guías de remisión</strong><small>Consultar datos publicados</small></div><b><i class="bi bi-arrow-right"></i></b></a>
 <a class="portal-action-card" href="<?=url('/bayer/datos?type=stock')?>"><span><i class="bi bi-box-seam"></i></span><div><strong>Stock</strong><small>Consultar datos publicados</small></div><b><i class="bi bi-arrow-right"></i></b></a>
-<a class="portal-action-card" href="<?=url('/bayer/exportaciones')?>"><span><i class="bi bi-download"></i></span><div><strong>Exportaciones</strong><small>XLSX, CSV, JSON, TXT y PDF</small></div><b><i class="bi bi-arrow-right"></i></b></a>
+<a class="portal-action-card" href="<?=url('/bayer/exportaciones')?>"><span><i class="bi bi-download"></i></span><div><strong>Exportaciones</strong><small>XLSX, JSON, TXT y PDF</small></div><b><i class="bi bi-arrow-right"></i></b></a>
 </div>
 
 <script>
