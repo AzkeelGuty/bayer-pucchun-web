@@ -6,7 +6,7 @@
         <p class="page-subtitle">Seguimiento de guías, cantidades y estado de publicación.</p>
     </div>
     <?php if(has_role('ADMIN','DIGITADOR')): ?>
-        <a class="btn btn-primary" href="<?=url('/guias/nuevo')?>">Nueva guía</a>
+        <a class="btn btn-primary btn-with-icon" href="<?=url('/guias/nuevo')?>"><i class="bi bi-plus-circle"></i><span>Nueva guía</span></a>
     <?php endif; ?>
 </section>
 
@@ -31,12 +31,12 @@
                             <td>
     <div class="row-actions">
         <?php if(($r['estado_registro']??'')==='BORRADOR' && has_role('ADMIN','DIGITADOR')): ?>
-            <a class="btn btn-sm btn-outline-primary" href="<?=url('/guias/editar?id='.urlencode((string)$r['id']))?>">Editar</a>
+            <a class="btn btn-sm btn-outline-primary btn-with-icon" href="<?=url('/guias/editar?id='.urlencode((string)$r['id']))?>"><i class="bi bi-pencil-square"></i><span>Editar</span></a>
             <form method="post" action="<?=url('/guias/eliminar')?>" onsubmit="return confirm('¿Eliminar este borrador?');">
                 <?=csrf_field()?>
                 <input type="hidden" name="id" value="<?=e($r['id'])?>">
                 <input type="hidden" name="version" value="<?=e($r['version'])?>">
-                <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
+                <button class="btn btn-sm btn-outline-danger btn-with-icon" type="submit"><i class="bi bi-trash3"></i><span>Eliminar</span></button>
             </form>
         <?php endif; ?>
         <?php workflow_control('guias',$r); ?>
