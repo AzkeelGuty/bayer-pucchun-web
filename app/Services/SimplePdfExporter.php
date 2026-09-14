@@ -83,41 +83,41 @@ final class SimplePdfExporter
         $m=self::MARGIN;
         $content=[];
 
-        // Cabecera corporativa
-        $content[]=$this->fillRect(0,$h-92,$w,92,$pr,$pg,$pb);
-        $content[]=$this->fillRect(0,$h-96,$w,4,$ar,$ag,$ab);
-        $content[]=$this->text($m,$h-34,'REPORTE OFICIAL',7.2,'F2',.75,.91,.98);
-        $content[]=$this->text($m,$h-57,(string)($meta['title']??'Reporte de datos'),19.5,'F2',1,1,1);
-        $content[]=$this->text($m,$h-76,(string)($meta['system']??'Pucchún Data Hub').' · '.(string)($meta['partner']??'Bayer'),8.5,'F1',.86,.93,.98);
+        // Cabecera corporativa limpia y orientada al documento.
+        $content[]=$this->fillRect(0,$h-94,$w,94,$pr,$pg,$pb);
+        $content[]=$this->fillRect(0,$h-98,$w,4,$ar,$ag,$ab);
 
-        // Logos configurados: Pucchún y aliado, cuando el servidor puede procesarlos.
+        $dataset=mb_strtoupper((string)($meta['dataset']??'DATOS'));
+        $content[]=$this->text($m,$h-30,'REPORTE OFICIAL · '.$dataset,7.1,'F2',.76,.91,.98);
+        $content[]=$this->text($m,$h-54,(string)($meta['title']??'Reporte de datos'),19.5,'F2',1,1,1);
+        $content[]=$this->text($m,$h-73,'Información publicada para consulta, análisis y entrega',8.3,'F1',.88,.94,.98);
+        $content[]=$this->text($m,$h-87,(string)($meta['system']??'Pucchún Data Hub').' · '.(string)($meta['partner']??'Bayer'),7.2,'F1',.70,.84,.93);
+
+        // Logo PRINCIPAL configurado en Identidad visual, siempre en la esquina superior derecha.
         if($images){
-            $logoX=$w-$m-58;
-            foreach(array_reverse($images,true) as $index=>$image){
-                $boxW=52;
-                $boxH=50;
-                $content[]=$this->fillRect($logoX,$h-70,$boxW,$boxH,1,1,1);
-                $content[]=$this->strokeRect($logoX,$h-70,$boxW,$boxH,.82,.90,.95,.5);
-                [$iw,$ih]=$this->fitImage($image['width'],$image['height'],$boxW-10,$boxH-10);
-                $ix=$logoX+($boxW-$iw)/2;
-                $iy=$h-70+($boxH-$ih)/2;
-                $content[]=$this->image($ix,$iy,$iw,$ih,'Im'.($index+1));
-                $logoX-=$boxW+8;
-            }
+            $image=$images[0];
+            $boxW=76;
+            $boxH=58;
+            $logoX=$w-$m-$boxW;
+            $logoY=$h-75;
+            $content[]=$this->fillRect($logoX,$logoY,$boxW,$boxH,1,1,1);
+            $content[]=$this->strokeRect($logoX,$logoY,$boxW,$boxH,.78,.88,.94,.55);
+            [$iw,$ih]=$this->fitImage($image['width'],$image['height'],$boxW-12,$boxH-12);
+            $ix=$logoX+($boxW-$iw)/2;
+            $iy=$logoY+($boxH-$ih)/2;
+            $content[]=$this->image($ix,$iy,$iw,$ih,'Im1');
+            $content[]=$this->text($logoX-112,$h-35,'INFORMACIÓN PUBLICADA',6.7,'F2',.85,.97,.91);
+            $content[]=$this->text($logoX-112,$h-51,'Emitido: '.(string)($meta['generated_at']??date('Y-m-d H:i:s')),6.5,'F1',.84,.91,.96);
+            $content[]=$this->text($logoX-112,$h-66,'Página '.$page.' de '.$pages,6.5,'F1',.84,.91,.96);
         }else{
-            $content[]=$this->text($w-$m-132,$h-46,'INFORMACIÓN PUBLICADA',7.2,'F2',.86,.98,.91);
-            $content[]=$this->text($w-$m-132,$h-63,'Consulta autorizada',6.8,'F1',.86,.93,.98);
+            // Si el hosting no puede rasterizar el formato del logo, mantener una cabecera sobria.
+            $content[]=$this->text($w-$m-145,$h-35,'INFORMACIÓN PUBLICADA',6.7,'F2',.85,.97,.91);
+            $content[]=$this->text($w-$m-145,$h-51,'Emitido: '.(string)($meta['generated_at']??date('Y-m-d H:i:s')),6.5,'F1',.84,.91,.96);
+            $content[]=$this->text($w-$m-145,$h-66,'Página '.$page.' de '.$pages,6.5,'F1',.84,.91,.96);
         }
 
-        // Banda de trazabilidad
-        $statusY=$h-118;
-        $content[]=$this->fillRect($m,$statusY-20,$w-2*$m,20,.95,.985,.97);
-        $content[]=$this->strokeRect($m,$statusY-20,$w-2*$m,20,.80,.91,.85,.45);
-        $content[]=$this->text($m+9,$statusY-13,'✓ DATOS VALIDADOS Y PUBLICADOS',7,'F2',$ar,$ag,$ab);
-        $content[]=$this->text($m+185,$statusY-13,'Fuente: Pucchún Data Hub · Acceso según rol · Exportación trazable',6.9,'F1',.34,.47,.57);
-
-        // Metadatos
-        $metaY=$h-171;
+        // Metadatos: comienzan inmediatamente debajo de la cabecera.
+        $metaY=$h-140;
         $metaItems=[
             ['Generado por',(string)($meta['generated_by']??'Usuario autorizado')],
             ['Fecha y hora',(string)($meta['generated_at']??date('Y-m-d H:i:s'))],
@@ -180,7 +180,7 @@ final class SimplePdfExporter
         $content[]=$this->strokeLine($m,28,$w-$m,28,.82,.88,.92,.6);
         $content[]=$this->text($m,16,'Pucchún Data Hub · Documento generado automáticamente · Información publicada y trazable',6.5,'F1',.42,.52,.60);
         $content[]=$this->text($m,7,$this->clip((string)($meta['filename']??'reporte.pdf'),80),5.9,'F1',.55,.62,.68);
-        $content[]=$this->text($w-$m-58,13,'Página '.$page.' de '.$pages,6.6,'F2',.35,.47,.57);
+        $content[]=$this->text($w-$m-116,13,'Generado: '.(string)($meta['generated_at']??date('Y-m-d H:i:s')),6.2,'F1',.45,.54,.61);
 
         return implode("\n",$content);
     }
@@ -190,7 +190,6 @@ final class SimplePdfExporter
         $images=[];
         foreach([
             $meta['logo_primary_path']??null,
-            $meta['logo_partner_path']??null,
         ] as $path){
             $asset=$this->prepareJpegAsset(is_string($path)?$path:'');
             if($asset!==null) $images[]=$asset;
