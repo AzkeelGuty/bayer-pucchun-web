@@ -72,7 +72,7 @@ if($activeTab==='' && !empty($tabs)){
 </nav>
 <?php endif; ?>
 
-<div class="card data-table-card">
+<div class="card data-table-card" data-live-refresh="6000" data-live-refresh-key="backoffice-data-table">
     <div class="card-body p-0">
         <?php if(!$rows): ?>
             <div class="empty-state"><i class="bi bi-inbox fs-3 mb-2"></i><strong>Sin información registrada.</strong><span>Los datos disponibles aparecerán aquí.</span></div>
