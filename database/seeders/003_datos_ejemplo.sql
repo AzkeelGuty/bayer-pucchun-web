@@ -209,6 +209,10 @@ SET @doc_val := (SELECT id FROM documentos_cabecera WHERE tipo_documento_id=@fac
 SET @doc_bor := (SELECT id FROM documentos_cabecera WHERE tipo_documento_id=@bol AND numero='B001-000321' LIMIT 1);
 SET @doc_obs := (SELECT id FROM documentos_cabecera WHERE tipo_documento_id=@fac AND numero='F001-000127' LIMIT 1);
 
+UPDATE documentos_cabecera SET version=3 WHERE id=@doc_pub;
+UPDATE documentos_cabecera SET version=2 WHERE id IN (@doc_val,@doc_obs);
+UPDATE documentos_cabecera SET version=1 WHERE id=@doc_bor;
+
 DELETE FROM documentos_detalle WHERE documento_id IN (@doc_pub,@doc_val,@doc_bor,@doc_obs);
 INSERT INTO documentos_detalle(documento_id,producto_id,unidad_id,cantidad,valor_unitario) VALUES
 (@doc_pub,@p1,@lit,40.000,86.50),
@@ -233,6 +237,10 @@ SET @guia_pub := (SELECT id FROM guias_cabecera WHERE numero='T001-000891' LIMIT
 SET @guia_val := (SELECT id FROM guias_cabecera WHERE numero='T001-000892' LIMIT 1);
 SET @guia_bor := (SELECT id FROM guias_cabecera WHERE numero='T001-000893' LIMIT 1);
 
+UPDATE guias_cabecera SET version=3 WHERE id=@guia_pub;
+UPDATE guias_cabecera SET version=2 WHERE id=@guia_val;
+UPDATE guias_cabecera SET version=1 WHERE id=@guia_bor;
+
 DELETE FROM guias_detalle WHERE guia_id IN (@guia_pub,@guia_val,@guia_bor);
 INSERT INTO guias_detalle(guia_id,producto_id,unidad_id,cantidad) VALUES
 (@guia_pub,@p1,@lit,40.000),
@@ -254,6 +262,10 @@ SET @stock_pub := (SELECT id FROM stock_cabecera WHERE idempotency_key='seed-sto
 SET @stock_val := (SELECT id FROM stock_cabecera WHERE idempotency_key='seed-stock-gro-20260911' LIMIT 1);
 SET @stock_bor := (SELECT id FROM stock_cabecera WHERE idempotency_key='seed-stock-chi-20260912' LIMIT 1);
 
+UPDATE stock_cabecera SET version=3 WHERE id=@stock_pub;
+UPDATE stock_cabecera SET version=2 WHERE id=@stock_val;
+UPDATE stock_cabecera SET version=1 WHERE id=@stock_bor;
+
 DELETE FROM stock_detalle WHERE stock_id IN (@stock_pub,@stock_val,@stock_bor);
 INSERT INTO stock_detalle(stock_id,lote_id,producto_id,unidad_id,cantidad,fecha_stock,almacen_id) VALUES
 (@stock_pub,@l1,@p1,@lit,180.000,'2026-09-10',@alm_chincha),
@@ -265,19 +277,19 @@ INSERT INTO stock_detalle(stock_id,lote_id,producto_id,unidad_id,cantidad,fecha_
 
 -- 8. VALIDACIONES
 INSERT INTO validaciones(modulo,registro_id,usuario_id,resultado,observacion,validated_at,version,correlation_id)
-SELECT 'documentos',@doc_val,@supervisor_id,'OK','Campos y consistencia verificados.','2026-09-08 12:00:00',1,'seed-val-doc-126'
+SELECT 'documentos',@doc_val,@supervisor_id,'OK','Campos y consistencia verificados.','2026-09-08 12:00:00',2,'seed-val-doc-126'
 WHERE NOT EXISTS (SELECT 1 FROM validaciones WHERE correlation_id='seed-val-doc-126');
 
 INSERT INTO validaciones(modulo,registro_id,usuario_id,resultado,observacion,validated_at,version,correlation_id)
-SELECT 'documentos',@doc_obs,@supervisor_id,'OBSERVADO','Se requiere revisar unidad y cantidad.','2026-09-11 09:00:00',1,'seed-val-doc-127'
+SELECT 'documentos',@doc_obs,@supervisor_id,'OBSERVADO','Se requiere revisar unidad y cantidad.','2026-09-11 09:00:00',2,'seed-val-doc-127'
 WHERE NOT EXISTS (SELECT 1 FROM validaciones WHERE correlation_id='seed-val-doc-127');
 
 INSERT INTO validaciones(modulo,registro_id,usuario_id,resultado,observacion,validated_at,version,correlation_id)
-SELECT 'guias',@guia_val,@supervisor_id,'OK','Guía revisada y conforme.','2026-09-09 14:05:00',1,'seed-val-guia-892'
+SELECT 'guias',@guia_val,@supervisor_id,'OK','Guía revisada y conforme.','2026-09-09 14:05:00',2,'seed-val-guia-892'
 WHERE NOT EXISTS (SELECT 1 FROM validaciones WHERE correlation_id='seed-val-guia-892');
 
 INSERT INTO validaciones(modulo,registro_id,usuario_id,resultado,observacion,validated_at,version,correlation_id)
-SELECT 'stock',@stock_val,@supervisor_id,'OK','Existencias verificadas.','2026-09-11 17:40:00',1,'seed-val-stock-0911'
+SELECT 'stock',@stock_val,@supervisor_id,'OK','Existencias verificadas.','2026-09-11 17:40:00',2,'seed-val-stock-0911'
 WHERE NOT EXISTS (SELECT 1 FROM validaciones WHERE correlation_id='seed-val-stock-0911');
 
 SET @val_doc := (SELECT id FROM validaciones WHERE correlation_id='seed-val-doc-126' LIMIT 1);
@@ -296,21 +308,21 @@ SELECT 'documentos','2026-09-05 10:20:00',@supervisor_id,'PUBLICADO','seed-pub-d
 WHERE NOT EXISTS (SELECT 1 FROM publicaciones WHERE correlation_id='seed-pub-doc-125');
 SET @pub_doc := (SELECT id FROM publicaciones WHERE correlation_id='seed-pub-doc-125' LIMIT 1);
 INSERT IGNORE INTO detalle_publicacion(publicacion_id,registro_id,dataset,version)
-VALUES(@pub_doc,@doc_pub,'documentos',1);
+VALUES(@pub_doc,@doc_pub,'documentos',3);
 
 INSERT INTO publicaciones(modulo,fecha_publicacion,usuario_id,estado,correlation_id)
 SELECT 'guias','2026-09-06 09:35:00',@supervisor_id,'PUBLICADO','seed-pub-guia-891'
 WHERE NOT EXISTS (SELECT 1 FROM publicaciones WHERE correlation_id='seed-pub-guia-891');
 SET @pub_guia := (SELECT id FROM publicaciones WHERE correlation_id='seed-pub-guia-891' LIMIT 1);
 INSERT IGNORE INTO detalle_publicacion(publicacion_id,registro_id,dataset,version)
-VALUES(@pub_guia,@guia_pub,'guias',1);
+VALUES(@pub_guia,@guia_pub,'guias',3);
 
 INSERT INTO publicaciones(modulo,fecha_publicacion,usuario_id,estado,correlation_id)
 SELECT 'stock','2026-09-10 18:00:00',@supervisor_id,'PUBLICADO','seed-pub-stock-0910'
 WHERE NOT EXISTS (SELECT 1 FROM publicaciones WHERE correlation_id='seed-pub-stock-0910');
 SET @pub_stock := (SELECT id FROM publicaciones WHERE correlation_id='seed-pub-stock-0910' LIMIT 1);
 INSERT IGNORE INTO detalle_publicacion(publicacion_id,registro_id,dataset,version)
-VALUES(@pub_stock,@stock_pub,'stock',1);
+VALUES(@pub_stock,@stock_pub,'stock',3);
 
 -- 10. EXPORTACIONES
 INSERT INTO exportaciones(nombre_archivo,tipo_dataset,formato,filtro_json,usuario_id,generated_at,record_count,resultado,duration_ms,correlation_id)
