@@ -894,3 +894,70 @@ button,input,select,textarea{font:inherit}
     border-radius:999px;
     background:var(--bp-green);
 }
+
+
+/* ===== Estado activo inequívoco en Catálogos y Homologaciones ===== */
+.section-tabs.section-tabs-strong{
+    display:flex;
+    flex-wrap:wrap;
+    gap:9px;
+}
+.section-tabs.section-tabs-strong .section-tab{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    min-height:40px;
+    padding:9px 13px;
+    border:1px solid #cddde8;
+    border-radius:11px;
+    background:#fff;
+    color:#547088;
+    font-weight:700;
+    box-shadow:0 2px 7px rgba(5,67,112,.025);
+}
+.section-tabs.section-tabs-strong .section-tab:hover{
+    background:#eef6fb;
+    color:#075b9f;
+    border-color:#9fc5dc;
+}
+.section-tabs.section-tabs-strong .section-tab .section-tab-check{
+    display:none;
+    font-size:.72rem!important;
+    margin-left:1px;
+}
+.section-tabs.section-tabs-strong .section-tab.active,
+.section-tabs.section-tabs-strong .section-tab[aria-current="page"],
+.section-tabs.section-tabs-strong .section-tab[aria-selected="true"]{
+    background:#075b9f!important;
+    background:linear-gradient(135deg,#075b9f 0%,#0b6ca8 58%,#168c5b 100%)!important;
+    color:#fff!important;
+    border-color:#075b9f!important;
+    box-shadow:0 8px 18px rgba(7,91,159,.22)!important;
+    transform:translateY(-1px);
+}
+.section-tabs.section-tabs-strong .section-tab.active i,
+.section-tabs.section-tabs-strong .section-tab.active span,
+.section-tabs.section-tabs-strong .section-tab[aria-current="page"] i,
+.section-tabs.section-tabs-strong .section-tab[aria-current="page"] span,
+.section-tabs.section-tabs-strong .section-tab[aria-selected="true"] i,
+.section-tabs.section-tabs-strong .section-tab[aria-selected="true"] span{
+    color:#fff!important;
+}
+.section-tabs.section-tabs-strong .section-tab.active .section-tab-check,
+.section-tabs.section-tabs-strong .section-tab[aria-current="page"] .section-tab-check,
+.section-tabs.section-tabs-strong .section-tab[aria-selected="true"] .section-tab-check{
+    display:inline-block!important;
+}
+.section-tabs.section-tabs-strong .section-tab.active::after,
+.section-tabs.section-tabs-strong .section-tab[aria-current="page"]::after,
+.section-tabs.section-tabs-strong .section-tab[aria-selected="true"]::after{
+    content:"";
+    position:absolute;
+    left:12px;
+    right:12px;
+    bottom:-6px;
+    height:3px;
+    border-radius:999px;
+    background:#168c5b;
+}
