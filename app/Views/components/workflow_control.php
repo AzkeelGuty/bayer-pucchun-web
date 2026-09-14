@@ -27,7 +27,7 @@ function workflow_control(string $module, array $row): void
         <?php if($needsReason): ?>
             <input name="reason" class="form-control form-control-sm" maxlength="500" placeholder="Motivo si aplica">
         <?php endif; ?>
-        <button class="btn btn-sm btn-outline-primary" type="submit">Aplicar</button>
+        <button class="btn btn-sm btn-outline-primary btn-with-icon" type="submit"><i class="bi bi-check2-circle"></i><span>Aplicar</span></button>
     </form>
     <?php
 }
