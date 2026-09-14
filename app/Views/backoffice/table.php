@@ -29,6 +29,18 @@ $headingLabels=[
 $headerLabel=static function(string $key) use($headingLabels): string {
     return $headingLabels[$key] ?? ucwords(str_replace('_',' ',$key));
 };
+
+/*
+ * Estado activo robusto:
+ * - Si existe ?tab=..., manda la URL actual.
+ * - Si no existe, usa el valor enviado por el controlador.
+ * - Como último respaldo usa la primera pestaña disponible.
+ */
+$requestedTab=isset($_GET['tab']) ? strtolower(trim((string)$_GET['tab'])) : '';
+$activeTab=$requestedTab!=='' ? $requestedTab : strtolower(trim((string)($active ?? '')));
+if($activeTab==='' && !empty($tabs)){
+    $activeTab=(string)array_key_first($tabs);
+}
 ?>
 <section class="page-header">
     <div>
@@ -41,17 +53,20 @@ $headerLabel=static function(string $key) use($headingLabels): string {
 <?php if($tabs): ?>
 <nav class="section-tabs section-tabs-strong" aria-label="<?=e($section)?>">
     <?php foreach($tabs as $key=>$label):
-        $isActive=$key===$active;
+        $normalizedKey=strtolower(trim((string)$key));
+        $isActive=$normalizedKey===$activeTab;
         $icon=$tabIcons[$key]??'bi-grid';
     ?>
         <a
             class="section-tab <?=$isActive?'active':''?>"
             href="<?=url($base.'?tab='.urlencode((string)$key))?>"
+            data-tab="<?=e((string)$key)?>"
+            aria-selected="<?=$isActive?'true':'false'?>"
             <?=$isActive?'aria-current="page"':''?>
         >
             <i class="bi <?=e($icon)?>" aria-hidden="true"></i>
             <span><?=e($label)?></span>
-            <?php if($isActive): ?><i class="bi bi-check-circle-fill section-tab-check" aria-hidden="true"></i><?php endif;?>
+            <i class="bi bi-check-circle-fill section-tab-check" aria-hidden="true"></i>
         </a>
     <?php endforeach; ?>
 </nav>
