@@ -600,3 +600,83 @@ button,input,select,textarea{font:inherit}
     .brand-ui-preview{grid-template-columns:39% 61%;min-height:280px}
     .branding-savebar .btn{flex:1}
 }
+
+
+/* Professional iconography, security management and access context */
+.btn-with-icon{display:inline-flex;align-items:center;justify-content:center;gap:.5rem}
+.btn-with-icon .bi{font-size:1em;line-height:1}
+.icon-action{display:inline-grid;place-items:center;min-width:36px;min-height:34px;padding:.35rem}
+.page-eyebrow .bi,.form-label .bi{margin-right:.35rem}
+.security-page-header{align-items:center}
+.security-create-card{border-color:#cfe0eb}
+.security-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.security-card-heading>div{display:flex;gap:12px;align-items:center}
+.security-card-heading h5{margin:0;color:var(--bp-navy);font-weight:800}
+.security-card-heading p{margin:3px 0 0;color:var(--bp-muted);font-size:.78rem}
+.security-heading-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--bp-blue-soft);color:var(--bp-blue);font-size:1.1rem}
+.security-table-title{display:flex;align-items:center;gap:8px;color:var(--bp-navy)}
+.security-table-title>.bi,.security-table-title>div>.bi{color:var(--bp-blue)}
+.security-table-title-between{justify-content:space-between}
+.security-table-title-between>div{display:flex;align-items:center;gap:8px}
+.security-table-title-between small{color:var(--bp-muted);font-weight:500}
+.user-table-cell{display:flex;align-items:center;gap:10px;min-width:210px}
+.user-table-avatar{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--bp-blue-soft);color:var(--bp-blue);font-weight:900}
+.user-table-cell>div{display:flex;flex-direction:column}
+.user-table-cell small{color:var(--bp-muted);font-size:.72rem;margin-top:2px}
+.badge-status .bi{font-size:.72rem}
+.access-table{min-width:1060px}
+.access-table th .bi{margin-right:5px;color:#52718a}
+.access-date{font-variant-numeric:tabular-nums;white-space:nowrap}
+.access-ip,.access-device,.access-action{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.access-ip{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#37556d;background:#f3f7fa;border:1px solid #e1e9ef;padding:5px 8px;border-radius:8px}
+.access-device{color:#35536b}
+.access-device .bi{font-size:1rem;color:var(--bp-blue)}
+.access-action{font-weight:750;font-size:.76rem;padding:6px 9px;border-radius:999px}
+.access-action.access-ok{background:#e8f7ef;color:#0d7a4c}
+.access-action.access-neutral{background:#eef3f7;color:#50677a}
+.access-action.access-danger{background:#fdecec;color:#b42318}
+.empty-inline{display:flex;align-items:center;justify-content:center;gap:8px;padding:28px;color:var(--bp-muted)}
+
+/* Floating operation feedback */
+.app-notifications{position:fixed;top:92px;right:22px;z-index:1090;width:min(390px,calc(100vw - 28px));pointer-events:none}
+.app-alert-floating{pointer-events:auto;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:13px 14px;border:1px solid rgba(0,0,0,.05);box-shadow:0 16px 42px rgba(5,67,112,.18)}
+.app-alert-floating>.bi{font-size:1.25rem}
+.app-alert-floating>div{display:flex;flex-direction:column;line-height:1.25}
+.app-alert-floating strong{font-size:.78rem}
+.app-alert-floating span{font-size:.74rem;margin-top:2px}
+.app-alert-floating .btn-close{position:static;margin:0;padding:.55rem}
+
+/* More polished login background: subtle agricultural/data geometry without an image dependency */
+.guest-main{position:relative;isolation:isolate;overflow:hidden;background:
+    radial-gradient(circle at 12% 18%,color-mix(in srgb,var(--bp-green),transparent 88%) 0 12rem,transparent 28rem),
+    radial-gradient(circle at 88% 82%,color-mix(in srgb,var(--bp-blue),transparent 86%) 0 13rem,transparent 30rem),
+    linear-gradient(135deg,#f9fbfc 0%,#f3f7fa 48%,#edf5fa 100%)}
+.guest-main::before{
+    content:"";position:absolute;z-index:-2;inset:-12% -8% -16% 42%;opacity:.28;transform:rotate(-8deg);
+    background:
+        repeating-linear-gradient(105deg,transparent 0 42px,rgba(7,91,159,.07) 43px 45px,transparent 46px 86px),
+        repeating-linear-gradient(15deg,transparent 0 66px,rgba(22,140,91,.06) 67px 69px,transparent 70px 132px);
+    mask-image:linear-gradient(to bottom,transparent 0,#000 18%,#000 78%,transparent 100%)
+}
+.guest-main::after{
+    content:"";position:absolute;z-index:-1;width:680px;height:680px;left:-280px;bottom:-430px;border-radius:50%;
+    border:1px solid rgba(22,140,91,.12);box-shadow:
+        0 0 0 70px rgba(22,140,91,.025),
+        0 0 0 140px rgba(7,91,159,.018),
+        0 0 0 210px rgba(7,91,159,.012)
+}
+.login-shell{position:relative;z-index:1}
+.login-clean .form-label .bi{color:var(--bp-blue)}
+.login-submit .bi{font-size:1rem}
+.demo-access summary .bi{margin-right:6px;color:var(--bp-blue)}
+
+@media(max-width:767.98px){
+    .app-notifications{top:80px;right:14px}
+    .security-page-header{align-items:stretch}
+    .security-page-header>.btn{width:100%}
+}
+@media(max-width:575.98px){
+    .guest-main::before,.guest-main::after{display:none}
+    .app-notifications{top:12px;right:14px}
+    .security-card-heading>div{align-items:flex-start}
+}
