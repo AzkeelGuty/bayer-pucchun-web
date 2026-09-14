@@ -6,7 +6,7 @@
         <p class="page-subtitle">Snapshots de inventario por almacén y fecha.</p>
     </div>
     <?php if(has_role('ADMIN','DIGITADOR')): ?>
-        <a class="btn btn-primary" href="<?=url('/stock/nuevo')?>">Nuevo stock</a>
+        <a class="btn btn-primary btn-with-icon" href="<?=url('/stock/nuevo')?>"><i class="bi bi-plus-circle"></i><span>Nuevo stock</span></a>
     <?php endif; ?>
 </section>
 
@@ -29,12 +29,12 @@
                             <td>
     <div class="row-actions">
         <?php if(($r['estado_registro']??'')==='BORRADOR' && has_role('ADMIN','DIGITADOR')): ?>
-            <a class="btn btn-sm btn-outline-primary" href="<?=url('/stock/editar?id='.urlencode((string)$r['id']))?>">Editar</a>
+            <a class="btn btn-sm btn-outline-primary btn-with-icon" href="<?=url('/stock/editar?id='.urlencode((string)$r['id']))?>"><i class="bi bi-pencil-square"></i><span>Editar</span></a>
             <form method="post" action="<?=url('/stock/eliminar')?>" onsubmit="return confirm('¿Eliminar este borrador?');">
                 <?=csrf_field()?>
                 <input type="hidden" name="id" value="<?=e($r['id'])?>">
                 <input type="hidden" name="version" value="<?=e($r['version'])?>">
-                <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
+                <button class="btn btn-sm btn-outline-danger btn-with-icon" type="submit"><i class="bi bi-trash3"></i><span>Eliminar</span></button>
             </form>
         <?php endif; ?>
         <?php workflow_control('stock',$r); ?>
