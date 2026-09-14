@@ -36,6 +36,8 @@ final class ExportController
         };
         $base='pucchun_'.$slug.'_'.date('Ymd_His');
         $filename=$base.'.'.$format;
+        $meta['filename']=$filename;
+        $meta['format']=strtoupper($format);
 
         $duration=(int)round((microtime(true)-$started)*1000);
         $st=\db()->prepare("INSERT INTO exportaciones(nombre_archivo,tipo_dataset,formato,filtro_json,usuario_id,record_count,resultado,duration_ms,generated_at) VALUES(?,?,?,?,?,?,?, ?,CURRENT_TIMESTAMP)");
@@ -58,6 +60,8 @@ final class ExportController
                 'sistema'=>$meta['system'],
                 'aliado'=>$meta['partner'],
                 'reporte'=>$meta['dataset'],
+                'archivo'=>$meta['filename'],
+                'formato'=>$meta['format'],
                 'generado_por'=>$meta['generated_by'],
                 'fecha_generacion'=>$meta['generated_at'],
                 'total_registros'=>$meta['record_count'],
@@ -74,29 +78,45 @@ final class ExportController
     {
         header('Content-Type: text/plain; charset=utf-8');
         header('Content-Disposition: attachment; filename="'.$filename.'"');
-        echo "PUCCHÚN DATA HUB - ".mb_strtoupper((string)$meta['dataset'])."\n";
-        echo str_repeat('=',78)."\n";
-        echo "Generado por : {$meta['generated_by']}\n";
-        echo "Fecha y hora : {$meta['generated_at']}\n";
-        echo "Registros    : {$meta['record_count']}\n";
-        echo "Estado       : {$meta['status']}\n";
-        echo "Filtros      : {$meta['filters']}\n";
-        echo str_repeat('-',78)."\n\n";
+
+        $bar=str_repeat('=',96);
+        $line=str_repeat('-',96);
+        echo $bar."\n";
+        echo "PUCCHÚN DATA HUB\n";
+        echo mb_strtoupper('Reporte de '.(string)$meta['dataset'])."\n";
+        echo $bar."\n";
+        echo "Sistema       : {$meta['system']}\n";
+        echo "Aliado        : {$meta['partner']}\n";
+        echo "Archivo       : {$meta['filename']}\n";
+        echo "Formato       : {$meta['format']}\n";
+        echo "Generado por  : {$meta['generated_by']}\n";
+        echo "Fecha y hora  : {$meta['generated_at']}\n";
+        echo "Registros     : {$meta['record_count']}\n";
+        echo "Estado        : {$meta['status']}\n";
+        echo "Filtros       : {$meta['filters']}\n";
+        echo $line."\n";
+        echo "DATOS PUBLICADOS\n";
+        echo $line."\n";
 
         if(!$rows){
             echo "Sin datos para los filtros seleccionados.\n";
+            echo $bar."\n";
             exit;
         }
 
         $keys=ExportPresentation::keys($rows);
-        echo implode("\t",ExportPresentation::labels($rows))."\n";
+        echo implode(' | ',ExportPresentation::labels($rows))."\n";
+        echo $line."\n";
         foreach($rows as $row){
             $values=[];
             foreach($keys as $key){
                 $values[]=str_replace(["\r","\n","\t"],' ',ExportPresentation::displayValue($key,$row[$key]??null));
             }
-            echo implode("\t",$values)."\n";
+            echo implode(' | ',$values)."\n";
         }
+        echo $line."\n";
+        echo "Fin del reporte · {$meta['record_count']} registro(s) exportado(s).\n";
+        echo $bar."\n";
         exit;
     }
 
@@ -107,8 +127,13 @@ final class ExportController
         $o=fopen('php://output','w');
         fwrite($o,"\xEF\xBB\xBF");
 
+        // CSV es un formato plano: se conserva el mismo contenido corporativo,
+        // pero sin colores, logos ni anchos de columna propios de XLSX/PDF.
+        fputcsv($o,['PUCCHÚN DATA HUB','Reporte de '.$meta['dataset']],';');
         fputcsv($o,['Sistema',$meta['system']],';');
-        fputcsv($o,['Reporte',$meta['dataset']],';');
+        fputcsv($o,['Aliado',$meta['partner']],';');
+        fputcsv($o,['Archivo',$meta['filename']],';');
+        fputcsv($o,['Formato',$meta['format']],';');
         fputcsv($o,['Generado por',$meta['generated_by']],';');
         fputcsv($o,['Fecha y hora',$meta['generated_at']],';');
         fputcsv($o,['Total de registros',$meta['record_count']],';');
