@@ -35,7 +35,7 @@ $favicon = branding_logo_url('favicon');
         <header class="topbar">
             <div class="topbar-left">
                 <button class="sidebar-toggle" type="button" id="sidebarToggle" aria-label="Abrir menú" aria-controls="appSidebar" aria-expanded="false">
-                    <span aria-hidden="true">☰</span>
+                    <i class="bi bi-list" aria-hidden="true"></i>
                 </button>
                 <div class="topbar-heading">
                     <div class="topbar-kicker"><?= has_role('BAYER') ? 'CONSULTA EXTERNA' : 'GESTIÓN INTERNA' ?></div>
@@ -52,7 +52,7 @@ $favicon = branding_logo_url('favicon');
                 </div>
                 <form method="post" action="<?=url('/logout')?>" class="m-0">
                     <?=csrf_field()?>
-                    <button class="btn btn-logout btn-sm" type="submit">Salir</button>
+                    <button class="btn btn-logout btn-sm btn-with-icon" type="submit"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Salir</span></button>
                 </form>
             </div>
         </header>
