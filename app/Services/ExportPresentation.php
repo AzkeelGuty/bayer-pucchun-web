@@ -87,10 +87,24 @@ final class ExportPresentation
         return implode(' · ', $parts);
     }
 
+
+    public static function pdfKeys(string $type,array $rows): array
+    {
+        $available = array_flip(self::keys($rows));
+        $preferred = match ($type) {
+            'documents', 'sales' => ['documentNumber','documentDate','customerName','salesName','branchName','materialName','measureUnit','quantity','unitValue','district','province','department'],
+            'guides', 'shipments' => ['documentNumber','documentDate','customerName','salesName','branchName','materialName','measureUnit','quantity','district','province','department'],
+            'stock', 'inventory' => ['stockDate','branchName','warehouseName','materialName','measureUnit','batch','quantity','expirationDate'],
+            default => self::keys($rows),
+        };
+        return array_values(array_filter($preferred,static fn(string $key): bool => isset($available[$key])));
+    }
+
     public static function metadata(string $type, array $filters, array $rows, array $user, ?string $generatedAt = null): array
     {
         $brand = \branding();
         return [
+            'type' => $type,
             'system' => $brand['system_name'] . ' Data Hub',
             'partner' => $brand['partner_name'],
             'title' => 'Reporte de ' . self::datasetTitle($type),
