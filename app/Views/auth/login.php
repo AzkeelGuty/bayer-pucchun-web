@@ -58,19 +58,10 @@ $partnerLogo = branding_logo_url('logo_partner');
                 <span>Sesión protegida y acceso según rol.</span>
             </div>
 
-            <?php if(is_local_env()): ?>
-                <details class="demo-access">
-                    <summary><i class="bi bi-person-badge"></i> Accesos de prueba</summary>
-                    <div class="demo-access-grid">
-                        <div><b>Administrador</b><span>admin@pucchun.pe</span><code>Admin123*</code></div>
-                        <div><b>Digitador</b><span>digitacion@pucchun.pe</span><code>Digitador123*</code></div>
-                        <div><b>Supervisor</b><span>supervision@pucchun.pe</span><code>Supervisor123*</code></div>
-                        <div><b>Gerencia</b><span>gerencia@pucchun.pe</span><code>Gerencia123*</code></div>
-                        <div><b>Bayer</b><span>consulta@bayer.pe</span><code>Bayer123*</code></div>
-                    </div>
-                    <small>Solo desarrollo local. Importar una vez database/seeders/002_usuarios_prueba.sql.</small>
-                </details>
-            <?php endif; ?>
+            <div class="login-private-note">
+                <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+                <span>Acceso privado para personal y usuarios autorizados.</span>
+            </div>
         </div>
     </div>
 </section>
