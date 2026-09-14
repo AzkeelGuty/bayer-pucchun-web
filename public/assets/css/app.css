@@ -385,7 +385,7 @@ button,input,select,textarea{font:inherit}
     .quick-actions{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr}.chart-wrap{min-height:230px}
 }
 @media(max-width:389.98px){
-    .topbar-kicker{display:none}.topbar-title{max-width:38vw}.btn-logout{font-size:0;padding:.42rem .55rem}.btn-logout::after{content:"Salir";font-size:.7rem}
+    .topbar-kicker{display:none}.topbar-title{max-width:38vw}.btn-logout{padding:.42rem .55rem}.btn-logout span{display:none}.btn-logout .bi{font-size:1rem}
     .login-brand-message h1{font-size:1.68rem}.login-brand-message p{font-size:.8rem}
 }
 
