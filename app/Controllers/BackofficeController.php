@@ -71,7 +71,7 @@ final class BackofficeController
     public function reports(): void
     {
         \require_role('ADMIN','SUPERVISOR','GERENCIA');
-        $rows=\db()->query("SELECT e.id,e.tipo_dataset,e.formato,e.record_count,e.resultado,e.generated_at,u.nombre usuario FROM exportaciones e JOIN usuarios u ON u.id=e.usuario_id ORDER BY e.generated_at DESC LIMIT 200")->fetchAll();
+        $rows=\db()->query("SELECT e.id,e.nombre_archivo,e.tipo_dataset,e.formato,e.record_count,e.resultado,e.generated_at,u.nombre usuario FROM exportaciones e JOIN usuarios u ON u.id=e.usuario_id ORDER BY e.generated_at DESC LIMIT 200")->fetchAll();
         \view('backoffice.reports',['rows'=>$rows]);
     }
 
