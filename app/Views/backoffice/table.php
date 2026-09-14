@@ -1,6 +1,6 @@
 <section class="page-header">
     <div>
-        <div class="page-eyebrow"><?=e(strtoupper($section))?></div>
+        <div class="page-eyebrow"><i class="bi bi-database"></i> <?=e(strtoupper($section))?></div>
         <h1 class="page-title"><?=e($title)?></h1>
         <p class="page-subtitle">Información centralizada para la operación y el control del sistema.</p>
     </div>
@@ -17,7 +17,7 @@
 <div class="card">
     <div class="card-body p-0">
         <?php if(!$rows): ?>
-            <div class="empty-state"><strong>Sin información registrada.</strong><span>Los datos disponibles aparecerán aquí.</span></div>
+            <div class="empty-state"><i class="bi bi-inbox fs-3 mb-2"></i><strong>Sin información registrada.</strong><span>Los datos disponibles aparecerán aquí.</span></div>
         <?php else: ?>
             <div class="table-responsive">
                 <table class="table app-table mb-0">
