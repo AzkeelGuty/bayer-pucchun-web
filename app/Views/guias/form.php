@@ -1,1 +1,15 @@
-<?php require base_path('app/Views/components/form_fields.php');?><h2>Nueva guía Bayer</h2><form method="post" action="<?=url('/guias/guardar')?>" class="row g-3"><?=csrf_field()?><?php field('dealerId','RUC distribuidor');field('dealerName','Distribuidor');field('documentNumber','Número guía');field('documentDate','Fecha','date');field('salesId','DNI vendedor');field('salesName','Vendedor');field('branchId','ID sucursal');field('branchName','Sucursal');field('customerId','RUC/DNI cliente');field('customerName','Cliente');field('materialId','ID producto');field('materialName','Producto');field('measureUnit','Unidad');field('quantity','Cantidad','number');field('department','Departamento');field('province','Provincia');field('district','Distrito');?><div class="col-12"><button class="btn btn-primary">Guardar borrador</button></div></form><?php unset($_SESSION['_old'],$_SESSION['_errors']);?>
+<?php
+require base_path('app/Views/components/form_fields.php');
+$mode=$mode??'create';$editing=$mode==='edit';
+?>
+<section class="module-header"><div><div class="page-eyebrow"><?=$editing?'EDITAR BORRADOR':'NUEVO REGISTRO'?></div><h1 class="page-title"><?=$editing?'Editar guía de remisión':'Guía de remisión'?></h1><p class="page-subtitle"><?=$editing?'Solo los registros en borrador pueden modificarse.':'Registra la guía y su detalle inicial en estado BORRADOR.'?></p></div><a class="btn btn-outline-primary btn-with-icon" href="<?=url('/guias')?>"><i class="bi bi-arrow-left"></i><span>Volver</span></a></section>
+<form method="post" action="<?=url($editing?'/guias/actualizar':'/guias/guardar')?>" class="card">
+<?=csrf_field()?><?php if($editing): ?><input type="hidden" name="id" value="<?=e($defaults['id'])?>"><input type="hidden" name="version" value="<?=e($defaults['version'])?>"><?php endif;?>
+<div class="card-body p-4">
+<div class="form-section-title">Guía y distribuidor</div><div class="row g-3 mb-4"><?php field('dealerId','RUC distribuidor'); field('dealerName','Distribuidor'); field('documentNumber','Número guía'); field('documentDate','Fecha','date'); ?></div>
+<div class="form-section-title">Cliente, vendedor y sucursal</div><div class="row g-3 mb-4"><?php field('salesId','Código vendedor'); field('salesName','Vendedor'); field('branchId','Código sucursal'); field('branchName','Sucursal'); field('customerId','RUC/DNI cliente'); field('customerName','Cliente'); ?></div>
+<div class="form-section-title">Producto y ubicación</div><div class="row g-3"><?php field('materialId','Código producto'); field('materialName','Producto'); field('measureUnit','Unidad'); field('quantity','Cantidad','number'); field('department','Departamento'); field('province','Provincia'); field('district','Distrito'); ?></div>
+</div>
+<div class="card-footer bg-white border-0 px-4 pb-4 d-flex flex-wrap gap-2"><button class="btn btn-primary btn-with-icon"><i class="bi bi-floppy"></i><span><?=$editing?'Guardar cambios':'Guardar borrador'?></span></button><a class="btn btn-outline-primary btn-with-icon" href="<?=url('/guias')?>"><i class="bi bi-x-circle"></i><span>Cancelar</span></a></div>
+</form>
+<?php unset($_SESSION['_old'],$_SESSION['_errors']); ?>
