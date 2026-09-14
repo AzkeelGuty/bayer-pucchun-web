@@ -29,7 +29,9 @@ frontend, rutas, controladores ni Services.
 3. Importar `database/seeders/001_seed.sql` y cambiar inmediatamente
    la contraseña de bootstrap descrita en la documentación original.
 4. Comprobar `SELECT * FROM schema_migrations;`: debe figurar versión 2.
-5. Conectar los Services/controladores adaptados y ejecutar sus pruebas funcionales.
+5. Para probar los cinco roles, importar `database/seeders/002_usuarios_prueba.sql`.
+6. Para poblar catálogos, homologaciones, documentos, guías, stock, validaciones, publicaciones, exportaciones y auditoría, importar `database/seeders/003_datos_ejemplo.sql`.
+7. Conectar la aplicación y ejecutar las pruebas funcionales.
 
 
 Ejemplo desde el cliente mysql, tras conectarse a la base vacía:
@@ -158,3 +160,21 @@ Los dos archivos llamados `002_schema_v2.sql` tienen propósitos distintos: el d
 `schemas` crea la estructura completa; el de `migrations` transforma una base v1.
 Para una instalación nueva v2, importar el de `schemas` y luego el seeder.
 No ejecutar los esquemas v1 y v2 consecutivamente sobre la misma base.
+
+
+## Datos funcionales para pruebas
+
+Los seeders de prueba están separados de la estructura para que nunca se mezclen con un despliegue de producción.
+
+Orden recomendado en una base de pruebas nueva:
+
+```sql
+SOURCE database/schemas/002_schema_v2.sql;
+SOURCE database/seeders/001_seed.sql;
+SOURCE database/seeders/002_usuarios_prueba.sql;
+SOURCE database/seeders/003_datos_ejemplo.sql;
+```
+
+En phpMyAdmin, importar los mismos archivos en ese orden. El seeder `002_usuarios_prueba.sql` también normaliza las cuentas heredadas de versiones anteriores sin romper sus referencias históricas. El seeder `003_datos_ejemplo.sql` es idempotente para los registros principales y deja información en estados BORRADOR, VALIDADO, OBSERVADO y PUBLICADO para poder revisar cada flujo del sistema.
+
+**No importar los seeders 002 y 003 en producción.** En producción se crean usuarios reales desde el módulo **Usuarios y accesos** y los datos operativos deben provenir de la operación real o de la integración autorizada.
