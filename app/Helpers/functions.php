@@ -132,3 +132,82 @@ function branding_logo_url(string $key): ?string
     $absolute = base_path('public/' . ltrim($relative, '/'));
     return is_file($absolute) ? url('/' . ltrim($relative, '/')) : null;
 }
+
+
+function access_ip_label(?string $ip): string
+{
+    $ip = trim((string) $ip);
+    if ($ip === '') return '—';
+    if ($ip === '::1') return '127.0.0.1';
+    if (str_starts_with(strtolower($ip), '::ffff:')) {
+        $mapped = substr($ip, 7);
+        if (filter_var($mapped, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) return $mapped;
+    }
+    return filter_var($ip, FILTER_VALIDATE_IP) ? $ip : '—';
+}
+
+function access_device_info(?string $userAgent): array
+{
+    $ua = trim((string) $userAgent);
+    if ($ua === '') {
+        return ['label' => 'No identificado', 'icon' => 'bi-question-circle', 'type' => 'unknown'];
+    }
+
+    $device = 'Equipo';
+    $icon = 'bi-display';
+    $type = 'desktop';
+
+    if (preg_match('/iPad/i', $ua)) {
+        $device = 'iPad';
+        $icon = 'bi-tablet';
+        $type = 'tablet';
+    } elseif (preg_match('/iPhone|iPod/i', $ua)) {
+        $device = 'iPhone';
+        $icon = 'bi-phone';
+        $type = 'mobile';
+    } elseif (preg_match('/Android/i', $ua)) {
+        if (preg_match('/Mobile/i', $ua)) {
+            $device = 'Android';
+            $icon = 'bi-phone';
+            $type = 'mobile';
+        } else {
+            $device = 'Tablet Android';
+            $icon = 'bi-tablet';
+            $type = 'tablet';
+        }
+    } elseif (preg_match('/Windows NT/i', $ua)) {
+        $device = 'Windows';
+        $icon = 'bi-windows';
+    } elseif (preg_match('/Macintosh|Mac OS X/i', $ua)) {
+        $device = 'macOS';
+        $icon = 'bi-apple';
+    } elseif (preg_match('/Linux/i', $ua)) {
+        $device = 'Linux';
+        $icon = 'bi-display';
+    }
+
+    $browser = '';
+    if (preg_match('/Edg\//i', $ua)) $browser = 'Edge';
+    elseif (preg_match('/OPR\//i', $ua)) $browser = 'Opera';
+    elseif (preg_match('/Chrome\//i', $ua)) $browser = 'Chrome';
+    elseif (preg_match('/Firefox\//i', $ua)) $browser = 'Firefox';
+    elseif (preg_match('/Safari\//i', $ua) && preg_match('/Version\//i', $ua)) $browser = 'Safari';
+
+    return [
+        'label' => $browser !== '' ? $device . ' · ' . $browser : $device,
+        'icon' => $icon,
+        'type' => $type,
+    ];
+}
+
+function access_action_info(string $action): array
+{
+    return match (strtolower(trim($action))) {
+        'login' => ['label' => 'Inicio de sesión', 'icon' => 'bi-box-arrow-in-right', 'class' => 'access-ok'],
+        'logout' => ['label' => 'Sesión cerrada', 'icon' => 'bi-box-arrow-right', 'class' => 'access-neutral'],
+        'login_failed' => ['label' => 'Inicio de sesión fallido', 'icon' => 'bi-shield-exclamation', 'class' => 'access-danger'],
+        'login_blocked' => ['label' => 'Acceso bloqueado', 'icon' => 'bi-shield-lock', 'class' => 'access-danger'],
+        'access_denied' => ['label' => 'Acceso denegado', 'icon' => 'bi-slash-circle', 'class' => 'access-danger'],
+        default => ['label' => ucfirst(str_replace('_', ' ', trim($action))), 'icon' => 'bi-activity', 'class' => 'access-neutral'],
+    };
+}
