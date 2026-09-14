@@ -87,7 +87,7 @@ final class BackofficeController
         \require_role('ADMIN');
         $users=\db()->query("SELECT u.id,u.nombre,u.email,IF(u.estado=1,'ACTIVO','INACTIVO') estado,GROUP_CONCAT(r.nombre ORDER BY r.nombre SEPARATOR ', ') roles,u.created_at FROM usuarios u LEFT JOIN usuario_rol ur ON ur.usuario_id=u.id LEFT JOIN roles r ON r.id=ur.rol_id GROUP BY u.id ORDER BY u.nombre")->fetchAll();
         $roles=\db()->query("SELECT r.id,r.nombre,r.descripcion,IF(r.estado=1,'ACTIVO','INACTIVO') estado,COUNT(DISTINCT ur.usuario_id) usuarios,COUNT(DISTINCT rp.permiso_id) permisos FROM roles r LEFT JOIN usuario_rol ur ON ur.rol_id=r.id LEFT JOIN rol_permiso rp ON rp.rol_id=r.id GROUP BY r.id ORDER BY r.id")->fetchAll();
-        $sessions=\db()->query("SELECT b.fecha_hora,u.nombre usuario,b.ip,b.accion FROM bitacora_acceso b LEFT JOIN usuarios u ON u.id=b.usuario_id ORDER BY b.fecha_hora DESC LIMIT 100")->fetchAll();
+        $sessions=\db()->query("SELECT b.fecha_hora,u.nombre usuario,b.ip,b.user_agent,b.accion FROM bitacora_acceso b LEFT JOIN usuarios u ON u.id=b.usuario_id ORDER BY b.fecha_hora DESC LIMIT 150")->fetchAll();
         \view('backoffice.security',['users'=>$users,'roles'=>$roles,'sessions'=>$sessions]);
     }
 
