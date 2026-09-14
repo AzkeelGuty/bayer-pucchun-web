@@ -9,7 +9,7 @@ $editing=$mode==='edit';
         <h1 class="page-title"><?=$editing?'Editar documento':'Documento'?></h1>
         <p class="page-subtitle"><?=$editing?'Solo los registros en borrador pueden modificarse.':'Registra la información inicial. El documento se guardará en estado BORRADOR.'?></p>
     </div>
-    <a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Volver</a>
+    <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/documentos')?>"><i class="bi bi-arrow-left"></i><span>Volver</span></a>
 </section>
 
 <form method="post" action="<?=url($editing?'/documentos/actualizar':'/documentos/guardar')?>" class="card">
@@ -23,6 +23,6 @@ $editing=$mode==='edit';
         <div class="form-section-title">Producto y ubicación</div>
         <div class="row g-3"><?php field('materialId','Código producto'); field('materialName','Producto'); field('measureUnit','Unidad'); field('quantity','Cantidad','number'); field('valorUnitario','Valor unitario','number',false); field('department','Departamento'); field('province','Provincia'); field('district','Distrito'); ?></div>
     </div>
-    <div class="card-footer bg-white border-0 px-4 pb-4 d-flex flex-wrap gap-2"><button class="btn btn-primary" type="submit"><?=$editing?'Guardar cambios':'Guardar borrador'?></button><a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Cancelar</a></div>
+    <div class="card-footer bg-white border-0 px-4 pb-4 d-flex flex-wrap gap-2"><button class="btn btn-primary btn-with-icon" type="submit"><i class="bi bi-floppy"></i><span><?=$editing?'Guardar cambios':'Guardar borrador'?></span></button><a class="btn btn-outline-primary btn-with-icon" href="<?=url('/documentos')?>"><i class="bi bi-x-circle"></i><span>Cancelar</span></a></div>
 </form>
 <?php unset($_SESSION['_old'],$_SESSION['_errors']); ?>
