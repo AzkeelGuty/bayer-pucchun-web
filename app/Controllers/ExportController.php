@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Exceptions\HttpException;
-use App\Services\{BayerDataService,SimpleXlsxExporter,SimplePdfExporter};
+use App\Services\{BayerDataService,ExportPresentation,SimpleXlsxExporter,SimplePdfExporter};
 
 final class ExportController
 {
@@ -25,43 +25,105 @@ final class ExportController
 
         $started=microtime(true);
         $rows=(new BayerDataService())->dataset($type,$filters);
-        $base='bayer_'.$type.'_'.date('Ymd_His');
+        $generatedAt=date('Y-m-d H:i:s');
+        $meta=ExportPresentation::metadata($type,$filters,$rows,(array)\auth_user(),$generatedAt);
+
+        $slug=match($type){
+            'documents'=>'documentos',
+            'guides'=>'guias_remision',
+            'stock'=>'stock',
+            default=>$type,
+        };
+        $base='pucchun_'.$slug.'_'.date('Ymd_His');
         $filename=$base.'.'.$format;
 
-        $st=\db()->prepare("INSERT INTO exportaciones(nombre_archivo,tipo_dataset,formato,filtro_json,usuario_id,record_count,resultado,duration_ms,generated_at) VALUES(?,?,?,?,?,?,?, ?,CURRENT_TIMESTAMP)");
         $duration=(int)round((microtime(true)-$started)*1000);
+        $st=\db()->prepare("INSERT INTO exportaciones(nombre_archivo,tipo_dataset,formato,filtro_json,usuario_id,record_count,resultado,duration_ms,generated_at) VALUES(?,?,?,?,?,?,?, ?,CURRENT_TIMESTAMP)");
         $st->execute([$filename,$type,strtoupper($format),json_encode($filters,JSON_UNESCAPED_UNICODE),(int)\auth_user()['id'],count($rows),'GENERADO',$duration]);
         \audit('exportaciones','generar',(int)\db()->lastInsertId());
 
-        if($format==='json'){
-            header('Content-Type: application/json; charset=utf-8');
-            header("Content-Disposition: attachment; filename=$filename");
-            echo json_encode($rows,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-        if($format==='txt'){
-            header('Content-Type: text/plain; charset=utf-8');
-            header("Content-Disposition: attachment; filename=$filename");
-            if($rows){
-                echo implode("\t",array_keys($rows[0]))."\n";
-                foreach($rows as $r) echo implode("\t",array_map(static fn($v)=>str_replace(["\r","\n","\t"],' ',(string)$v),array_values($r)))."\n";
-            }
-            exit;
-        }
-        if($format==='xlsx') (new SimpleXlsxExporter())->output($rows,$filename);
-        if($format==='pdf') (new SimplePdfExporter())->output($rows,'Bayer - '.ucfirst($type),$filename);
-        $this->csv($rows,$filename);
+        if($format==='json') $this->json($rows,$meta,$filename);
+        if($format==='txt') $this->txt($rows,$meta,$filename);
+        if($format==='xlsx') (new SimpleXlsxExporter())->output($rows,$filename,$meta);
+        if($format==='pdf') (new SimplePdfExporter())->output($rows,$filename,$meta);
+        $this->csv($rows,$meta,$filename);
     }
 
-    private function csv(array $rows,string $filename): never
+    private function json(array $rows,array $meta,string $filename): never
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="'.$filename.'"');
+        $payload=[
+            'meta'=>[
+                'sistema'=>$meta['system'],
+                'aliado'=>$meta['partner'],
+                'reporte'=>$meta['dataset'],
+                'generado_por'=>$meta['generated_by'],
+                'fecha_generacion'=>$meta['generated_at'],
+                'total_registros'=>$meta['record_count'],
+                'estado_datos'=>$meta['status'],
+                'filtros'=>$meta['filters'],
+            ],
+            'datos'=>$rows,
+        ];
+        echo json_encode($payload,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    private function txt(array $rows,array $meta,string $filename): never
+    {
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Content-Disposition: attachment; filename="'.$filename.'"');
+        echo "PUCCHÚN DATA HUB - ".mb_strtoupper((string)$meta['dataset'])."\n";
+        echo str_repeat('=',78)."\n";
+        echo "Generado por : {$meta['generated_by']}\n";
+        echo "Fecha y hora : {$meta['generated_at']}\n";
+        echo "Registros    : {$meta['record_count']}\n";
+        echo "Estado       : {$meta['status']}\n";
+        echo "Filtros      : {$meta['filters']}\n";
+        echo str_repeat('-',78)."\n\n";
+
+        if(!$rows){
+            echo "Sin datos para los filtros seleccionados.\n";
+            exit;
+        }
+
+        $keys=ExportPresentation::keys($rows);
+        echo implode("\t",ExportPresentation::labels($rows))."\n";
+        foreach($rows as $row){
+            $values=[];
+            foreach($keys as $key){
+                $values[]=str_replace(["\r","\n","\t"],' ',ExportPresentation::displayValue($key,$row[$key]??null));
+            }
+            echo implode("\t",$values)."\n";
+        }
+        exit;
+    }
+
+    private function csv(array $rows,array $meta,string $filename): never
     {
         header('Content-Type: text/csv; charset=utf-8');
-        header("Content-Disposition: attachment; filename=$filename");
+        header('Content-Disposition: attachment; filename="'.$filename.'"');
         $o=fopen('php://output','w');
         fwrite($o,"\xEF\xBB\xBF");
+
+        fputcsv($o,['Sistema',$meta['system']],';');
+        fputcsv($o,['Reporte',$meta['dataset']],';');
+        fputcsv($o,['Generado por',$meta['generated_by']],';');
+        fputcsv($o,['Fecha y hora',$meta['generated_at']],';');
+        fputcsv($o,['Total de registros',$meta['record_count']],';');
+        fputcsv($o,['Estado de datos',$meta['status']],';');
+        fputcsv($o,['Filtros',$meta['filters']],';');
+        fputcsv($o,[],';');
+
         if($rows){
-            fputcsv($o,array_keys($rows[0]),';');
-            foreach($rows as $r) fputcsv($o,array_values($r),';');
+            $keys=ExportPresentation::keys($rows);
+            fputcsv($o,ExportPresentation::labels($rows),';');
+            foreach($rows as $row){
+                $values=[];
+                foreach($keys as $key) $values[]=ExportPresentation::displayValue($key,$row[$key]??null);
+                fputcsv($o,$values,';');
+            }
         }
         fclose($o);
         exit;
