@@ -1,18 +1,18 @@
 <?php require_once base_path('app/Views/components/workflow_control.php'); ?>
 <section class="page-header">
     <div>
-        <div class="page-eyebrow">CALIDAD DEL DATO</div>
+        <div class="page-eyebrow"><i class="bi bi-patch-check"></i> CALIDAD DEL DATO</div>
         <h1 class="page-title">Validación y publicación</h1>
         <p class="page-subtitle">Revisión supervisada antes de poner la información a disposición de Bayer.</p>
     </div>
 </section>
 
 <div class="workflow-summary">
-    <div><span>Borrador</span><strong><?=count(array_filter($rows,fn($r)=>$r['estado_registro']==='BORRADOR'))?></strong></div>
+    <div><span><i class="bi bi-file-earmark"></i> Borrador</span><strong><?=count(array_filter($rows,fn($r)=>$r['estado_registro']==='BORRADOR'))?></strong></div>
     <i>→</i>
-    <div><span>Validado</span><strong><?=count(array_filter($rows,fn($r)=>$r['estado_registro']==='VALIDADO'))?></strong></div>
+    <div><span><i class="bi bi-check2-circle"></i> Validado</span><strong><?=count(array_filter($rows,fn($r)=>$r['estado_registro']==='VALIDADO'))?></strong></div>
     <i>→</i>
-    <div><span>Publicado</span><strong>Disponible</strong></div>
+    <div><span><i class="bi bi-cloud-check"></i> Publicado</span><strong>Disponible</strong></div>
 </div>
 
 <div class="card">
