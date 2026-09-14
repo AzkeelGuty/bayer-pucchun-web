@@ -29,7 +29,8 @@ final class SimplePdfExporter
 
         foreach($images as &$image){
             $image['object']=$obj++;
-            $objects[$image['object']]="<< /Type /XObject /Subtype /Image /Width {$image['width']} /Height {$image['height']} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ".strlen($image['data'])." >>\nstream\n".$image['data']."\nendstream";
+            $filter=$image['filter'] ?? '/DCTDecode';
+            $objects[$image['object']]="<< /Type /XObject /Subtype /Image /Width {$image['width']} /Height {$image['height']} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter ".$filter." /Length ".strlen($image['data'])." >>\nstream\n".$image['data']."\nendstream";
         }
         unset($image);
 
@@ -187,17 +188,28 @@ final class SimplePdfExporter
 
     private function prepareImages(array $meta): array
     {
-        $images=[];
-        foreach([
-            $meta['logo_primary_path']??null,
-        ] as $path){
-            $asset=$this->prepareJpegAsset(is_string($path)?$path:'');
-            if($asset!==null) $images[]=$asset;
+        $path=$meta['logo_primary_path']??null;
+        if(!is_string($path) || trim($path)==='') return [];
+
+        $asset=$this->preparePdfImageAsset($path);
+        if($asset===null){
+            \log_event('pdf_logo_not_rendered',[
+                'path'=>$path,
+                'extension'=>strtolower(pathinfo($path,PATHINFO_EXTENSION)),
+                'gd'=>extension_loaded('gd'),
+                'imagick'=>class_exists('Imagick'),
+            ]);
+            return [];
         }
-        return $images;
+        return [$asset];
     }
 
-    private function prepareJpegAsset(string $path): ?array
+    /**
+     * Prepara el logo para incrustarlo en el PDF.
+     * JPG se usa de forma nativa. PNG se decodifica también SIN depender de GD,
+     * lo que permite que el logo principal funcione en XAMPP/hosting básico.
+     */
+    private function preparePdfImageAsset(string $path): ?array
     {
         if($path==='' || !is_file($path)) return null;
         $ext=strtolower(pathinfo($path,PATHINFO_EXTENSION));
@@ -206,11 +218,21 @@ final class SimplePdfExporter
             $data=@file_get_contents($path);
             $size=@getimagesize($path);
             if(is_string($data) && $size){
-                return ['data'=>$data,'width'=>(int)$size[0],'height'=>(int)$size[1]];
+                return [
+                    'data'=>$data,
+                    'width'=>(int)$size[0],
+                    'height'=>(int)$size[1],
+                    'filter'=>'/DCTDecode',
+                ];
             }
         }
 
-        // PNG/WEBP/JPG -> JPEG mediante GD, si está disponible.
+        if($ext==='png'){
+            $png=$this->decodePngToRgb($path);
+            if($png!==null) return $png;
+        }
+
+        // WEBP u otros formatos rasterizados mediante GD, cuando esté disponible.
         if(function_exists('imagecreatefromstring') && function_exists('imagejpeg')){
             $raw=@file_get_contents($path);
             $src=is_string($raw)?@imagecreatefromstring($raw):false;
@@ -222,16 +244,18 @@ final class SimplePdfExporter
                 imagealphablending($canvas,true);
                 imagecopy($canvas,$src,0,0,0,0,$w,$h);
                 ob_start();
-                imagejpeg($canvas,null,90);
+                imagejpeg($canvas,null,92);
                 $data=(string)ob_get_clean();
                 imagedestroy($canvas);
                 imagedestroy($src);
-                if($data!=='') return ['data'=>$data,'width'=>$w,'height'=>$h];
+                if($data!==''){
+                    return ['data'=>$data,'width'=>$w,'height'=>$h,'filter'=>'/DCTDecode'];
+                }
             }
         }
 
-        // SVG u otros formatos: Imagick como alternativa, si el hosting lo ofrece.
-        if(class_exists('Imagick')){
+        // SVG: Imagick como alternativa cuando el servidor lo tenga disponible.
+        if($ext==='svg' && class_exists('Imagick')){
             try{
                 $img=new \Imagick();
                 $img->setBackgroundColor(new \ImagickPixel('white'));
@@ -239,18 +263,165 @@ final class SimplePdfExporter
                 $img->setImageBackgroundColor('white');
                 if(method_exists($img,'mergeImageLayers')) $img=$img->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
                 $img->setImageFormat('jpeg');
-                $img->setImageCompressionQuality(90);
+                $img->setImageCompressionQuality(92);
                 $data=$img->getImagesBlob();
                 $w=$img->getImageWidth(); $h=$img->getImageHeight();
                 $img->clear();
                 $img->destroy();
-                if($data!=='') return ['data'=>$data,'width'=>$w,'height'=>$h];
+                if($data!==''){
+                    return ['data'=>$data,'width'=>$w,'height'=>$h,'filter'=>'/DCTDecode'];
+                }
             }catch(\Throwable){
                 return null;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Decodificador PNG 8-bit no entrelazado -> RGB.
+     * Soporta gris, RGB, paleta, gris+alpha y RGBA, aplanando transparencia sobre blanco.
+     */
+    private function decodePngToRgb(string $path): ?array
+    {
+        $raw=@file_get_contents($path);
+        if(!is_string($raw) || strlen($raw)<33 || substr($raw,0,8)!=="\x89PNG\r\n\x1A\n") return null;
+
+        $pos=8;
+        $width=$height=$bitDepth=$colorType=$interlace=null;
+        $idat='';
+        $palette='';
+        $transparency='';
+
+        while($pos+8<=strlen($raw)){
+            $length=unpack('N',substr($raw,$pos,4))[1]??0;
+            $type=substr($raw,$pos+4,4);
+            $data=substr($raw,$pos+8,$length);
+            $pos+=12+$length;
+
+            if($type==='IHDR' && strlen($data)>=13){
+                $header=unpack('Nwidth/Nheight/Cbit/Ccolor/Ccompression/Cfilter/Cinterlace',$data);
+                $width=(int)$header['width'];
+                $height=(int)$header['height'];
+                $bitDepth=(int)$header['bit'];
+                $colorType=(int)$header['color'];
+                $interlace=(int)$header['interlace'];
+            }elseif($type==='IDAT'){
+                $idat.=$data;
+            }elseif($type==='PLTE'){
+                $palette=$data;
+            }elseif($type==='tRNS'){
+                $transparency=$data;
+            }elseif($type==='IEND'){
+                break;
+            }
+        }
+
+        if(!$width || !$height || $bitDepth!==8 || $interlace!==0 || $idat==='') return null;
+
+        $channels=match($colorType){
+            0=>1,
+            2=>3,
+            3=>1,
+            4=>2,
+            6=>4,
+            default=>0,
+        };
+        if($channels===0) return null;
+
+        $inflated=@gzuncompress($idat);
+        if(!is_string($inflated)){
+            $inflated=@zlib_decode($idat);
+        }
+        if(!is_string($inflated)) return null;
+
+        $stride=$width*$channels;
+        $offset=0;
+        $previous=array_fill(0,$stride,0);
+        $rgb='';
+
+        for($y=0;$y<$height;$y++){
+            if($offset>=strlen($inflated)) return null;
+            $filter=ord($inflated[$offset++]);
+            $scan=substr($inflated,$offset,$stride);
+            if(strlen($scan)!==$stride) return null;
+            $offset+=$stride;
+
+            $row=[];
+            for($i=0;$i<$stride;$i++){
+                $x=ord($scan[$i]);
+                $a=$i>=$channels?$row[$i-$channels]:0;
+                $b=$previous[$i]??0;
+                $cc=$i>=$channels?($previous[$i-$channels]??0):0;
+
+                $value=match($filter){
+                    0=>$x,
+                    1=>($x+$a)&255,
+                    2=>($x+$b)&255,
+                    3=>($x+(int)floor(($a+$b)/2))&255,
+                    4=>($x+$this->paeth($a,$b,$cc))&255,
+                    default=>-1,
+                };
+                if($value<0) return null;
+                $row[$i]=$value;
+            }
+
+            for($px=0;$px<$width;$px++){
+                $base=$px*$channels;
+                if($colorType===0){
+                    $g=$row[$base];
+                    $alpha=255;
+                    if(strlen($transparency)>=2){
+                        $transparentGray=unpack('n',substr($transparency,0,2))[1]??-1;
+                        if($g===$transparentGray) $alpha=0;
+                    }
+                    [$r,$g2,$b2]=[$g,$g,$g];
+                }elseif($colorType===2){
+                    $r=$row[$base]; $g2=$row[$base+1]; $b2=$row[$base+2]; $alpha=255;
+                }elseif($colorType===3){
+                    $idx=$row[$base];
+                    $p=$idx*3;
+                    if($p+2>=strlen($palette)) return null;
+                    $r=ord($palette[$p]); $g2=ord($palette[$p+1]); $b2=ord($palette[$p+2]);
+                    $alpha=$idx<strlen($transparency)?ord($transparency[$idx]):255;
+                }elseif($colorType===4){
+                    $g=$row[$base]; $alpha=$row[$base+1];
+                    [$r,$g2,$b2]=[$g,$g,$g];
+                }else{ // RGBA
+                    $r=$row[$base]; $g2=$row[$base+1]; $b2=$row[$base+2]; $alpha=$row[$base+3];
+                }
+
+                if($alpha<255){
+                    $r=(int)round(($r*$alpha + 255*(255-$alpha))/255);
+                    $g2=(int)round(($g2*$alpha + 255*(255-$alpha))/255);
+                    $b2=(int)round(($b2*$alpha + 255*(255-$alpha))/255);
+                }
+                $rgb.=chr($r).chr($g2).chr($b2);
+            }
+            $previous=$row;
+        }
+
+        $compressed=@gzcompress($rgb,9);
+        if(!is_string($compressed)) return null;
+
+        return [
+            'data'=>$compressed,
+            'width'=>$width,
+            'height'=>$height,
+            'filter'=>'/FlateDecode',
+        ];
+    }
+
+    private function paeth(int $a,int $b,int $c): int
+    {
+        $p=$a+$b-$c;
+        $pa=abs($p-$a);
+        $pb=abs($p-$b);
+        $pc=abs($p-$c);
+        if($pa<=$pb && $pa<=$pc) return $a;
+        if($pb<=$pc) return $b;
+        return $c;
     }
 
     private function fitImage(int $width,int $height,float $maxW,float $maxH): array
