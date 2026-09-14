@@ -13,9 +13,9 @@ final class ExportController
         \require_role('ADMIN','SUPERVISOR','GERENCIA','BAYER');
 
         $type=(string)\input('type','documents');
-        $format=strtolower((string)\input('format','csv'));
+        $format=strtolower((string)\input('format','xlsx'));
         if(!in_array($type,['documents','guides','stock'],true)) throw new HttpException(422,'Dataset inválido.');
-        if(!in_array($format,['xlsx','csv','json','txt','pdf'],true)) throw new HttpException(422,'Formato inválido.');
+        if(!in_array($format,['xlsx','json','txt','pdf'],true)) throw new HttpException(422,'Formato inválido.');
 
         $filters=[];
         foreach(['from','to','branch','q'] as $key){
@@ -48,7 +48,7 @@ final class ExportController
         if($format==='txt') $this->txt($rows,$meta,$filename);
         if($format==='xlsx') (new SimpleXlsxExporter())->output($rows,$filename,$meta);
         if($format==='pdf') (new SimplePdfExporter())->output($rows,$filename,$meta);
-        $this->csv($rows,$meta,$filename);
+        throw new HttpException(422,'Formato no disponible.');
     }
 
     private function json(array $rows,array $meta,string $filename): never
@@ -120,37 +120,5 @@ final class ExportController
         exit;
     }
 
-    private function csv(array $rows,array $meta,string $filename): never
-    {
-        header('Content-Type: text/csv; charset=utf-8');
-        header('Content-Disposition: attachment; filename="'.$filename.'"');
-        $o=fopen('php://output','w');
-        fwrite($o,"\xEF\xBB\xBF");
 
-        // CSV es un formato plano: se conserva el mismo contenido corporativo,
-        // pero sin colores, logos ni anchos de columna propios de XLSX/PDF.
-        fputcsv($o,['PUCCHÚN DATA HUB','Reporte de '.$meta['dataset']],';');
-        fputcsv($o,['Sistema',$meta['system']],';');
-        fputcsv($o,['Aliado',$meta['partner']],';');
-        fputcsv($o,['Archivo',$meta['filename']],';');
-        fputcsv($o,['Formato',$meta['format']],';');
-        fputcsv($o,['Generado por',$meta['generated_by']],';');
-        fputcsv($o,['Fecha y hora',$meta['generated_at']],';');
-        fputcsv($o,['Total de registros',$meta['record_count']],';');
-        fputcsv($o,['Estado de datos',$meta['status']],';');
-        fputcsv($o,['Filtros',$meta['filters']],';');
-        fputcsv($o,[],';');
-
-        if($rows){
-            $keys=ExportPresentation::keys($rows);
-            fputcsv($o,ExportPresentation::labels($rows),';');
-            foreach($rows as $row){
-                $values=[];
-                foreach($keys as $key) $values[]=ExportPresentation::displayValue($key,$row[$key]??null);
-                fputcsv($o,$values,';');
-            }
-        }
-        fclose($o);
-        exit;
-    }
 }
