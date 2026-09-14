@@ -38,19 +38,19 @@ $partnerLogo = branding_logo_url('logo_partner');
             <form method="post" action="<?=url('/login')?>" autocomplete="on" class="login-form">
                 <?=csrf_field()?>
                 <div class="mb-3">
-                    <label class="form-label" for="email">Correo</label>
+                    <label class="form-label" for="email"><i class="bi bi-envelope"></i> Correo</label>
                     <input id="email" name="email" type="email" class="form-control login-input" autocomplete="username" inputmode="email" placeholder="correo@empresa.com" required autofocus>
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label" for="password">Contraseña</label>
+                    <label class="form-label" for="password"><i class="bi bi-key"></i> Contraseña</label>
                     <div class="login-password-wrap">
                         <input id="password" name="password" type="password" class="form-control login-input login-password" autocomplete="current-password" placeholder="••••••••" required>
                         <button class="password-toggle" id="passwordToggle" type="button" aria-label="Mostrar contraseña" aria-pressed="false">Ver</button>
                     </div>
                 </div>
 
-                <button class="btn btn-primary login-submit" type="submit">Ingresar</button>
+                <button class="btn btn-primary login-submit btn-with-icon" type="submit"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i><span>Ingresar</span></button>
             </form>
 
             <div class="login-security-compact">
@@ -60,15 +60,15 @@ $partnerLogo = branding_logo_url('logo_partner');
 
             <?php if(is_local_env()): ?>
                 <details class="demo-access">
-                    <summary>Accesos de prueba</summary>
+                    <summary><i class="bi bi-person-badge"></i> Accesos de prueba</summary>
                     <div class="demo-access-grid">
-                        <div><b>Administrador</b><span>admin.demo@local.test</span><code>Admin123*</code></div>
-                        <div><b>Digitador</b><span>digitador@local.test</span><code>Digitador123*</code></div>
-                        <div><b>Supervisor</b><span>supervisor@local.test</span><code>Supervisor123*</code></div>
-                        <div><b>Gerencia</b><span>gerencia@local.test</span><code>Gerencia123*</code></div>
-                        <div><b>Bayer</b><span>bayer@local.test</span><code>Bayer123*</code></div>
+                        <div><b>Administrador</b><span>admin@pucchun.pe</span><code>Admin123*</code></div>
+                        <div><b>Digitador</b><span>digitacion@pucchun.pe</span><code>Digitador123*</code></div>
+                        <div><b>Supervisor</b><span>supervision@pucchun.pe</span><code>Supervisor123*</code></div>
+                        <div><b>Gerencia</b><span>gerencia@pucchun.pe</span><code>Gerencia123*</code></div>
+                        <div><b>Bayer</b><span>consulta@bayer.pe</span><code>Bayer123*</code></div>
                     </div>
-                    <small>Solo desarrollo local. Importar una vez database/seeders/002_demo_users_local.sql.</small>
+                    <small>Solo desarrollo local. Importar una vez database/seeders/002_usuarios_prueba.sql.</small>
                 </details>
             <?php endif; ?>
         </div>
