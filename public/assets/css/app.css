@@ -866,3 +866,31 @@ button,input,select,textarea{font:inherit}
 @media(max-width:480px){
     .export-actions-rich{grid-template-columns:1fr}
 }
+
+
+/* Active state must remain obvious even with Bootstrap/cache interactions */
+.section-tabs.section-tabs-strong .section-tab[aria-current="page"],
+.section-tabs.section-tabs-strong .section-tab.active{
+    background:linear-gradient(135deg,var(--bp-blue) 0%,color-mix(in srgb,var(--bp-blue),var(--bp-green) 48%) 100%)!important;
+    color:#fff!important;
+    border-color:transparent!important;
+    box-shadow:0 9px 20px rgba(7,91,159,.22)!important;
+    transform:translateY(-1px);
+}
+.section-tabs.section-tabs-strong .section-tab[aria-current="page"] i,
+.section-tabs.section-tabs-strong .section-tab[aria-current="page"] span,
+.section-tabs.section-tabs-strong .section-tab.active i,
+.section-tabs.section-tabs-strong .section-tab.active span{
+    color:#fff!important;
+}
+.section-tabs.section-tabs-strong .section-tab[aria-current="page"]::after,
+.section-tabs.section-tabs-strong .section-tab.active::after{
+    content:"";
+    position:absolute;
+    left:12px;
+    right:12px;
+    bottom:-6px;
+    height:3px;
+    border-radius:999px;
+    background:var(--bp-green);
+}
