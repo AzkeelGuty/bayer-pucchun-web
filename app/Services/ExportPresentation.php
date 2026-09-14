@@ -103,6 +103,12 @@ final class ExportPresentation
     public static function metadata(string $type, array $filters, array $rows, array $user, ?string $generatedAt = null): array
     {
         $brand = \branding();
+        $logoPath = static function (mixed $relative): ?string {
+            if (!is_string($relative) || trim($relative) === '') return null;
+            $absolute = \base_path('public/' . ltrim($relative, '/'));
+            return is_file($absolute) ? $absolute : null;
+        };
+
         return [
             'type' => $type,
             'system' => $brand['system_name'] . ' Data Hub',
@@ -116,6 +122,8 @@ final class ExportPresentation
             'filters' => self::filtersLabel($filters),
             'primary_color' => ltrim((string)($brand['primary_color'] ?? '#075B9F'), '#'),
             'accent_color' => ltrim((string)($brand['accent_color'] ?? '#168C5B'), '#'),
+            'logo_primary_path' => $logoPath($brand['logo_primary'] ?? null),
+            'logo_partner_path' => $logoPath($brand['logo_partner'] ?? null),
         ];
     }
 }
