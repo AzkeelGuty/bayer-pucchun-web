@@ -4,11 +4,11 @@ $queryBase=http_build_query(array_filter(['type'=>$type,'from'=>$filters['from']
 ?>
 <section class="page-header portal-page-header">
     <div>
-        <div class="page-eyebrow">INFORMACIÓN PUBLICADA</div>
+        <div class="page-eyebrow"><i class="bi bi-database-check"></i> INFORMACIÓN PUBLICADA</div>
         <h1 class="page-title"><?=e($labels[$type]??'Datos publicados')?></h1>
         <p class="page-subtitle">Consulta de solo lectura sobre información validada y publicada.</p>
     </div>
-    <span class="published-lock">Solo datos publicados</span>
+    <span class="published-lock"><i class="bi bi-lock-fill me-1"></i> Solo datos publicados</span>
 </section>
 
 <div class="card filter-card mb-4">
@@ -19,14 +19,14 @@ $queryBase=http_build_query(array_filter(['type'=>$type,'from'=>$filters['from']
             <div><label class="form-label" for="to">Hasta</label><input class="form-control" id="to" type="date" name="to" value="<?=e($filters['to']??'')?>"></div>
             <div><label class="form-label" for="branch">Sucursal</label><select class="form-select" id="branch" name="branch"><option value="">Todas</option><?php foreach($branches as $b): ?><option value="<?=e($b['codigo'])?>" <?=($filters['branch']??'')===$b['codigo']?'selected':''?>><?=e($b['nombre'])?></option><?php endforeach;?></select></div>
             <div class="filter-search"><label class="form-label" for="q">Buscar</label><input class="form-control" id="q" name="q" value="<?=e($filters['q']??'')?>" placeholder="Documento, cliente o producto"></div>
-            <div class="filter-buttons"><button class="btn btn-primary" type="submit">Aplicar filtros</button><a class="btn btn-outline-primary" href="<?=url('/bayer/datos?type='.urlencode($type))?>">Limpiar</a></div>
+            <div class="filter-buttons"><button class="btn btn-primary btn-with-icon" type="submit"><i class="bi bi-funnel"></i><span>Aplicar filtros</span></button><a class="btn btn-outline-primary btn-with-icon" href="<?=url('/bayer/datos?type='.urlencode($type))?>"><i class="bi bi-x-circle"></i><span>Limpiar</span></a></div>
         </form>
     </div>
 </div>
 
 <div class="delivery-toolbar">
     <div><strong><?=number_format(count($rows))?></strong><span> registros en la vista</span></div>
-    <div class="format-actions"><?php foreach(['xlsx','csv','json','txt','pdf'] as $format): ?><a href="<?=url('/export?'.$queryBase.'&format='.$format)?>" class="format-chip format-<?=$format?>"><?=strtoupper($format)?></a><?php endforeach;?></div>
+    <div class="format-actions"><?php foreach(['xlsx'=>'bi-file-earmark-spreadsheet','csv'=>'bi-filetype-csv','json'=>'bi-braces','txt'=>'bi-filetype-txt','pdf'=>'bi-filetype-pdf'] as $format=>$icon): ?><a href="<?=url('/export?'.$queryBase.'&format='.$format)?>" class="format-chip format-<?=$format?>"><i class="bi <?=e($icon)?>"></i><?=strtoupper($format)?></a><?php endforeach;?></div>
 </div>
 
 <div class="card">
