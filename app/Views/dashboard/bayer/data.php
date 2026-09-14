@@ -26,7 +26,7 @@ $queryBase=http_build_query(array_filter(['type'=>$type,'from'=>$filters['from']
 
 <div class="delivery-toolbar">
     <div><strong><?=number_format(count($rows))?></strong><span> registros en la vista</span></div>
-    <div class="format-actions"><?php foreach(['xlsx'=>'bi-file-earmark-spreadsheet','csv'=>'bi-filetype-csv','json'=>'bi-braces','txt'=>'bi-filetype-txt','pdf'=>'bi-filetype-pdf'] as $format=>$icon): ?><a href="<?=url('/export?'.$queryBase.'&format='.$format)?>" class="format-chip format-<?=$format?>"><i class="bi <?=e($icon)?>"></i><?=strtoupper($format)?></a><?php endforeach;?></div>
+    <div class="format-actions"><?php foreach(['xlsx'=>'bi-file-earmark-spreadsheet','json'=>'bi-braces','txt'=>'bi-filetype-txt','pdf'=>'bi-filetype-pdf'] as $format=>$icon): ?><a href="<?=url('/export?'.$queryBase.'&format='.$format)?>" class="format-chip format-<?=$format?>"><i class="bi <?=e($icon)?>"></i><?=strtoupper($format)?></a><?php endforeach;?></div>
 </div>
 
 <div class="card">
