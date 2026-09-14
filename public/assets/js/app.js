@@ -75,6 +75,17 @@
         if (window.innerWidth > 991.98) setSidebar(false);
     });
 
+    document.querySelectorAll('.js-auto-dismiss').forEach((alert) => {
+        window.setTimeout(() => {
+            if (!alert.isConnected) return;
+            if (window.bootstrap?.Alert) {
+                window.bootstrap.Alert.getOrCreateInstance(alert).close();
+            } else {
+                alert.remove();
+            }
+        }, 4500);
+    });
+
     const password = document.getElementById('password');
     const passwordToggle = document.getElementById('passwordToggle');
     if (password && passwordToggle) {
