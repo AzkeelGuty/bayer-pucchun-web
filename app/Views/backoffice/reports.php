@@ -21,7 +21,6 @@ $datasets=[
 ];
 $formats=[
     'xlsx'=>['label'=>'Excel','detail'=>'Hoja estructurada','icon'=>'bi-file-earmark-spreadsheet','class'=>'xlsx'],
-    'csv'=>['label'=>'CSV','detail'=>'Intercambio de datos','icon'=>'bi-filetype-csv','class'=>'csv'],
     'json'=>['label'=>'JSON','detail'=>'Integración técnica','icon'=>'bi-braces','class'=>'json'],
     'txt'=>['label'=>'TXT','detail'=>'Texto plano','icon'=>'bi-filetype-txt','class'=>'txt'],
     'pdf'=>['label'=>'PDF','detail'=>'Reporte visual','icon'=>'bi-filetype-pdf','class'=>'pdf'],
@@ -76,10 +75,10 @@ $datasetLabel=static fn(string $type): string => $datasets[$type]['label'] ?? uc
 <?php endforeach;?>
 </div>
 
-<div class="card mt-4 export-history-card">
+<div class="card mt-4 export-history-card" data-live-refresh="3000" data-live-refresh-key="export-history">
     <div class="card-header bg-white security-table-title security-table-title-between">
         <div><i class="bi bi-clock-history"></i><strong>Últimas exportaciones</strong></div>
-        <small>Registro de descargas generadas desde la plataforma</small>
+        <small><i class="bi bi-arrow-repeat me-1"></i>Actualización automática · Registro de descargas generadas desde la plataforma</small>
     </div>
     <div class="card-body p-0">
         <?php if(!$rows): ?>
