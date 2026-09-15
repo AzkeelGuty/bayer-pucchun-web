@@ -9,7 +9,7 @@ $field=function(string $name,string $label,string $key,mixed $value,string $cata
     if($error) echo '<div id="'.e($id).'-error" class="invalid-feedback">'.e($error).'</div>';
 };
 ?>
-<link rel="stylesheet" href="<?=url('/assets/css/documentos-michel.css')?>">
+<link rel="stylesheet" href="<?=url('/assets/css/documentos-captura.css')?>">
 <section class="module-header"><div><div class="page-eyebrow">DOCUMENTOS · <?= $editing?'EDICIÓN':'CAPTURA'?></div><h1 class="page-title"><?=$editing?'Editar borrador':'Nuevo documento'?></h1><p class="page-subtitle">Selecciona los catálogos y agrega los productos del documento.</p></div><a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Volver al listado</a></section>
 <?php if($errors): ?><div class="alert alert-danger" role="alert" tabindex="-1" data-error-summary><strong>Revisa la información antes de guardar.</strong><ul class="mb-0"><?php foreach($errors as $key=>$error): ?><li><?=e($error)?></li><?php endforeach;?></ul></div><?php endif;?>
 <form class="card doc-screen" method="post" action="<?=url($editing?'/documentos/actualizar':'/documentos/guardar')?>" data-documents-form>
@@ -21,4 +21,4 @@ $field=function(string $name,string $label,string $key,mixed $value,string $cata
 <?php foreach($details as $i=>$line): $line=is_array($line)?$line:[]; ?><tr data-detail-row><td><?php $field("details[$i][producto_id]",'Producto','details.'.$i.'.producto_id',$line['producto_id']??'','producto_id');?></td><td><?php $field("details[$i][unidad_id]",'Unidad','details.'.$i.'.unidad_id',$line['unidad_id']??'','unidad_id');?></td><td><?php $field("details[$i][cantidad]",'Cantidad','details.'.$i.'.cantidad',$line['cantidad']??'','','number','min="0.001" step="0.001"');?></td><td><?php $field("details[$i][valor_unitario]",'Valor unitario','details.'.$i.'.valor_unitario',$line['valor_unitario']??'0','','number','min="0" step="0.01"');?></td><td><button type="button" class="btn btn-outline-danger btn-sm" data-remove-detail aria-label="Quitar producto">Quitar</button></td></tr><?php endforeach;?>
 </tbody></table></div><p class="text-muted small" data-detail-feedback role="status">Puedes agregar hasta 200 productos. Las cantidades deben ser mayores que cero.</p>
 </div><div class="card-footer d-flex gap-2 flex-wrap"><button class="btn btn-primary" type="submit" data-save>Guardar borrador</button><a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Cancelar</a></div></form>
-<script src="<?=url('/assets/js/documentos-michel.js')?>" defer></script>
+<script src="<?=url('/assets/js/documentos-captura.js')?>" defer></script>

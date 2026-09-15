@@ -1,4 +1,4 @@
-# Documentos: entrega de Michel
+# Documentos: captura y edición
 
 Pantallas de listado, búsqueda, filtros, paginación, creación, detalle y edición de borradores con múltiples productos. Quitar retira una línea del borrador; siempre se exige al menos una. No se ofrece borrado físico del documento.
 

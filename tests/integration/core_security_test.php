@@ -163,10 +163,10 @@ try {
     ensure(request('/documentos/guardar',$digitador,['_csrf'=>token($page)])['status']===422,'Empty capture rejected with field errors');
     $capturePage=request('/documentos/nuevo',$digitador);
     ensure($capturePage['status']===200,'Digitador capture form');
-    $payload=['_csrf'=>token($capturePage),'header'=>docHeader('MICHEL-HTTP'),'details'=>[0=>lines()[0],3=>lines()[0]]];
+    $payload=['_csrf'=>token($capturePage),'header'=>docHeader('DOCUMENT-HTTP'),'details'=>[0=>lines()[0],3=>lines()[0]]];
     $saved=request('/documentos/guardar',$digitador,$payload);
     ensure($saved['status']===302 && str_contains($saved['headers'],'/documentos/ver?id='),'Capture redirects to detail');
-    $created=$docs->findByNumber(1,'MICHEL-HTTP');
+    $created=$docs->findByNumber(1,'DOCUMENT-HTTP');
     ensure($created!==null && count($created['details'])===2,'Sparse detail indices save both lines');
     $documentId=$created['header']['id'];
     ensure(request('/documentos/guardar',$digitador,$payload)['status']===422,'Duplicate number rejected');
@@ -180,8 +180,8 @@ try {
     ensure(request('/documentos/ver?id='.$documentId,$digitador)['status']===200,'Owner detail visible');
     $foreign=$docs->findByNumber(1,'BORRADOR-ONLY')['header']['id'];
     ensure(request('/documentos/ver?id='.$foreign,$digitador)['status']===403,'Foreign draft denied');
-    $filtered=request('/documentos?q=MICHEL-HTTP&state=BORRADOR',$digitador);
-    ensure($filtered['status']===200 && str_contains($filtered['body'],'MICHEL-HTTP'),'Search own draft');
+    $filtered=request('/documentos?q=DOCUMENT-HTTP&state=BORRADOR',$digitador);
+    ensure($filtered['status']===200 && str_contains($filtered['body'],'DOCUMENT-HTTP'),'Search own draft');
     ensure(request('/documentos/eliminar',$digitador,['_csrf'=>token($capturePage),'id'=>$documentId])['status']===404,'No physical delete endpoint');
 
     $supervisor=[];loginAs('SUPERVISOR',$supervisor);
