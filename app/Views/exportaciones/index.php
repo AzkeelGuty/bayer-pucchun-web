@@ -2,7 +2,7 @@
 <p class="text-muted">Descarga datasets <strong>PUBLICADO</strong> de Documentos, Guías o Stock en el formato requerido por Bayer.</p>
 
 <div class="card"><div class="card-body">
-    <form method="get" action="<?= url('/export') ?>" class="row g-3 align-items-end">
+    <form method="get" action="<?= url('/export') ?>" id="export-form" class="row g-3 align-items-end">
         <div class="col-md-4">
             <label class="form-label">Dataset</label>
             <select name="type" class="form-select" required>
@@ -30,8 +30,15 @@
             <input type="date" name="to" class="form-control">
         </div>
         <div class="col-md-1">
-            <button class="btn btn-primary w-100">Exportar</button>
+            <button type="submit" id="export-submit-btn" class="btn btn-primary w-100">Exportar</button>
         </div>
     </form>
+
+    <div class="d-flex align-items-center gap-2 mt-3">
+        <button type="button" id="export-count-btn" class="btn btn-sm btn-outline-secondary">Consultar registros</button>
+        <span id="export-feedback" class="small text-muted"></span>
+    </div>
+
     <p class="text-muted small mt-3 mb-0">La descarga solo incluye registros en estado PUBLICADO; el rango de fechas es opcional.</p>
 </div></div>
+<script src="<?= url('/assets/js/exports.js') ?>"></script>

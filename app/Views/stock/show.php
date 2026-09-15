@@ -55,7 +55,7 @@
             <form method="post" action="<?= url('/stock/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-sm btn-info">Validar</button></form>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'VALIDADO'): ?>
-            <form method="post" action="<?= url('/stock/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-sm btn-success">Publicar</button></form>
+            <form method="post" action="<?= url('/stock/estado') ?>" onsubmit="return confirm('¿Publicar este stock? Bayer podrá verlo de inmediato.');"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-sm btn-success">Publicar</button></form>
             <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#observarModal">Observar</button>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'OBSERVADO'): ?>

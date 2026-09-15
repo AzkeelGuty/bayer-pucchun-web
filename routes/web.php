@@ -42,7 +42,7 @@ $router->get('/bayer',[BayerController::class,'index'],$published);
 $router->get('/bayer/datos',[BayerController::class,'data'],$published);
 # Nueva ruta para exportaciones
 $router->get('/exportaciones',[ExportController::class,'index'],$published);
-
+$router->get('/export/count',[ExportController::class,'count'],$published);
 $router->get('/guias/ver',[GuideController::class,'show'],$internal);
 $router->get('/stock/ver',[StockController::class,'show'],$internal);
 $router->get('/guias/nuevo',[GuideController::class,'create'],$capture);
