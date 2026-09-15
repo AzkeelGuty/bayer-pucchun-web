@@ -32,7 +32,7 @@ $pendingCapture = static function (): void {
 $pendingWorkflow = static function (): void {
     throw new HttpException(503, 'Acción pendiente de integrar con validaciones y workflow.');
 };
-foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::class,'stock'=>StockController::class] as $path=>$controller) {
+foreach (['guias'=>GuideController::class,'stock'=>StockController::class] as $path=>$controller) {
     $router->get('/'.$path,[$controller,'index'],$internal);
     $router->get('/'.$path.'/nuevo',$pendingCapture,$capture);
     $router->post('/'.$path.'/guardar',$pendingCapture,$capture);
@@ -44,3 +44,12 @@ $router->get('/export',[ExportController::class,'export'],$published);
 $router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
 $router->get('/api/v1/bayer/shipments',[ApiController::class,'shipments']);
 $router->get('/api/v1/bayer/inventory',[ApiController::class,'inventory']);
+
+// Documentos: normalized header/detail capture. Workflow remains gated until approved.
+$router->get('/documentos',[DocumentController::class,'index'],$internal);
+$router->get('/documentos/nuevo',[DocumentController::class,'create'],$capture);
+$router->get('/documentos/ver',[DocumentController::class,'show'],$internal);
+$router->get('/documentos/editar',[DocumentController::class,'edit'],$capture);
+$router->post('/documentos/guardar',[DocumentController::class,'store'],$capture);
+$router->post('/documentos/actualizar',[DocumentController::class,'update'],$capture);
+$router->post('/documentos/estado',$pendingWorkflow,$review);
