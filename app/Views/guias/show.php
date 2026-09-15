@@ -60,7 +60,52 @@
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'VALIDADO'): ?>
             <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-sm btn-success">Publicar</button></form>
+            <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#observarModal">Observar</button>
+        <?php endif; ?>
+        <?php if ($h['estado_registro'] === 'OBSERVADO'): ?>
+            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="BORRADOR"><button class="btn btn-sm btn-secondary">Devolver a borrador</button></form>
+        <?php endif; ?>
+        <?php if ($h['estado_registro'] === 'PUBLICADO'): ?>
+            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#anularModal">Anular</button>
         <?php endif; ?>
     </div>
 </div></div>
+
+<div class="modal fade" id="observarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" action="<?= url('/guias/estado') ?>" class="modal-content">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" value="<?= $h['id'] ?>">
+            <input type="hidden" name="status" value="OBSERVADO">
+            <div class="modal-header"><h5 class="modal-title">Observar guía</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label">Motivo de la observación</label>
+                <textarea name="reason" class="form-control" rows="3" required></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-warning">Observar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="anularModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" action="<?= url('/guias/estado') ?>" class="modal-content">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" value="<?= $h['id'] ?>">
+            <input type="hidden" name="status" value="ANULADO">
+            <div class="modal-header"><h5 class="modal-title">Anular guía</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label">Motivo de la anulación</label>
+                <textarea name="reason" class="form-control" rows="3" required></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-danger">Anular</button>
+            </div>
+        </form>
+    </div>
+</div>
 <?php endif; ?>

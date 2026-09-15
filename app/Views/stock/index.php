@@ -48,6 +48,9 @@
                 <td><?= estado_badge($r['estado_registro']) ?></td>
                 <td class="d-flex gap-2 align-items-center">
                     <a class="btn btn-sm btn-outline-secondary" href="<?= url('/stock/ver?id=' . $r['id']) ?>">Ver</a>
+                    <?php if (has_role('ADMIN', 'DIGITADOR', 'SUPERVISOR') && $r['estado_registro'] === 'BORRADOR'): ?>
+                        <a class="btn btn-sm btn-outline-primary" href="<?= url('/stock/editar?id=' . $r['id']) ?>">Editar</a>
+                    <?php endif; ?>
                     <?php if (has_role('ADMIN', 'SUPERVISOR') && in_array($r['estado_registro'], ['BORRADOR', 'VALIDADO'], true)): ?>
                         <form method="post" action="<?= url('/stock/estado') ?>" class="d-flex gap-1">
                             <?= csrf_field() ?>

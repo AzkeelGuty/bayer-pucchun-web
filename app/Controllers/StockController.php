@@ -60,6 +60,34 @@ class StockController
         ]);
     }
 
+    /** Read-only: pre-fills the same form used by create(), only for a BORRADOR record. */
+    public function edit(): void
+    {
+        \require_role('ADMIN', 'DIGITADOR', 'SUPERVISOR');
+        $id = (int) \input('id');
+        $record = $id > 0 ? $this->r->find($id) : null;
+        if (!$record) {
+            throw new HttpException(404, 'Registro de stock no encontrado.');
+        }
+        if ($record['header']['estado_registro'] !== 'BORRADOR') {
+            \flash('error', 'Solo se puede editar un stock en estado Borrador.');
+            \redirect('/stock/ver?id=' . $id);
+        }
+        $_SESSION['_old'] = [
+            'fecha_stock' => $record['header']['fecha_stock'],
+            'almacen_id' => $record['header']['almacen_id'],
+            'idempotency_key' => $record['header']['idempotency_key'],
+        ];
+        $master = new MasterDataRepository();
+        \view('stock.form', [
+            'almacenes' => $master->almacenes(),
+            'productos' => $master->productos(),
+            'unidades' => $master->unidades(),
+            'lotes' => $master->lotes(),
+            'record' => $record,
+        ]);
+    }
+
     public function store(): void
     {
         \require_role('ADMIN', 'DIGITADOR', 'SUPERVISOR');

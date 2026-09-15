@@ -49,6 +49,8 @@ $router->get('/guias/nuevo',[GuideController::class,'create'],$capture);
 $router->get('/stock/nuevo',[StockController::class,'create'],$capture);
 $router->get('/guias/editar',[GuideController::class,'edit'],$capture);
 $router->post('/guias/actualizar',$pendingCapture,$capture);
+$router->get('/stock/editar',[StockController::class,'edit'],$capture);
+$router->post('/stock/actualizar',$pendingCapture,$capture);
 
 $router->get('/export',[ExportController::class,'export'],$published);
 $router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
