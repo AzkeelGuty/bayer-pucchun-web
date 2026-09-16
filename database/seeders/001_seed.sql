@@ -17,7 +17,7 @@ INSERT IGNORE INTO permisos(codigo,nombre,descripcion) VALUES
 ('dashboard.puchun.view','Dashboard Pucchún','Analítica operativa interna'),
 ('dashboard.bayer.view','Dashboard Bayer','Analítica externa publicada'),
 ('published_data.view','Consultar datos publicados','Solo información publicada'),
-('exports.create','Generar exportaciones','XLSX, CSV, JSON, TXT y PDF'),
+('exports.create','Generar exportaciones','XLSX, JSON, TXT y PDF'),
 ('audit.view','Consultar auditoría','Trazabilidad de acciones'),
 ('api.consume','Consumir API futura','Acceso de solo lectura cuando la API esté habilitada');
 
@@ -51,3 +51,37 @@ WHERE r.nombre='GERENCIA';
 INSERT IGNORE INTO rol_permiso(rol_id,permiso_id)
 SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo IN ('dashboard.bayer.view','published_data.view','exports.create','api.consume')
 WHERE r.nombre='BAYER';
+
+
+-- Permisos operativos granulares conservados del backend de Alisson/Pedro.
+INSERT IGNORE INTO permisos(codigo,nombre,descripcion) VALUES
+('documents.read','Consultar documentos','Consultar documentos según rol'),
+('documents.create','Crear documentos','Crear y editar documentos en borrador'),
+('guides.read','Consultar guías','Consultar guías de remisión según rol'),
+('guides.create','Crear guías','Crear y editar guías en borrador'),
+('stock.read','Consultar stock','Consultar cargas y movimientos de stock'),
+('stock.create','Crear stock','Crear y editar cargas de stock en borrador');
+
+INSERT IGNORE INTO rol_permiso(rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo='documents.read'
+WHERE r.nombre IN ('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+
+INSERT IGNORE INTO rol_permiso(rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo='documents.create'
+WHERE r.nombre IN ('ADMIN','DIGITADOR');
+
+INSERT IGNORE INTO rol_permiso(rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo='guides.read'
+WHERE r.nombre IN ('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+
+INSERT IGNORE INTO rol_permiso(rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo='guides.create'
+WHERE r.nombre IN ('ADMIN','DIGITADOR');
+
+INSERT IGNORE INTO rol_permiso(rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo='stock.read'
+WHERE r.nombre IN ('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+
+INSERT IGNORE INTO rol_permiso(rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r JOIN permisos p ON p.codigo='stock.create'
+WHERE r.nombre IN ('ADMIN','DIGITADOR');
