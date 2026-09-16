@@ -8,6 +8,28 @@ use App\Services\{BayerDataService,ExportPresentation,SimpleXlsxExporter,SimpleP
 
 final class ExportController
 {
+    public function index(): void
+    {
+        \require_role('ADMIN','SUPERVISOR','GERENCIA','BAYER');
+        \view('exportaciones.index');
+    }
+
+    public function count(): void
+    {
+        \require_role('ADMIN','SUPERVISOR','GERENCIA','BAYER');
+        $type=(string)\input('type','documents');
+        if(!in_array($type,['documents','guides','stock'],true)) throw new HttpException(422,'Dataset inválido.');
+        $filters=[];
+        foreach(['from','to','branch','q'] as $key){
+            $value=trim((string)\input($key,''));
+            if($value!=='') $filters[$key]=$value;
+        }
+        $rows=(new BayerDataService())->dataset($type,$filters);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success'=>true,'count'=>count($rows)],JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     public function export(): void
     {
         \require_role('ADMIN','SUPERVISOR','GERENCIA','BAYER');
