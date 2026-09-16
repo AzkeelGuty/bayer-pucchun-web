@@ -1,50 +1,70 @@
-<?php require_once base_path('app/Views/components/workflow_control.php'); ?>
-<section class="module-header">
-    <div>
-        <div class="page-eyebrow">INVENTARIO</div>
-        <h1 class="page-title">Stock</h1>
-        <p class="page-subtitle">Snapshots de inventario por almacén y fecha.</p>
-    </div>
-    <?php if(has_role('ADMIN','DIGITADOR')): ?>
-        <a class="btn btn-primary btn-with-icon" href="<?=url('/stock/nuevo')?>"><i class="bi bi-plus-circle"></i><span>Nuevo stock</span></a>
-    <?php endif; ?>
-</section>
+<div class="d-flex justify-content-between">
+    <h2>Stock</h2>
+    <?php if (has_role('ADMIN', 'DIGITADOR', 'SUPERVISOR')): ?><a class="btn btn-primary" href="<?= url('/stock/nuevo') ?>">Nuevo</a><?php endif; ?>
+</div>
+<p class="text-muted">Listado de cargas de stock. Estados: Borrador, Validado, Publicado, Observado, Anulado.</p>
 
-<div class="card">
-    <div class="card-body p-0">
-        <?php if(!$rows): ?>
-            <div class="empty-state"><strong>No hay stock registrado.</strong><span>Los nuevos snapshots aparecerán aquí.</span></div>
-        <?php else: ?>
-            <div class="table-responsive">
-                <table class="table app-table mb-0">
-                    <thead><tr><th>Fecha</th><th>Almacén</th><th>Ítems</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
-                    <tbody>
-                    <?php foreach($rows as $r): ?>
-                        <tr>
-                            <td><strong><?=e($r['fecha_stock'])?></strong></td>
-                            <td><?=e($r['almacen'])?></td>
-                            <td><?=e($r['items'])?></td>
-                            <td><?=e($r['cantidad'])?></td>
-                            <td><span class="badge-status status-<?=e(strtolower($r['estado_registro']))?>"><?=e($r['estado_registro'])?></span></td>
-                            <td>
-    <div class="row-actions">
-        <?php if(($r['estado_registro']??'')==='BORRADOR' && has_role('ADMIN','DIGITADOR')): ?>
-            <a class="btn btn-sm btn-outline-primary btn-with-icon" href="<?=url('/stock/editar?id='.urlencode((string)$r['id']))?>"><i class="bi bi-pencil-square"></i><span>Editar</span></a>
-            <form method="post" action="<?=url('/stock/eliminar')?>" onsubmit="return confirm('¿Eliminar este borrador?');">
-                <?=csrf_field()?>
-                <input type="hidden" name="id" value="<?=e($r['id'])?>">
-                <input type="hidden" name="version" value="<?=e($r['version'])?>">
-                <button class="btn btn-sm btn-outline-danger btn-with-icon" type="submit"><i class="bi bi-trash3"></i><span>Eliminar</span></button>
-            </form>
-        <?php endif; ?>
-        <?php workflow_control('stock',$r); ?>
+<form method="get" action="<?= url('/stock') ?>" class="row g-2 align-items-end mb-3">
+    <div class="col-auto">
+        <label class="form-label mb-0">Estado</label>
+        <select name="estado_registro" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            <?php foreach (['BORRADOR', 'VALIDADO', 'PUBLICADO', 'OBSERVADO', 'ANULADO'] as $estado): ?>
+                <option value="<?= $estado ?>" <?= ($filters['estado_registro'] ?? '') === $estado ? 'selected' : '' ?>><?= $estado ?></option>
+            <?php endforeach; ?>
+        </select>
     </div>
-</td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
+    <div class="col-auto">
+        <label class="form-label mb-0">Desde</label>
+        <input type="date" name="fecha_desde" class="form-control form-control-sm" value="<?= e($filters['fecha_desde'] ?? '') ?>">
     </div>
+    <div class="col-auto">
+        <label class="form-label mb-0">Hasta</label>
+        <input type="date" name="fecha_hasta" class="form-control form-control-sm" value="<?= e($filters['fecha_hasta'] ?? '') ?>">
+    </div>
+    <div class="col-auto">
+        <label class="form-label mb-0">Almacén</label>
+        <select name="almacen_id" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            <?php foreach ($almacenes as $a): ?>
+                <option value="<?= $a['id'] ?>" <?= (string) ($filters['almacen_id'] ?? '') === (string) $a['id'] ? 'selected' : '' ?>><?= e($a['nombre']) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+    <div class="col-auto"><button class="btn btn-sm btn-outline-primary">Filtrar</button></div>
+    <?php if ($filters): ?><div class="col-auto"><a class="btn btn-sm btn-link" href="<?= url('/stock') ?>">Limpiar</a></div><?php endif; ?>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead><tr><th>Fecha</th><th>Almacén</th><th>Items</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody>
+        <?php foreach ($rows as $r): ?>
+            <tr>
+                <td><?= e($r['fecha_stock']) ?></td>
+                <td><?= e($r['almacen']) ?></td>
+                <td><?= e($r['items']) ?></td>
+                <td><?= e($r['cantidad']) ?></td>
+                <td><?= estado_badge($r['estado_registro']) ?></td>
+                <td class="d-flex gap-2 align-items-center">
+                    <a class="btn btn-sm btn-outline-secondary" href="<?= url('/stock/ver?id=' . $r['id']) ?>">Ver</a>
+                    <?php if (has_role('ADMIN', 'DIGITADOR', 'SUPERVISOR') && $r['estado_registro'] === 'BORRADOR'): ?>
+                        <a class="btn btn-sm btn-outline-primary" href="<?= url('/stock/editar?id=' . $r['id']) ?>">Editar</a>
+                    <?php endif; ?>
+                    <?php if (has_role('ADMIN', 'SUPERVISOR') && in_array($r['estado_registro'], ['BORRADOR', 'VALIDADO'], true)): ?>
+                        <form method="post" action="<?= url('/stock/estado') ?>" class="d-flex gap-1">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="id" value="<?= $r['id'] ?>">
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="VALIDADO" <?= $r['estado_registro'] === 'BORRADOR' ? '' : 'disabled' ?>>Validar</option>
+                                <option value="PUBLICADO" <?= $r['estado_registro'] === 'VALIDADO' ? '' : 'disabled' ?>>Publicar</option>
+                            </select>
+                            <button class="btn btn-sm btn-success">Aplicar</button>
+                        </form>
+                    <?php endif; ?>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
 </div>
