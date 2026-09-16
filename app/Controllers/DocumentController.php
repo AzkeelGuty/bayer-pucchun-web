@@ -1,157 +1,57 @@
 <?php
 declare(strict_types=1);
-
 namespace App\Controllers;
-
 use App\Exceptions\HttpException;
 use App\Repositories\DocumentRepository;
-use App\Services\{MasterDataService,WorkflowService};
-use App\Validators\BayerDataValidator;
-use Throwable;
+use App\Services\DocumentScreenService;
 
 final class DocumentController
 {
-    public function __construct(private ?DocumentRepository $repository = null)
-    {
-        $this->repository ??= new DocumentRepository();
+    public function __construct(private ?DocumentRepository $repository=null) { $this->repository??=new DocumentRepository(); }
+    private function record(int $id): array {
+        if($id<1||!($record=$this->repository->find($id))) throw new HttpException(404,'Documento no encontrado.');
+        if(\has_role('DIGITADOR')&&!\has_role('ADMIN','SUPERVISOR','GERENCIA')&&(int)$record['header']['created_by']!==(int)\auth_user()['id']) throw new HttpException(403,'No tiene acceso a este documento.');
+        return $record;
     }
-
-    public function index(): void
-    {
+    public function index(): void {
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
-        \view('documentos.index',['rows'=>$this->repository->all()]);
+        \view('documentos.index',(new DocumentScreenService())->listing($_GET));
     }
-
-    public function create(): void
-    {
-        \require_role('ADMIN','DIGITADOR');
-        \view('documentos.form',['mode'=>'create','defaults'=>[]]);
+    public function create(): void { \require_role('ADMIN','DIGITADOR'); $this->form([],[]); }
+    public function edit(): void {
+        \require_role('ADMIN','DIGITADOR'); $r=$this->record((int)\input('id',0));
+        if($r['header']['estado_registro']!=='BORRADOR') throw new HttpException(409,'Solo se pueden editar borradores.');
+        $this->form($r['header'],$r['details'],true);
     }
-
-    public function edit(): void
-    {
-        \require_role('ADMIN','DIGITADOR');
-        $id=(int)\input('id',0);
-        $record=$this->repository->find($id);
-        if(!$record) throw new HttpException(404,'Documento no encontrado.');
-        if(($record['header']['estado_registro']??'')!=='BORRADOR') throw new HttpException(409,'Solo se puede editar un documento en BORRADOR.');
-        \view('documentos.form',['mode'=>'edit','defaults'=>$this->defaults($id)]);
+    public function show(): void {
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); $r=$this->record((int)\input('id',0));
+        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogs()]);
     }
-
-    public function store(): void
-    {
-        \require_role('ADMIN','DIGITADOR');
-        $this->save(false);
+    private function form(array $header,array $details,bool $editing=false,array $errors=[]): void {
+        \view('documentos.form',compact('header','details','editing','errors')+['catalogs'=>(new DocumentScreenService())->catalogs()]);
     }
-
-    public function update(): void
-    {
-        \require_role('ADMIN','DIGITADOR');
-        $this->save(true);
-    }
-
-    public function destroy(): void
-    {
-        \require_role('ADMIN','DIGITADOR');
-        $id=(int)\input('id',0);
-        $version=(int)\input('version',0);
-        try{
-            $this->repository->deleteDraft($id,$version,(int)\auth_user()['id']);
-            \audit('documentos','eliminar',$id);
-            \flash('success','Documento en borrador eliminado.');
-        }catch(Throwable $e){
-            throw new HttpException(409,'No se pudo eliminar. Actualice la página y verifique que siga en borrador.');
+    public function store(): void { \require_role('ADMIN','DIGITADOR'); $this->save(false); }
+    public function update(): void { \require_role('ADMIN','DIGITADOR'); $this->save(true); }
+    private function save(bool $editing): void {
+        $header=is_array($_POST['header']??null)?$_POST['header']:[];
+        $details=is_array($_POST['details']??null)?array_values($_POST['details']):[];
+        $id=(int)\input('id',0); $version=(int)\input('version',0);
+        if($editing) { $r=$this->record($id); if($r['header']['estado_registro']!=='BORRADOR'||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
+        $screen=new DocumentScreenService(); $errors=$screen->validate($header,$details,$screen->catalogs());
+        if(!$errors) {
+            $duplicate=$this->repository->findByNumber((int)$header['tipo_documento_id'],trim($header['numero']));
+            if($duplicate&&(!$editing||(int)$duplicate['header']['id']!==$id)) $errors['header.numero']='VAL-004: ya existe ese número para el tipo seleccionado.';
         }
-        \redirect('/documentos');
-    }
-
-    private function save(bool $editing): void
-    {
-        $data=$_POST;
-        $errors=(new BayerDataValidator())->validate($data,'documents');
-        if($errors){
-            $_SESSION['_old']=$data;
-            $_SESSION['_errors']=$errors;
-            $target=$editing?'/documentos/editar?id='.urlencode((string)($data['id']??'')):'/documentos/nuevo';
-            \redirect($target);
+        if($errors) { http_response_code(422); $this->form(array_merge($header,['id'=>$id,'version'=>$version]),$details,$editing,$errors); return; }
+        $header=array_intersect_key($header,array_flip(['tipo_documento_id','numero','fecha','cliente_id','vendedor_id','sucursal_id']));
+        $lines=[]; foreach($details as $line) $lines[]=array_intersect_key($line+['valor_unitario'=>'0'],array_flip(['producto_id','unidad_id','cantidad','valor_unitario']));
+        try {
+            if($editing) $this->repository->updateDraft($id,$version,$header,$lines,(int)\auth_user()['id']);
+            else $id=$this->repository->create($header,$lines,(int)\auth_user()['id']);
+        } catch(\Throwable $error) {
+            \log_event('document_screen_save_error',['type'=>get_class($error)]);
+            http_response_code(409); $this->form(array_merge($header,['id'=>$id,'version'=>$version]),$details,$editing,['save'=>'No se pudo guardar. Revisa duplicados o cambios simultáneos y vuelve a intentarlo.']); return;
         }
-
-        $pdo=\db();$pdo->beginTransaction();
-        try{
-            [$header,$details]=$this->payload($data);
-            if($editing){
-                $id=(int)($data['id']??0);$version=(int)($data['version']??0);
-                $this->repository->updateDraft($id,$version,$header,$details,(int)\auth_user()['id']);
-                \audit('documentos','editar',$id);
-                \flash('success','Documento actualizado.');
-            }else{
-                $id=$this->repository->create($header,$details,(int)\auth_user()['id']);
-                \audit('documentos','crear',$id);
-                \flash('success','Documento guardado en borrador.');
-            }
-            $pdo->commit();
-        }catch(Throwable $error){
-            if($pdo->inTransaction()) $pdo->rollBack();
-            \log_event('document_save_error',['type'=>get_class($error)]);
-            throw new HttpException(422,'No se pudo guardar el documento. Revise los datos o posibles duplicados.');
-        }
-        \redirect('/documentos');
-    }
-
-    private function payload(array $data): array
-    {
-        $masters=new MasterDataService();
-        $company=$masters->company($data);
-        $geo=$masters->district($data['department'],$data['province'],$data['district']);
-        $branch=$masters->branch($data,$company,$geo[2]);
-        $client=$masters->client($data,$geo);
-        $seller=$masters->seller($data);
-        $unit=$masters->unit($data);
-        $product=$masters->product($data,$unit);
-        $type=$masters->docType($data);
-
-        return [[
-            'tipo_documento_id'=>$type,
-            'numero'=>trim((string)$data['documentNumber']),
-            'fecha'=>$data['documentDate'],
-            'cliente_id'=>$client,
-            'vendedor_id'=>$seller,
-            'sucursal_id'=>$branch,
-        ],[[
-            'producto_id'=>$product,
-            'unidad_id'=>$unit,
-            'cantidad'=>(string)$data['quantity'],
-            'valor_unitario'=>trim((string)($data['valorUnitario']??''))!==''?(string)$data['valorUnitario']:'0',
-        ]]];
-    }
-
-    private function defaults(int $id): array
-    {
-        $st=\db()->prepare("SELECT dc.id,dc.version,e.ruc dealerId,e.razon_social dealerName,td.codigo documentTypeId,td.nombre documentType,
-            dc.numero documentNumber,DATE_FORMAT(dc.fecha,'%Y-%m-%d') documentDate,v.codigo salesId,TRIM(CONCAT(v.nombres,' ',COALESCE(v.apellidos,''))) salesName,
-            s.codigo branchId,s.nombre branchName,c.nro_doc customerId,c.razon_social customerName,pr.codigo materialId,pr.nombre materialName,
-            um.codigo measureUnit,dd.cantidad quantity,dd.valor_unitario valorUnitario,dp.nombre department,pv.nombre province,ds.nombre district
-            FROM documentos_cabecera dc JOIN tipos_documento td ON td.id=dc.tipo_documento_id JOIN clientes c ON c.id=dc.cliente_id
-            JOIN vendedores v ON v.id=dc.vendedor_id JOIN sucursales s ON s.id=dc.sucursal_id JOIN empresas e ON e.id=s.empresa_id
-            JOIN documentos_detalle dd ON dd.documento_id=dc.id JOIN productos pr ON pr.id=dd.producto_id JOIN unidades_medida um ON um.id=dd.unidad_id
-            LEFT JOIN distritos ds ON ds.id=c.distrito_id LEFT JOIN provincias pv ON pv.id=c.provincia_id LEFT JOIN departamentos dp ON dp.id=c.departamento_id
-            WHERE dc.id=? ORDER BY dd.id LIMIT 1");
-        $st->execute([$id]);
-        $row=$st->fetch();
-        if(!$row) throw new HttpException(404,'Documento no encontrado.');
-        return $row;
-    }
-
-    public function changeStatus(): void
-    {
-        \require_role('ADMIN','SUPERVISOR');
-        $id=(int)\input('id');
-        $version=(int)\input('version');
-        $status=strtoupper(trim((string)\input('status')));
-        $reason=trim((string)\input('reason',''));
-        (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);
-        \audit('documentos','estado_'.$status,$id);
-        \flash('success','Estado del documento actualizado.');
-        \redirect('/documentos');
+        \audit('documentos',$editing?'editar':'crear',$id); \flash('success','Documento guardado en borrador.'); \redirect('/documentos/ver?id='.$id);
     }
 }
