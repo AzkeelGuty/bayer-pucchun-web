@@ -1,55 +1,7 @@
-<?php require_once base_path('app/Views/components/workflow_control.php'); ?>
-<section class="module-header">
-    <div>
-        <div class="page-eyebrow">CAPTURA Y CONTROL</div>
-        <h1 class="page-title">Documentos</h1>
-        <p class="page-subtitle">Registros comerciales y su estado de validación.</p>
-    </div>
-    <?php if(has_role('ADMIN','DIGITADOR')): ?>
-        <a class="btn btn-primary btn-with-icon" href="<?=url('/documentos/nuevo')?>"><i class="bi bi-plus-circle"></i><span>Nuevo documento</span></a>
-    <?php endif; ?>
-</section>
-
-<div class="card">
-    <div class="card-body p-0">
-        <?php if(!$rows): ?>
-            <div class="empty-state">
-                <strong>No hay documentos registrados.</strong>
-                <span>Los nuevos registros aparecerán aquí.</span>
-            </div>
-        <?php else: ?>
-            <div class="table-responsive">
-                <table class="table app-table mb-0">
-                    <thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Sucursal</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
-                    <tbody>
-                    <?php foreach($rows as $r): ?>
-                        <tr>
-                            <td><strong><?=e($r['numero'])?></strong></td>
-                            <td><?=e($r['fecha'])?></td>
-                            <td><?=e($r['cliente'])?></td>
-                            <td><?=e($r['vendedor'])?></td>
-                            <td><?=e($r['sucursal'])?></td>
-                            <td><?=e($r['cantidad'])?></td>
-                            <td><span class="badge-status status-<?=e(strtolower($r['estado_registro']))?>"><?=e($r['estado_registro'])?></span></td>
-                            <td>
-    <div class="row-actions">
-        <?php if(($r['estado_registro']??'')==='BORRADOR' && has_role('ADMIN','DIGITADOR')): ?>
-            <a class="btn btn-sm btn-outline-primary btn-with-icon" href="<?=url('/documentos/editar?id='.urlencode((string)$r['id']))?>"><i class="bi bi-pencil-square"></i><span>Editar</span></a>
-            <form method="post" action="<?=url('/documentos/eliminar')?>" onsubmit="return confirm('¿Eliminar este borrador?');">
-                <?=csrf_field()?>
-                <input type="hidden" name="id" value="<?=e($r['id'])?>">
-                <input type="hidden" name="version" value="<?=e($r['version'])?>">
-                <button class="btn btn-sm btn-outline-danger btn-with-icon" type="submit"><i class="bi bi-trash3"></i><span>Eliminar</span></button>
-            </form>
-        <?php endif; ?>
-        <?php workflow_control('documentos',$r); ?>
-    </div>
-</td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
-    </div>
-</div>
+<?php $link=function(int $n)use($q,$state):string{return url('/documentos?'.http_build_query(['q'=>$q,'state'=>$state,'page'=>$n]));}; ?>
+<section class="module-header"><div><div class="page-eyebrow">CAPTURA Y CONTROL</div><h1 class="page-title">Documentos</h1><p class="page-subtitle">Consulta tus registros y continúa su revisión.</p></div><?php if(has_role('ADMIN','DIGITADOR')):?><a class="btn btn-primary" href="<?=url('/documentos/nuevo')?>">+ Nuevo documento</a><?php endif;?></section>
+<form method="get" action="<?=url('/documentos')?>" class="card card-body mb-3"><div class="row g-3 align-items-end"><div class="col-12 col-md-6"><label class="form-label" for="doc-search">Buscar documento</label><input class="form-control" id="doc-search" name="q" value="<?=e($q)?>" placeholder="Número, cliente, vendedor o sucursal"></div><div class="col-12 col-md-3"><label class="form-label" for="doc-state">Estado</label><select class="form-select" id="doc-state" name="state"><option value="">Todos los estados</option><?php foreach(['BORRADOR','VALIDADO','OBSERVADO','PUBLICADO','ANULADO'] as $s):?><option <?=$state===$s?'selected':''?>><?=e($s)?></option><?php endforeach;?></select></div><div class="col-12 col-md-3 d-flex gap-2"><button class="btn btn-primary">Buscar</button><a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Limpiar</a></div></div></form>
+<div class="card"><div class="card-body"><p class="text-muted small"><?=e($total)?> documentos encontrados · Página <?=e($page)?> de <?=e($pages)?></p><div class="table-responsive"><table class="table app-table align-middle"><thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Sucursal</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+<?php foreach($rows as $r):?><tr><td><strong><?=e($r['numero'])?></strong></td><td><?=e($r['fecha'])?></td><td><?=e($r['cliente'])?></td><td><?=e($r['sucursal'])?></td><td><?=e($r['cantidad'])?></td><td><span class="badge-status status-<?=e(strtolower($r['estado_registro']))?>"><?=e($r['estado_registro'])?></span></td><td><div class="d-flex gap-2"><a class="btn btn-sm btn-outline-primary" href="<?=url('/documentos/ver?id='.$r['id'])?>">Ver</a><?php if($r['estado_registro']==='BORRADOR'&&has_role('ADMIN','DIGITADOR')):?><a class="btn btn-sm btn-outline-primary" href="<?=url('/documentos/editar?id='.$r['id'])?>">Editar</a><?php endif;?></div></td></tr><?php endforeach;?>
+<?php if(!$rows):?><tr><td colspan="7"><div class="empty-state"><strong>No se encontraron documentos</strong><span><?=$q!==''||$state!==''?'Prueba otros filtros o limpia la búsqueda.':'Los nuevos registros aparecerán aquí.'?></span></div></td></tr><?php endif;?></tbody></table></div>
+<nav aria-label="Paginación de documentos" class="d-flex gap-2 justify-content-end align-items-center flex-wrap"><?php if($page>1):?><a class="btn btn-outline-primary" href="<?=e($link($page-1))?>">Anterior</a><?php endif;?><span aria-current="page">Página <?=e($page)?> de <?=e($pages)?></span><?php if($page<$pages):?><a class="btn btn-outline-primary" href="<?=e($link($page+1))?>">Siguiente</a><?php endif;?></nav></div></div>
