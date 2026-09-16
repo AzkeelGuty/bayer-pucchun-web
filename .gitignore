@@ -8,3 +8,6 @@
 /storage/published/stock/*
 !/storage/**/.gitkeep
 /vendor/*
+/storage/config/branding.json
+/public/uploads/branding/*
+!/public/uploads/branding/.gitkeep

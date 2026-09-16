@@ -21,6 +21,14 @@ final class OperationalPolicy
         }
     }
 
+    public function workflow(array $user, string $target): void
+    {
+        $permission=in_array($target,['PUBLICADO','ANULADO'],true) ? 'publications.publish' : 'validation.review';
+        if (!AccessPolicy::allows($user,AccessPolicy::REVIEW) || !$this->permissions->allows($user,$permission)) {
+            throw new HttpException(403,'No tiene permisos para esta transición.');
+        }
+    }
+
     public function ownOnly(array $user): bool
     {
         return !AccessPolicy::allows($user, ['ADMIN', 'SUPERVISOR', 'GERENCIA']);

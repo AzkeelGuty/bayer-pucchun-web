@@ -12,11 +12,11 @@ final class ErrorHandler
         $status = $error instanceof \App\Exceptions\ValidationException ? 422 : ($error instanceof HttpException ? $error->status : 500);
         $message = ($error instanceof HttpException || $error instanceof \App\Exceptions\ValidationException) ? $error->getMessage() : 'Ocurrió un error interno. Inténtelo nuevamente.';
         if ($status === 500) {
-            // Do not copy SQL, connection strings, request payloads or exception messages to logs.
             \log_event('internal_error', ['type' => get_class($error), 'code' => (string) $error->getCode()]);
         }
         http_response_code($status);
         header('Cache-Control: no-store');
+
         if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
             header('Content-Type: application/json; charset=utf-8');
             $body = ['success'=>false,'code'=>$status,'message'=>$message];
@@ -24,8 +24,13 @@ final class ErrorHandler
             echo json_encode($body, JSON_UNESCAPED_UNICODE);
             return;
         }
+
         header('Content-Type: text/html; charset=utf-8');
-        echo '<!doctype html><html lang="es"><meta charset="utf-8"><title>Error ' . $status
-            . '</title><h1>' . $status . '</h1><p>' . \e($message) . '</p></html>';
+        $view = \base_path('app/Views/errors/error.php');
+        if (is_file($view)) {
+            require $view;
+            return;
+        }
+        echo '<!doctype html><html lang="es"><meta charset="utf-8"><title>Error</title><h1>' . $status . '</h1><p>' . \e($message) . '</p></html>';
     }
 }

@@ -75,6 +75,10 @@ try {
     $pdo->exec('UPDATE roles SET estado=1 WHERE id=10');
 
     $db->load('database/seeders/003_day2_operational_permissions.sql');
+    // Existing develop workflow grants, installed only in this disposable database.
+    $pdo->exec("INSERT INTO permisos(codigo,nombre) VALUES('validation.review','Fixture'),('publications.publish','Fixture')");
+    $pdo->exec("INSERT INTO rol_permiso(rol_id,permiso_id) SELECT r.id,p.id FROM roles r CROSS JOIN permisos p WHERE r.nombre IN ('ADMIN','SUPERVISOR') AND p.codigo IN ('validation.review','publications.publish')");
+
 
     $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);
     if (!$socket) throw new RuntimeException('No local port');
@@ -134,7 +138,7 @@ try {
     ensure($page['status']===200,'Bayer portal');
     ensure(!str_contains($page['body'],'>Clientes<') && !str_contains($page['body'],'>Productos<'),'No global master counts');
     ensure(!str_contains($page['body'],'</script><script>alert(1)</script>'),'Bayer chart names escaped');
-    foreach(['/bayer/datos?type=documents','/export?type=documents&format=csv'] as $path) {
+    foreach(['/bayer/datos?type=documents','/export?type=documents&format=json'] as $path) {
         $page=request($path,$bayer);
         ensure($page['status']===200 && str_contains($page['body'],'PUBLICADO-ONLY'),'Published output');
         foreach(['BORRADOR','VALIDADO','OBSERVADO','ANULADO'] as $state) ensure(!str_contains($page['body'],$state.'-ONLY'),'Hidden state '.$state);
@@ -178,11 +182,11 @@ try {
     ensure(!str_contains($page['body'], '>Portal Bayer</a>'), 'El menú del Digitador respeta el acceso al portal');
     ensure(request('/export?type=documents&format=csv',$digitador)['status'] === 403, 'Digitador no exporta');
     ensure(request('/documentos/estado',$digitador,['_csrf'=>token($page),'status'=>'PUBLICADO'])['status']===403,'Digitador cannot publish');
-    ensure(request('/documentos/guardar',$digitador,['_csrf'=>token($page)])['status']===422,'Day 2 rejects an empty capture with validation errors');
+    ensure(request('/documentos/guardar',$digitador,['_csrf'=>token($page)])['status']===422,'Invalid capture returns HTTP 422 for correction');
     $supervisor=[];loginAs('SUPERVISOR',$supervisor);
     ensure(request('/guias',$supervisor)['status']===200,'Supervisor review listing');
     ensure(request('/guias/nuevo',$supervisor)['status']===403,'Supervisor does not capture');
-    $export = request('/export?type=documents&format=csv', $supervisor);
+    $export = request('/export?type=documents&format=json', $supervisor);
     ensure($export['status'] === 200 && str_contains($export['body'], 'PUBLICADO-ONLY'), 'Supervisor exporta datos publicados');
     ensure(!str_contains($export['body'], 'BORRADOR-ONLY'), 'Supervisor no exporta borradores');
     $reviewList = request('/guias', $supervisor);
@@ -204,7 +208,7 @@ try {
         $saved=request('/'.$path.'/guardar',$digitador,$body,['Accept: application/json']);
         ensure($saved['status']===201,'HTTP capture '.$module);
         $id=json_decode($saved['body'],true,512,JSON_THROW_ON_ERROR)['data']['id'];
-        $show=request('/'.$path.'/ver?id='.$id,$digitador);
+        $show=request('/'.$path.'/ver?id='.$id,$digitador,null,['Accept: application/json']);
         ensure($show['status']===200,'HTTP show '.$module);
         $record=json_decode($show['body'],true,512,JSON_THROW_ON_ERROR)['data'];
         ensure($record['header']['estado_registro']==='BORRADOR' && (int)$record['header']['created_by']===$ids['DIGITADOR'],'HTTP actor/state');
@@ -217,13 +221,16 @@ try {
         ensure(request('/'.$path.'/ver?id[]=1',$digitador)['status']===422,'Malformed show ID');
         ensure(request('/'.$path.'/ver?id=999999',$digitador)['status']===404,'Missing show ID');
         ensure(request('/'.$path.'/maestros?catalog=productos',$digitador)['status']===200,'Catalog HTTP');
-        ensure(request('/'.$path.'/estado',$supervisor,['_csrf'=>token(request('/guias',$supervisor)),'id'=>$id,'status'=>'PUBLICADO'])['status']===503,'Workflow remains pending');
+        ensure(request('/'.$path.'/estado',$supervisor,['_csrf'=>token(request('/guias',$supervisor)),'id'=>$id,'version'=>1,'status'=>'PUBLICADO'])['status']===422,'Workflow forbids skipping validation');
         $external=[];loginAs('BAYER',$external);
         // Restore a Bayer role removed by the earlier revocation test.
         $pdo->exec('INSERT IGNORE INTO usuario_rol(usuario_id,rol_id) VALUES(14,14)');
         $external=[];loginAs('BAYER',$external);
         foreach(['/ver?id='.$id,'/maestros?catalog=productos','/nuevo'] as $suffix) ensure(request('/'.$path.$suffix,$external)['status']===403,'Bayer new endpoint denied');
     }
+    $day2ChecksBeforeReconciliation=$GLOBALS['checks']-$startDay2;
+    require __DIR__.'/reconciliation_http_cases.php';
+    $startDay2=$GLOBALS['checks']-$day2ChecksBeforeReconciliation;
     $pdo->exec("DELETE rp FROM rol_permiso rp JOIN permisos p ON p.id=rp.permiso_id WHERE rp.rol_id=11 AND p.codigo='documents.create'");
     ensure(request('/documentos/nuevo',$digitador,null,['Accept: application/json'])['status']===403,'Live create permission revocation');
     ensure(request('/documentos',$digitador)['status']===200,'Read still granted');

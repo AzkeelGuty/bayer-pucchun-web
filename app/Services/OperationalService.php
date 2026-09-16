@@ -118,4 +118,55 @@ final class OperationalService
         }
         return $id;
     }
+
+    public function editable(array $user, mixed $id): array
+    {
+        $this->policy->authorize($user,$this->module,'create');
+        $record=$this->show($user,$id);
+        if ($record['header']['estado_registro']!=='BORRADOR') throw new HttpException(409,'Solo se pueden modificar borradores.');
+        return $record;
+    }
+
+    public function update(array $user, mixed $id, mixed $version, array $input): int
+    {
+        $record=$this->editable($user,$id);
+        $version=OperationalValidator::id($version);
+        if ((int)$record['header']['version']!==$version) throw new HttpException(409,'La carga cambió. Vuelva a abrirla antes de editar.');
+        [$header,$details]=$this->validator->capture($this->module,$input,true);
+        return $this->draftWrite(fn()=> $this->repository->updateDraft((int)$record['header']['id'],$version,$header,$details,(int)$user['id']));
+    }
+
+    public function delete(array $user, mixed $id, mixed $version): void
+    {
+        $record=$this->editable($user,$id);
+        $version=OperationalValidator::id($version);
+        $this->draftWrite(fn()=> $this->repository->deleteDraft((int)$record['header']['id'],$version,(int)$user['id']));
+    }
+
+    private function draftWrite(callable $operation): mixed
+    {
+        try { return $operation(); }
+        catch (\PDOException $error) {
+            $code=(int)($error->errorInfo[1] ?? 0);
+            if (in_array($code,[1062,1451],true)) throw new HttpException(409,'La carga está duplicada o relacionada con otros registros.');
+            if ($code===1452) throw new ValidationException(['references'=>'Una referencia ya no está disponible.']);
+            throw $error;
+        } catch (\InvalidArgumentException) {
+            throw new ValidationException(['payload'=>'La carga no cumple el contrato v2 o intenta cambiar su identidad.']);
+        } catch (\RuntimeException) {
+            throw new HttpException(409,'La carga cambió. Actualice la página antes de continuar.');
+        }
+    }
+
+    public function transition(array $user, mixed $id, mixed $version, mixed $target, mixed $reason): int
+    {
+        if (!is_string($target) || !is_string($reason)) throw new ValidationException(['status'=>'Estado o motivo inválido.']);
+        $target=strtoupper(trim($target)); $reason=trim($reason);
+        $this->policy->workflow($user,$target);
+        if (!in_array($target,['BORRADOR','VALIDADO','PUBLICADO','OBSERVADO','ANULADO'],true)) throw new ValidationException(['status'=>'Estado inválido.']);
+        if (in_array($target,['OBSERVADO','ANULADO'],true) && $reason==='') throw new ValidationException(['reason'=>'El motivo es obligatorio.']);
+        $record=$this->show($user,$id);
+        $version=OperationalValidator::id($version);
+        return (new WorkflowService())->transition($this->repository,(int)$record['header']['id'],$version,$target,(int)$user['id'],$reason);
+    }
 }

@@ -9,6 +9,18 @@ final class OperationalValidator
 {
     public function __construct(private MasterDataRepository $masters) {}
 
+    /** Adapt integrated flat HTML forms without dropping unknown fields or coercing values. */
+    public static function formPayload(string $module, array $input, bool $editing): array
+    {
+        if ($editing) unset($input['id'],$input['version']);
+        if ($module==='documents' || array_key_exists('header',$input) || array_key_exists('details',$input)) return $input;
+        $fields=$module==='stock' ? ['fecha_stock','almacen_id','idempotency_key']
+            : ['numero','fecha','cliente_id','vendedor_id','sucursal_id','departamento_id','provincia_id','distrito_id'];
+        $header=array_intersect_key($input,array_flip($fields));
+        $extra=array_diff_key($input,array_flip([...$fields,'detalle','_csrf']));
+        return ['header'=>$header,'details'=>$input['detalle'] ?? null]+$extra;
+    }
+
     public static function id(mixed $value): int
     {
         if ((!is_int($value) && !is_string($value))
@@ -45,7 +57,7 @@ final class OperationalValidator
         return $row;
     }
 
-    public function capture(string $module, array $input): array
+    public function capture(string $module, array $input, bool $editing = false): array
     {
         $errors = [];
         if (array_diff(array_keys($input), ['header','details','_csrf'])) $errors['payload'] = 'Campos no admitidos; no envíe estado ni actor.';
@@ -65,7 +77,7 @@ final class OperationalValidator
         if ($module !== 'stock') {
             if (!is_string($h['numero'] ?? null) || trim($h['numero']) === '' || strlen($h['numero'])>25) $errors['header.numero'] = 'Número obligatorio, máximo 25 bytes.';
             else $h['numero'] = trim($h['numero']);
-        } elseif (!is_string($h['idempotency_key'] ?? null) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/D', $h['idempotency_key']) || str_starts_with($h['idempotency_key'], 'legacy-stock-')) {
+        } elseif (!is_string($h['idempotency_key'] ?? null) || !preg_match('/^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/D', $h['idempotency_key']) || (!$editing && str_starts_with($h['idempotency_key'], 'legacy-stock-'))) {
             $errors['header.idempotency_key'] = 'Clave de solicitud inválida o reservada.';
         }
         $refs = $module === 'stock' ? ['almacen_id'=>'almacenes'] : ['cliente_id'=>'clientes','vendedor_id'=>'vendedores','sucursal_id'=>'sucursales'];

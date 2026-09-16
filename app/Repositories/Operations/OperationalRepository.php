@@ -75,6 +75,19 @@ abstract class OperationalRepository
     }
 
     // Fixed SQL source-state predicates guard stale writes; these are not authorization checks.
+    public function deleteDraft(int $id, int $expectedVersion, int $actorId): void
+    {
+        foreach ([$id, $expectedVersion, $actorId] as $value) self::positiveId($value);
+        $this->atomic(function () use ($id, $expectedVersion): void {
+            $current=$this->lockedHeader($id);
+            if(!$current || $current['estado_registro']!=='BORRADOR' || (int)$current['version']!==$expectedVersion){
+                throw new RuntimeException('Solo se puede eliminar un borrador con la versión vigente.');
+            }
+            $statement=$this->execute('DELETE FROM '.static::HEADER." WHERE id=? AND version=? AND estado_registro='BORRADOR'",[$id,$expectedVersion]);
+            if($statement->rowCount()!==1) throw new RuntimeException('No se pudo eliminar el borrador.');
+        });
+    }
+
     public function markValidated(int $id, int $version, int $actorId): int
     {
         return $this->persistState($id, $version, $actorId, 'BORRADOR', 'VALIDADO', 'validated');
