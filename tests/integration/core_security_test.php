@@ -160,7 +160,7 @@ try {
     ensure(request('/documentos',$digitador)['status']===200,'Digitador listing');
     $page=request('/documentos',$digitador);
     ensure(request('/documentos/estado',$digitador,['_csrf'=>token($page),'status'=>'PUBLICADO'])['status']===403,'Digitador cannot publish');
-    ensure(request('/documentos/guardar',$digitador,['_csrf'=>token($page)])['status']===302,'Capture route connected; invalid form returns to input for correction');
+    ensure(request('/documentos/guardar',$digitador,['_csrf'=>token($page)])['status']===422,'Capture route connected; invalid form returns validation response for correction');
     $supervisor=[];loginAs('SUPERVISOR',$supervisor);
     ensure(request('/guias',$supervisor)['status']===200,'Supervisor review listing');
     ensure(request('/guias/nuevo',$supervisor)['status']===403,'Supervisor does not capture');
