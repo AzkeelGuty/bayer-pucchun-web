@@ -1,3 +1,181 @@
 <?php
-namespace App\Controllers; use App\Repositories\GuideRepository; use App\Validators\BayerDataValidator;
-class GuideController {private GuideRepository $r;public function __construct(){$this->r=new GuideRepository();}public function index():void{\require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');\view('guias.index',['rows'=>$this->r->all()]);}public function create():void{\require_role('ADMIN','DIGITADOR','SUPERVISOR');\view('guias.form');}public function store():void{\require_role('ADMIN','DIGITADOR','SUPERVISOR');$d=$_POST;$e=(new BayerDataValidator())->validate($d,'guides');if($e){$_SESSION['_old']=$d;$_SESSION['_errors']=$e;\redirect('/guias/nuevo');}try{$id=$this->r->create($d);\audit('guias','crear',$id);\flash('success','Guía registrada en borrador.');}catch(\Throwable $x){\log_event('guide_store_error',['e'=>$x->getMessage()]);\flash('error','No se pudo registrar la guía.');}\redirect('/guias');}public function changeStatus():void{\require_role('ADMIN','SUPERVISOR');$id=(int)\input('id');$s=(string)\input('status');if(!in_array($s,['BORRADOR','VALIDADO','PUBLICADO'],true))$s='BORRADOR';$this->r->status($id,$s);\audit('guias','estado_'.$s,$id);\redirect('/guias');}}
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Exceptions\HttpException;
+use App\Repositories\{GuideRepository,MasterDataRepository};
+use App\Services\WorkflowService;
+
+final class GuideController
+{
+    public function __construct(private ?GuideRepository $repository=null)
+    {
+        $this->repository ??= new GuideRepository();
+    }
+
+    private function masters(): MasterDataRepository { return new MasterDataRepository(); }
+
+    private function filters(): array
+    {
+        $filters=[];
+        $estado=trim((string)\input('estado_registro',''));
+        if(in_array($estado,['BORRADOR','VALIDADO','PUBLICADO','OBSERVADO','ANULADO'],true)) $filters['estado_registro']=$estado;
+        foreach(['fecha_desde','fecha_hasta'] as $key){
+            $value=trim((string)\input($key,''));
+            if($value!=='') $filters[$key]=$value;
+        }
+        $sucursal=(string)\input('sucursal_id','');
+        if(ctype_digit($sucursal) && (int)$sucursal>0) $filters['sucursal_id']=(int)$sucursal;
+        return $filters;
+    }
+
+    private function viewData(): array
+    {
+        $m=$this->masters();
+        return [
+            'clientes'=>$m->clientes(),
+            'vendedores'=>$m->vendedores(),
+            'sucursales'=>$m->sucursales(),
+            'productos'=>$m->productos(),
+            'unidades'=>$m->unidades(),
+            'departamentos'=>$m->departamentos(),
+            'provincias'=>$m->provincias(),
+            'distritos'=>$m->distritos(),
+        ];
+    }
+
+    public function index(): void
+    {
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+        $filters=$this->filters();
+        \view('guias.index',[
+            'rows'=>$this->repository->all($filters),
+            'filters'=>$filters,
+            'sucursales'=>$this->masters()->sucursales(),
+        ]);
+    }
+
+    public function show(): void
+    {
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+        $id=(int)\input('id',0);
+        $record=$this->repository->find($id);
+        if(!$record) throw new HttpException(404,'Guía no encontrada.');
+        $m=$this->masters();
+        \view('guias.show',[
+            'record'=>$record,
+            'clientes'=>\index_by($m->clientes(),'id'),
+            'vendedores'=>\index_by($m->vendedores(),'id'),
+            'sucursales'=>\index_by($m->sucursales(),'id'),
+            'productos'=>\index_by($m->productos(),'id'),
+            'unidades'=>\index_by($m->unidades(),'id'),
+            'departamentos'=>\index_by($m->departamentos(),'id'),
+            'provincias'=>\index_by($m->provincias(),'id'),
+            'distritos'=>\index_by($m->distritos(),'id'),
+        ]);
+    }
+
+    public function create(): void
+    {
+        \require_role('ADMIN','DIGITADOR');
+        \view('guias.form',$this->viewData());
+    }
+
+    public function edit(): void
+    {
+        \require_role('ADMIN','DIGITADOR');
+        $id=(int)\input('id',0);
+        $record=$this->repository->find($id);
+        if(!$record) throw new HttpException(404,'Guía no encontrada.');
+        if(($record['header']['estado_registro']??'')!=='BORRADOR') throw new HttpException(409,'Solo se puede editar una guía en BORRADOR.');
+        $_SESSION['_old']=[
+            'numero'=>$record['header']['numero']??'',
+            'fecha'=>$record['header']['fecha']??'',
+            'cliente_id'=>$record['header']['cliente_id']??'',
+            'vendedor_id'=>$record['header']['vendedor_id']??'',
+            'sucursal_id'=>$record['header']['sucursal_id']??'',
+            'departamento_id'=>$record['header']['departamento_id']??'',
+            'provincia_id'=>$record['header']['provincia_id']??'',
+            'distrito_id'=>$record['header']['distrito_id']??'',
+        ];
+        \view('guias.form',$this->viewData()+['record'=>$record]);
+    }
+
+    public function store(): void { \require_role('ADMIN','DIGITADOR'); $this->save(false); }
+    public function update(): void { \require_role('ADMIN','DIGITADOR'); $this->save(true); }
+
+    private function save(bool $editing): void
+    {
+        $details=is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[];
+        $header=[
+            'numero'=>trim((string)\input('numero','')),
+            'fecha'=>(string)\input('fecha',''),
+            'cliente_id'=>(int)\input('cliente_id',0),
+            'vendedor_id'=>(int)\input('vendedor_id',0),
+            'sucursal_id'=>(int)\input('sucursal_id',0),
+            'departamento_id'=>\input('departamento_id','')!==''?(int)\input('departamento_id'):null,
+            'provincia_id'=>\input('provincia_id','')!==''?(int)\input('provincia_id'):null,
+            'distrito_id'=>\input('distrito_id','')!==''?(int)\input('distrito_id'):null,
+        ];
+        $errors=[];
+        foreach(['numero','fecha'] as $k) if(trim((string)$header[$k])==='') $errors[$k]='Campo obligatorio';
+        foreach(['cliente_id','vendedor_id','sucursal_id'] as $k) if((int)$header[$k]<1) $errors[$k]='Seleccione una opción válida';
+        if(!$details) $errors['detalle']='Agregue al menos una línea.';
+        foreach($details as $i=>$line){
+            if(!is_array($line) || (int)($line['producto_id']??0)<1 || (int)($line['unidad_id']??0)<1 || (float)($line['cantidad']??0)<=0){
+                $errors['detalle']="Revise la línea ".($i+1)." del detalle.";
+            }
+        }
+        if($errors){
+            $_SESSION['_old']=$_POST; $_SESSION['_errors']=$errors;
+            $target=$editing?'/guias/editar?id='.(int)\input('id',0):'/guias/nuevo';
+            \redirect($target);
+        }
+        $lines=array_map(static fn(array $line):array=>[
+            'producto_id'=>(int)$line['producto_id'],
+            'unidad_id'=>(int)$line['unidad_id'],
+            'cantidad'=>(string)$line['cantidad'],
+        ],$details);
+        try{
+            if($editing){
+                $id=(int)\input('id',0);
+                $this->repository->updateDraft($id,(int)\input('version',0),$header,$lines,(int)\auth_user()['id']);
+                \audit('guias','editar',$id); \flash('success','Guía actualizada correctamente.');
+            }else{
+                $id=$this->repository->create($header,$lines,(int)\auth_user()['id']);
+                \audit('guias','crear',$id); \flash('success','Guía registrada en borrador.');
+            }
+        }catch(\Throwable $e){
+            \log_event('guide_save_error',['type'=>get_class($e)]);
+            throw new HttpException(422,'No se pudo guardar la guía. Revise los datos.');
+        }
+        \redirect('/guias/ver?id='.$id);
+    }
+
+    public function destroy(): void
+    {
+        \require_role('ADMIN','DIGITADOR');
+        $id=(int)\input('id',0);
+        try{
+            $this->repository->deleteDraft($id,(int)\input('version',0),(int)\auth_user()['id']);
+            \audit('guias','eliminar',$id); \flash('success','Guía en borrador eliminada.');
+        }catch(\Throwable){ throw new HttpException(409,'No se pudo eliminar la guía.'); }
+        \redirect('/guias');
+    }
+
+    public function changeStatus(): void
+    {
+        \require_role('ADMIN','SUPERVISOR');
+        $id=(int)\input('id',0);
+        $record=$this->repository->find($id);
+        if(!$record) throw new HttpException(404,'Guía no encontrada.');
+        $version=(int)\input('version',(int)($record['header']['version']??0));
+        $status=strtoupper(trim((string)\input('status','')));
+        $reason=trim((string)\input('reason',''));
+        (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);
+        \audit('guias','estado_'.$status,$id);
+        \flash('success','Estado de la guía actualizado.');
+        \redirect('/guias/ver?id='.$id);
+    }
+}
