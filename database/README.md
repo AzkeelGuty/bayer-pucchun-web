@@ -1,7 +1,7 @@
 # Base de datos oficial del equipo
 
-> **Fuente estructural:** Schema v2 trabajado por Backend (Alisson / Pedro).  
-> **Estado:** la estructura `database/schemas/002_schema_v2.sql` y la migración `database/migrations/002_schema_v2.sql` se mantienen como base canónica del proyecto.  
+> **Fuente estructural:** Schema v2 trabajado por Backend (Alisson / Pedro).\
+> **Estado:** la estructura `database/schemas/002_schema_v2.sql` y la migración `database/migrations/002_schema_v2.sql` se mantienen como base canónica del proyecto.\
 > **Importante:** las mejoras recientes del frontend **no reemplazan ni rediseñan** esta estructura; se añadieron únicamente seeders, permisos y datos de prueba compatibles.
 
 ## Regla para todos los integrantes

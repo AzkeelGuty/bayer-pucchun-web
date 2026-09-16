@@ -24,18 +24,20 @@ $router->post('/logout',[AuthController::class,'logout'],[new AuthMiddleware()])
 $router->get('/dashboard',[DashboardController::class,'index'],$internal);
 
 foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::class,'stock'=>StockController::class] as $path=>$controller) {
-    $router->get('/'.$path,[$controller,'index'],$internal);
-    $router->get('/'.$path.'/nuevo',[$controller,'create'],$capture);
-    $router->post('/'.$path.'/guardar',[$controller,'store'],$capture);
-    $router->get('/'.$path.'/editar',[$controller,'edit'],$capture);
-    $router->post('/'.$path.'/actualizar',[$controller,'update'],$capture);
-    $router->post('/'.$path.'/eliminar',[$controller,'destroy'],$capture);
+    $module = ['documentos'=>'documents','guias'=>'guides','stock'=>'stock'][$path];
+    $read = [...$internal, new \App\Middleware\PermissionMiddleware($module.'.read')];
+    $write = [...$capture, new \App\Middleware\PermissionMiddleware($module.'.create')];
+    $router->get('/'.$path,[$controller,'index'],$read);
+    $router->get('/'.$path.'/ver',[$controller,'show'],$read);
+    $router->get('/'.$path.'/maestros',[$controller,'masters'],$write);
+    $router->get('/'.$path.'/nuevo',[$controller,'create'],$write);
+    $router->post('/'.$path.'/guardar',[$controller,'store'],$write);
+    $router->get('/'.$path.'/editar',[$controller,'edit'],$write);
+    $router->post('/'.$path.'/actualizar',[$controller,'update'],$write);
+    $router->post('/'.$path.'/eliminar',[$controller,'destroy'],$write);
     $router->post('/'.$path.'/estado',[$controller,'changeStatus'],$review);
 }
 
-$router->get('/documentos/ver',[DocumentController::class,'show'],$internal);
-$router->get('/guias/ver',[GuideController::class,'show'],$internal);
-$router->get('/stock/ver',[StockController::class,'show'],$internal);
 
 $router->get('/maestros',[BackofficeController::class,'masters'],$internal);
 $router->get('/homologaciones',[BackofficeController::class,'homologations'],[new RoleMiddleware(['ADMIN'])]);
@@ -57,6 +59,8 @@ $router->get('/bayer/datos',[BayerController::class,'data'],$published);
 $router->get('/bayer/exportaciones',[BayerController::class,'exports'],$published);
 $router->get('/bayer/descargas',[BayerController::class,'downloads'],$published);
 $router->get('/export',[ExportController::class,'export'],$published);
+$router->get('/export/count',[ExportController::class,'count'],$published);
+$router->get('/exportaciones',[ExportController::class,'index'],$published);
 $router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
 $router->get('/api/v1/bayer/shipments',[ApiController::class,'shipments']);
 $router->get('/api/v1/bayer/inventory',[ApiController::class,'inventory']);

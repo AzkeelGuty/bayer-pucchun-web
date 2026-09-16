@@ -54,7 +54,7 @@ try {
         $st->execute([$id,$role,strtolower($role).'@example.invalid',password_hash($password,PASSWORD_BCRYPT,['cost'=>4])]);
         $pdo->exec("INSERT INTO usuario_rol(usuario_id,rol_id) VALUES($id,$id)");
     }
-    $docs = new App\Repositories\DocumentRepository($pdo);
+    $docs = new App\Repositories\Operations\DocumentRepository($pdo);
     foreach (['BORRADOR','VALIDADO','PUBLICADO','OBSERVADO','ANULADO'] as $state) {
         $id = $docs->create(docHeader($state.'-ONLY'), lines(), $ids['ADMIN']);
         if ($state !== 'BORRADOR') $docs->markValidated($id,1,$ids['SUPERVISOR']);
@@ -73,6 +73,12 @@ try {
     $pdo->exec('UPDATE roles SET estado=0 WHERE id=10');
     ensure($permissions->forUser(10) === [], 'Inactive role has no grants');
     $pdo->exec('UPDATE roles SET estado=1 WHERE id=10');
+
+    $db->load('database/seeders/003_day2_operational_permissions.sql');
+    // Existing develop workflow grants, installed only in this disposable database.
+    $pdo->exec("INSERT INTO permisos(codigo,nombre) VALUES('validation.review','Fixture'),('publications.publish','Fixture')");
+    $pdo->exec("INSERT INTO rol_permiso(rol_id,permiso_id) SELECT r.id,p.id FROM roles r CROSS JOIN permisos p WHERE r.nombre IN ('ADMIN','SUPERVISOR') AND p.codigo IN ('validation.review','publications.publish')");
+
 
     $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);
     if (!$socket) throw new RuntimeException('No local port');
@@ -156,17 +162,79 @@ try {
     $pdo->exec('DELETE FROM usuario_rol WHERE usuario_id=14');
     ensure(request('/bayer',$bayer)['status']===302,'Removed roles revoked');
 
+    // Datos propios y ajenos para verificar el alcance en los tres listados.
+    $docs->create(docHeader('DOC-PROPIO'), lines(), $ids['DIGITADOR']);
+    $guides = new App\Repositories\Operations\GuideRepository($pdo);
+    $guides->create(guideHeader('GUIA-PROPIA'), lines(), $ids['DIGITADOR']);
+    $guides->create(guideHeader('GUIA-AJENA'), lines(), $ids['ADMIN']);
+    $stocks = new App\Repositories\Operations\StockRepository($pdo);
+    $stocks->create(stockHeader('stock-propio', '2026-08-20'), lines(true), $ids['DIGITADOR']);
+    $stocks->create(stockHeader('stock-ajeno', '2026-08-21'), lines(true), $ids['ADMIN']);
+
     $digitador=[];loginAs('DIGITADOR',$digitador);
     ensure(request('/documentos',$digitador)['status']===200,'Digitador listing');
     $page=request('/documentos',$digitador);
+    foreach (['documentos'=>['DOC-PROPIO','BORRADOR-ONLY'], 'guias'=>['GUIA-PROPIA','GUIA-AJENA'], 'stock'=>['2026-08-20','2026-08-21']] as $module=>$markers) {
+        $own = request('/'.$module.'?created_by='.$ids['ADMIN'], $digitador);
+        ensure($own['status'] === 200 && str_contains($own['body'], $markers[0]), 'Digitador consulta su carga: '.$module);
+        ensure(!str_contains($own['body'], $markers[1]), 'El parámetro HTTP no permite consultar cargas ajenas: '.$module);
+    }
+    ensure(!str_contains($page['body'], '>Portal Bayer</a>'), 'El menú del Digitador respeta el acceso al portal');
+    ensure(request('/export?type=documents&format=csv',$digitador)['status'] === 403, 'Digitador no exporta');
     ensure(request('/documentos/estado',$digitador,['_csrf'=>token($page),'status'=>'PUBLICADO'])['status']===403,'Digitador cannot publish');
-    ensure(request('/documentos/guardar',$digitador,['_csrf'=>token($page)])['status']===422,'Capture route connected; invalid form returns validation response for correction');
+    ensure(request('/documentos/guardar',$digitador,['_csrf'=>token($page)])['status']===422,'Invalid capture returns HTTP 422 for correction');
     $supervisor=[];loginAs('SUPERVISOR',$supervisor);
     ensure(request('/guias',$supervisor)['status']===200,'Supervisor review listing');
     ensure(request('/guias/nuevo',$supervisor)['status']===403,'Supervisor does not capture');
+    $export = request('/export?type=documents&format=json', $supervisor);
+    ensure($export['status'] === 200 && str_contains($export['body'], 'PUBLICADO-ONLY'), 'Supervisor exporta datos publicados');
+    ensure(!str_contains($export['body'], 'BORRADOR-ONLY'), 'Supervisor no exporta borradores');
+    $reviewList = request('/guias', $supervisor);
+    ensure(str_contains($reviewList['body'], 'GUIA-PROPIA') && str_contains($reviewList['body'], 'GUIA-AJENA'), 'Supervisor consulta las cargas del equipo');
     $gerencia=[];loginAs('GERENCIA',$gerencia);
     ensure(request('/stock',$gerencia)['status']===200,'Gerencia query');
     ensure(request('/stock/nuevo',$gerencia)['status']===403,'Gerencia does not capture');
+
+
+    // Day 2 endpoint contract, preserving all existing security assertions above.
+    $startDay2=$GLOBALS['checks'];
+    foreach(['documentos'=>'documents','guias'=>'guides','stock'=>'stock'] as $path=>$module) {
+        $context=request('/'.$path.'/nuevo',$digitador,null,['Accept: application/json']);
+        ensure($context['status']===200,'Capture metadata '.$module);
+        $data=json_decode($context['body'],true,512,JSON_THROW_ON_ERROR)['data'];
+        ensure(isset($data['_csrf']),'Metadata CSRF');
+        $header=match($module){'documents'=>docHeader('HTTP-D2-DOC'),'guides'=>guideHeader('HTTP-D2-GUIDE'),'stock'=>stockHeader('http-day2-stock')};
+        $body=['_csrf'=>$data['_csrf'],'header'=>$header,'details'=>lines($module==='stock')];
+        $saved=request('/'.$path.'/guardar',$digitador,$body,['Accept: application/json']);
+        ensure($saved['status']===201,'HTTP capture '.$module);
+        $id=json_decode($saved['body'],true,512,JSON_THROW_ON_ERROR)['data']['id'];
+        $show=request('/'.$path.'/ver?id='.$id,$digitador,null,['Accept: application/json']);
+        ensure($show['status']===200,'HTTP show '.$module);
+        $record=json_decode($show['body'],true,512,JSON_THROW_ON_ERROR)['data'];
+        ensure($record['header']['estado_registro']==='BORRADOR' && (int)$record['header']['created_by']===$ids['DIGITADOR'],'HTTP actor/state');
+        ensure(count($record['details'])===2,'HTTP detail count');
+        $malicious=$body;$malicious['header']['estado_registro']='PUBLICADO';
+        $invalid=request('/'.$path.'/guardar',$digitador,$malicious,['Accept: application/json']);
+        ensure($invalid['status']===422 && isset(json_decode($invalid['body'],true)['errors']['header']),'State injection rejected');
+        $noCsrf=$body;unset($noCsrf['_csrf']);
+        ensure(request('/'.$path.'/guardar',$digitador,$noCsrf)['status']===419,'Capture CSRF');
+        ensure(request('/'.$path.'/ver?id[]=1',$digitador)['status']===422,'Malformed show ID');
+        ensure(request('/'.$path.'/ver?id=999999',$digitador)['status']===404,'Missing show ID');
+        ensure(request('/'.$path.'/maestros?catalog=productos',$digitador)['status']===200,'Catalog HTTP');
+        ensure(request('/'.$path.'/estado',$supervisor,['_csrf'=>token(request('/guias',$supervisor)),'id'=>$id,'version'=>1,'status'=>'PUBLICADO'])['status']===422,'Workflow forbids skipping validation');
+        $external=[];loginAs('BAYER',$external);
+        // Restore a Bayer role removed by the earlier revocation test.
+        $pdo->exec('INSERT IGNORE INTO usuario_rol(usuario_id,rol_id) VALUES(14,14)');
+        $external=[];loginAs('BAYER',$external);
+        foreach(['/ver?id='.$id,'/maestros?catalog=productos','/nuevo'] as $suffix) ensure(request('/'.$path.$suffix,$external)['status']===403,'Bayer new endpoint denied');
+    }
+    $day2ChecksBeforeReconciliation=$GLOBALS['checks']-$startDay2;
+    require __DIR__.'/reconciliation_http_cases.php';
+    $startDay2=$GLOBALS['checks']-$day2ChecksBeforeReconciliation;
+    $pdo->exec("DELETE rp FROM rol_permiso rp JOIN permisos p ON p.id=rp.permiso_id WHERE rp.rol_id=11 AND p.codigo='documents.create'");
+    ensure(request('/documentos/nuevo',$digitador,null,['Accept: application/json'])['status']===403,'Live create permission revocation');
+    ensure(request('/documentos',$digitador)['status']===200,'Read still granted');
+    echo 'Day 2 HTTP subset: '.($GLOBALS['checks']-$startDay2)." checks OK (included in suite total)\n";
 
     $admin=[];loginAs('ADMIN',$admin);
     $pdo->exec('RENAME TABLE documentos_detalle TO documentos_detalle_unavailable');

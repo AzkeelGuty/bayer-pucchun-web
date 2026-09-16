@@ -2,10 +2,11 @@
 
 require base_path('app/Views/components/form_fields.php');
 $editing = isset($record);
-$detailRows = $editing ? $record['details'] : [['producto_id' => '', 'lote_id' => null, 'unidad_id' => '', 'cantidad' => '']];
+$detailRows = $detailRows ?? ($editing ? $record['details'] : [['producto_id' => '', 'lote_id' => null, 'unidad_id' => '', 'cantidad' => '']]);
 ?>
 <h2><?= $editing ? 'Editar stock (borrador)' : 'Nuevo stock' ?></h2>
 <p class="text-muted">Complete los datos y agregue las líneas de detalle. <?= $editing ? 'Los cambios se guardan en <strong>Borrador</strong>.' : 'El registro se guardará como <strong>Borrador</strong>.' ?></p>
+<?php if (!empty($errors)): ?><div class="alert alert-danger" role="alert"><ul><?php foreach ($errors as $error): ?><li><?= e($error) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
 <form method="post" action="<?= url($editing ? '/stock/actualizar' : '/stock/guardar') ?>" class="row g-3">
     <?= csrf_field() ?>
     <?php if ($editing): ?>

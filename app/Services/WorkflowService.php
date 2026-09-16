@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Exceptions\HttpException;
-use App\Repositories\OperationalRepository;
+use App\Repositories\Operations\OperationalRepository;
 use RuntimeException;
 use Throwable;
 
@@ -57,6 +57,9 @@ final class WorkflowService
 
             if($owns) $pdo->commit();
             return $newVersion;
+        } catch (HttpException|\PDOException $error) {
+            if($owns && $pdo->inTransaction()) $pdo->rollBack();
+            throw $error;
         } catch (RuntimeException $error) {
             if($owns && $pdo->inTransaction()) $pdo->rollBack();
             throw new HttpException(409, 'El registro cambió mientras lo revisaba. Actualice la página e intente nuevamente.');

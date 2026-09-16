@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace App\Repositories;
+namespace App\Repositories\Operations;
 
 use InvalidArgumentException;
 use PDO;

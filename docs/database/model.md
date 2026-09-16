@@ -156,7 +156,7 @@ autenticada que validó el Service, nunca de un campo libre del formulario.
 Ejemplo para el Service, con maestros y usuario ya existentes:
 
 ```php
-$documents = new App\Repositories\DocumentRepository($pdo);
+$documents = new App\Repositories\Operations\DocumentRepository($pdo);
 $id = $documents->create(
     [
         'tipo_documento_id' => 1,
@@ -272,3 +272,10 @@ El nombre debe ser el del archivo entregado, no una ruta privada del servidor.
 El contrato de repositorios descrito arriba es la propuesta de conexión para Alisson,
 pendiente de su revisión e integración. La preparación local no equivale a aprobación
 del contrato, PR integrado ni aplicación desplegable conforme a DT-05.
+
+
+## Ajustes tras integrar develop con el día 2
+
+Los repositorios operativos están en `App\Repositories\Operations`. Los tres controladores de listados y la prueba de seguridad usan esa ubicación. `all()` admite `created_by`: los controladores fijan ese filtro desde la sesión para un Digitador sin roles internos de supervisión/administración/gerencia. El parámetro HTTP no puede ampliar ese alcance. Los usuarios internos con roles de revisión mantienen la consulta del equipo; Bayer sigue sin acceso al backoffice.
+
+La autorización de exportación comparte `AccessPolicy::PUBLISHED` entre ruta y controlador, incluyendo Supervisor. Esto no conecta todavía captura ni cambios de estado: las rutas correspondientes mantienen su respuesta 503 hasta integrar Services, validaciones y contratos nuevos. El CI incluye las tres suites de maestros y DataHub del día 2.

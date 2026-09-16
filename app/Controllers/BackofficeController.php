@@ -5,7 +5,7 @@ namespace App\Controllers;
 
 use App\Exceptions\HttpException;
 use App\Policies\AccessPolicy;
-use App\Repositories\{DocumentRepository,GuideRepository,StockRepository};
+use App\Repositories\Operations\{DocumentRepository,GuideRepository,StockRepository};
 
 final class BackofficeController
 {

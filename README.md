@@ -52,7 +52,7 @@ Views / Exportaciones / API
 2. Configurar `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` y `APP_URL`.
 3. Crear una base vacía con `utf8mb4`.
 4. Importar `database/schemas/002_schema_v2.sql`.
-5. Importar `database/seeders/001_seed.sql`.
+5. Importar `database/seeders/001_seed.sql`. Para pruebas con catálogos de muestra, importar después `database/seeders/002_sample_masters.sql` (44 registros ficticios, reimportable). No incluye tipos de documento ni lotes: deben cargarse antes de probar operaciones que los requieran.
 6. Verificar `SELECT * FROM schema_migrations;`.
 7. Configurar el Document Root hacia `public/`.
 8. Abrir `/login`.

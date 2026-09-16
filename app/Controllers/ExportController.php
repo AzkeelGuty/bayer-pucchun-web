@@ -10,13 +10,13 @@ final class ExportController
 {
     public function index(): void
     {
-        \require_role('ADMIN','SUPERVISOR','GERENCIA','BAYER');
+        \require_role(...\App\Policies\AccessPolicy::PUBLISHED);
         \view('exportaciones.index');
     }
 
     public function count(): void
     {
-        \require_role('ADMIN','SUPERVISOR','GERENCIA','BAYER');
+        \require_role(...\App\Policies\AccessPolicy::PUBLISHED);
         $type=(string)\input('type','documents');
         if(!in_array($type,['documents','guides','stock'],true)) throw new HttpException(422,'Dataset inválido.');
         $filters=[];
@@ -32,7 +32,7 @@ final class ExportController
 
     public function export(): void
     {
-        \require_role('ADMIN','SUPERVISOR','GERENCIA','BAYER');
+        \require_role(...\App\Policies\AccessPolicy::PUBLISHED);
 
         $type=(string)\input('type','documents');
         $format=strtolower((string)\input('format','xlsx'));
