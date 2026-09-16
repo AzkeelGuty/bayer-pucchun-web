@@ -34,6 +34,8 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
 }
 
 $router->get('/documentos/ver',[DocumentController::class,'show'],$internal);
+$router->get('/guias/ver',[GuideController::class,'show'],$internal);
+$router->get('/stock/ver',[StockController::class,'show'],$internal);
 
 $router->get('/maestros',[BackofficeController::class,'masters'],$internal);
 $router->get('/homologaciones',[BackofficeController::class,'homologations'],[new RoleMiddleware(['ADMIN'])]);
