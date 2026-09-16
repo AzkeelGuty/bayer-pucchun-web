@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 use App\Exceptions\HttpException;
 use App\Repositories\DocumentRepository;
-use App\Services\DocumentScreenService;
+use App\Services\{DocumentScreenService,WorkflowService};
 
 final class DocumentController
 {
@@ -53,5 +53,31 @@ final class DocumentController
             http_response_code(409); $this->form(array_merge($header,['id'=>$id,'version'=>$version]),$details,$editing,['save'=>'No se pudo guardar. Revisa duplicados o cambios simultáneos y vuelve a intentarlo.']); return;
         }
         \audit('documentos',$editing?'editar':'crear',$id); \flash('success','Documento guardado en borrador.'); \redirect('/documentos/ver?id='.$id);
+    }
+
+    public function destroy(): void {
+        \require_role('ADMIN','DIGITADOR');
+        $id=(int)\input('id',0);
+        $version=(int)\input('version',0);
+        try{
+            $this->repository->deleteDraft($id,$version,(int)\auth_user()['id']);
+            \audit('documentos','eliminar',$id);
+            \flash('success','Documento en borrador eliminado.');
+        }catch(\Throwable $error){
+            throw new HttpException(409,'No se pudo eliminar. Actualice la página y verifique que siga en borrador.');
+        }
+        \redirect('/documentos');
+    }
+
+    public function changeStatus(): void {
+        \require_role('ADMIN','SUPERVISOR');
+        $id=(int)\input('id');
+        $version=(int)\input('version');
+        $status=strtoupper(trim((string)\input('status')));
+        $reason=trim((string)\input('reason',''));
+        (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);
+        \audit('documentos','estado_'.$status,$id);
+        \flash('success','Estado del documento actualizado.');
+        \redirect('/documentos/ver?id='.$id);
     }
 }
