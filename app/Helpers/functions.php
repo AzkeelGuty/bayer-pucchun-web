@@ -211,3 +211,14 @@ function access_action_info(string $action): array
         default => ['label' => ucfirst(str_replace('_', ' ', trim($action))), 'icon' => 'bi-activity', 'class' => 'access-neutral'],
     };
 }
+
+
+/* Helpers de formularios integrados desde el frontend de Aldhair. */
+function old(string $key, mixed $default=''): mixed { return $_SESSION['_old'][$key] ?? $default; }
+function form_error(string $key): string { return (string)($_SESSION['_errors'][$key] ?? ''); }
+function index_by(array $rows, string $key): array { $out=[]; foreach($rows as $row){ if(array_key_exists($key,$row)) $out[$row[$key]]=$row; } return $out; }
+function estado_badge(?string $estado): string {
+    $classes=['BORRADOR'=>'bg-secondary','VALIDADO'=>'bg-info text-dark','PUBLICADO'=>'bg-success','OBSERVADO'=>'bg-warning text-dark','ANULADO'=>'bg-danger'];
+    $class=$classes[$estado]??'bg-secondary';
+    return '<span class="badge '.$class.'">'.e($estado??'—').'</span>';
+}
