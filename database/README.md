@@ -1,3 +1,17 @@
+# Base de datos oficial del equipo
+
+> **Fuente estructural:** Schema v2 trabajado por Backend (Alisson / Pedro).  
+> **Estado:** la estructura `database/schemas/002_schema_v2.sql` y la migración `database/migrations/002_schema_v2.sql` se mantienen como base canónica del proyecto.  
+> **Importante:** las mejoras recientes del frontend **no reemplazan ni rediseñan** esta estructura; se añadieron únicamente seeders, permisos y datos de prueba compatibles.
+
+## Regla para todos los integrantes
+
+- No crear una base paralela ni volver a Schema 001.
+- No modificar tablas directamente desde phpMyAdmin y luego olvidar el SQL del repositorio.
+- Todo cambio estructural futuro debe salir como una nueva migración versionada (`003_...`, `004_...`, etc.).
+- Para desarrollo y pruebas, usar Schema v2 + seeders del repositorio.
+- Para producción, no importar usuarios ni datos de prueba.
+
 # Base de datos — Schema v2 (Día 1 de Pedro)
 
 Implementación de datos para revisión e integración en la rama
