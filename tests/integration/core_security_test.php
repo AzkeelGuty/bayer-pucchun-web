@@ -132,7 +132,7 @@ try {
     ensure($page['status']===200,'Bayer portal');
     ensure(!str_contains($page['body'],'>Clientes<') && !str_contains($page['body'],'>Productos<'),'No global master counts');
     ensure(!str_contains($page['body'],'</script><script>alert(1)</script>'),'Bayer chart names escaped');
-    foreach(['/bayer/datos?type=documents','/export?type=documents&format=csv'] as $path) {
+    foreach(['/bayer/datos?type=documents','/export?type=documents&format=json'] as $path) {
         $page=request($path,$bayer);
         ensure($page['status']===200 && str_contains($page['body'],'PUBLICADO-ONLY'),'Published output');
         foreach(['BORRADOR','VALIDADO','OBSERVADO','ANULADO'] as $state) ensure(!str_contains($page['body'],$state.'-ONLY'),'Hidden state '.$state);
