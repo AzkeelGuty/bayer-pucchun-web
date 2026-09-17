@@ -49,6 +49,10 @@ jobs:
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/validator_test.php
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/core_security_test.php
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/csrf_test.php
+          php tests/unit/workflow_test.php
+          php tests/unit/guide_workflow_test.php
+          php tests/unit/stock_workflow_test.php
+          php tests/unit/workflow_transitions_test.php
 
       - name: Integration tests
         run: |
