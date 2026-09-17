@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Exceptions\HttpException;
 use App\Policies\OperationalPermissionPolicy;
+use App\Policies\OperationalOwnershipPolicy;
 use App\Repositories\{GuideRepository,MasterDataRepository};
 use App\Services\WorkflowService;
 use App\Validators\WorkflowValidator;
@@ -18,6 +19,14 @@ final class GuideController
 
     private function masters(): MasterDataRepository { return new MasterDataRepository(); }
 
+    private function record(int $id): array
+    {
+        $record = $id > 0 ? $this->repository->find($id) : null;
+        if (!$record) throw new HttpException(404, 'Guía no encontrada.');
+        OperationalOwnershipPolicy::require($record['header']);
+        return $record;
+    }
+
     private function filters(): array
     {
         $filters=[];
@@ -29,7 +38,7 @@ final class GuideController
         }
         $sucursal=(string)\input('sucursal_id','');
         if(ctype_digit($sucursal) && (int)$sucursal>0) $filters['sucursal_id']=(int)$sucursal;
-        return $filters;
+        return OperationalOwnershipPolicy::scope($filters);
     }
 
     private function viewData(): array
@@ -62,8 +71,7 @@ final class GuideController
     {
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('guides.read');
         $id=(int)\input('id',0);
-        $record=$this->repository->find($id);
-        if(!$record) throw new HttpException(404,'Guía no encontrada.');
+        $record=$this->record($id);
         $m=$this->masters();
         \view('guias.show',[
             'record'=>$record,
@@ -88,8 +96,7 @@ final class GuideController
     {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         $id=(int)\input('id',0);
-        $record=$this->repository->find($id);
-        if(!$record) throw new HttpException(404,'Guía no encontrada.');
+        $record=$this->record($id);
         if(($record['header']['estado_registro']??'')!=='BORRADOR') throw new HttpException(409,'Solo se puede editar una guía en BORRADOR.');
         $_SESSION['_old']=[
             'numero'=>$record['header']['numero']??'',
@@ -109,6 +116,7 @@ final class GuideController
 
     private function save(bool $editing): void
     {
+        if ($editing) $this->record((int)\input('id',0));
         $details=is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[];
         $header=[
             'numero'=>trim((string)\input('numero','')),
@@ -159,6 +167,7 @@ final class GuideController
     {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         $id=(int)\input('id',0);
+        $this->record($id);
         try{
             $this->repository->deleteDraft($id,(int)\input('version',0),(int)\auth_user()['id']);
             \audit('guias','eliminar',$id); \flash('success','Guía en borrador eliminada.');
