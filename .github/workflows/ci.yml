@@ -53,6 +53,10 @@ jobs:
           php tests/unit/guide_workflow_test.php
           php tests/unit/stock_workflow_test.php
           php tests/unit/workflow_transitions_test.php
+          php tests/unit/document_permissions_test.php
+          php tests/unit/guide_permissions_test.php
+          php tests/unit/stock_permissions_test.php
+          php tests/unit/workflow_permissions_test.php
 
       - name: Integration tests
         run: |

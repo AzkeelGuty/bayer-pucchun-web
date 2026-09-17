@@ -74,6 +74,10 @@ try {
     ensure($permissions->forUser(10) === [], 'Inactive role has no grants');
     $pdo->exec('UPDATE roles SET estado=1 WHERE id=10');
 
+    // Explicit grants for the existing legitimate HTTP scenarios; no implicit role bypass.
+    $pdo->exec("INSERT INTO permisos(id,codigo,nombre) VALUES(3,'documents.read','Fixture'),(4,'guides.read','Fixture'),(5,'stock.read','Fixture')");
+    $pdo->exec('INSERT INTO rol_permiso(rol_id,permiso_id) VALUES(10,3),(11,3),(11,1),(12,4),(13,5)');
+
     $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);
     if (!$socket) throw new RuntimeException('No local port');
     $address=stream_socket_get_name($socket,false);fclose($socket);
@@ -167,6 +171,18 @@ try {
     $gerencia=[];loginAs('GERENCIA',$gerencia);
     ensure(request('/stock',$gerencia)['status']===200,'Gerencia query');
     ensure(request('/stock/nuevo',$gerencia)['status']===403,'Gerencia does not capture');
+
+    // Revoke and restore the persisted grant while keeping the same authenticated cookie.
+    foreach ([['/documentos',$digitador,11,3],['/guias',$supervisor,12,4],['/stock',$gerencia,13,5]] as [$path,$cookies,$roleId,$permissionId]) {
+        $sessionBefore=$cookies[$sessionName];
+        $st=$pdo->prepare('DELETE FROM rol_permiso WHERE rol_id=? AND permiso_id=?');
+        $st->execute([$roleId,$permissionId]);
+        ensure(request($path,$cookies)['status']===403,'Revoked persisted grant denied '.$path);
+        ensure($cookies[$sessionName]===$sessionBefore,'Permission denial preserves session '.$path);
+        $st=$pdo->prepare('INSERT INTO rol_permiso(rol_id,permiso_id) VALUES(?,?)');
+        $st->execute([$roleId,$permissionId]);
+        ensure(request($path,$cookies)['status']===200,'Restored grant works without login '.$path);
+    }
 
     $admin=[];loginAs('ADMIN',$admin);
     $pdo->exec('RENAME TABLE documentos_detalle TO documentos_detalle_unavailable');
