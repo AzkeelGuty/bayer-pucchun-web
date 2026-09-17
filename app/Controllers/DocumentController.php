@@ -59,6 +59,7 @@ final class DocumentController
     public function destroy(): void {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create');
         $id=(int)\input('id',0);
+        $this->record($id); // Ownership denial must remain a 403, outside the persistence catch.
         $version=(int)\input('version',0);
         try{
             $this->repository->deleteDraft($id,$version,(int)\auth_user()['id']);
