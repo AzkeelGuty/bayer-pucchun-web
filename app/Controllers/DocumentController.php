@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace App\Controllers;
 use App\Exceptions\HttpException;
+use App\Policies\OperationalPermissionPolicy;
 use App\Repositories\DocumentRepository;
 use App\Services\{DocumentScreenService,WorkflowService};
 
@@ -14,24 +15,24 @@ final class DocumentController
         return $record;
     }
     public function index(): void {
-        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read');
         \view('documentos.index',(new DocumentScreenService())->listing($_GET));
     }
-    public function create(): void { \require_role('ADMIN','DIGITADOR'); $this->form([],[]); }
+    public function create(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->form([],[]); }
     public function edit(): void {
-        \require_role('ADMIN','DIGITADOR'); $r=$this->record((int)\input('id',0));
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $r=$this->record((int)\input('id',0));
         if($r['header']['estado_registro']!=='BORRADOR') throw new HttpException(409,'Solo se pueden editar borradores.');
         $this->form($r['header'],$r['details'],true);
     }
     public function show(): void {
-        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); $r=$this->record((int)\input('id',0));
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read'); $r=$this->record((int)\input('id',0));
         \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogs()]);
     }
     private function form(array $header,array $details,bool $editing=false,array $errors=[]): void {
         \view('documentos.form',compact('header','details','editing','errors')+['catalogs'=>(new DocumentScreenService())->catalogs()]);
     }
-    public function store(): void { \require_role('ADMIN','DIGITADOR'); $this->save(false); }
-    public function update(): void { \require_role('ADMIN','DIGITADOR'); $this->save(true); }
+    public function store(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->save(false); }
+    public function update(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->save(true); }
     private function save(bool $editing): void {
         $header=is_array($_POST['header']??null)?$_POST['header']:[];
         $details=is_array($_POST['details']??null)?array_values($_POST['details']):[];
@@ -56,7 +57,7 @@ final class DocumentController
     }
 
     public function destroy(): void {
-        \require_role('ADMIN','DIGITADOR');
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create');
         $id=(int)\input('id',0);
         $version=(int)\input('version',0);
         try{
