@@ -6,6 +6,7 @@ namespace App\Controllers;
 use App\Exceptions\HttpException;
 use App\Repositories\{GuideRepository,MasterDataRepository};
 use App\Services\WorkflowService;
+use App\Validators\WorkflowValidator;
 
 final class GuideController
 {
@@ -170,7 +171,7 @@ final class GuideController
         $id=(int)\input('id',0);
         $record=$this->repository->find($id);
         if(!$record) throw new HttpException(404,'Guía no encontrada.');
-        $version=(int)\input('version',(int)($record['header']['version']??0));
+        $version=WorkflowValidator::version($_POST['version'] ?? null);
         $status=strtoupper(trim((string)\input('status','')));
         $reason=trim((string)\input('reason',''));
         (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);

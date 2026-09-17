@@ -56,14 +56,14 @@
     <p class="text-muted small">Estas acciones dependen del Service de estados (en preparación); hasta entonces el backend responderá con un aviso temporal.</p>
     <div class="d-flex gap-2 flex-wrap">
         <?php if ($h['estado_registro'] === 'BORRADOR'): ?>
-            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-sm btn-info">Validar</button></form>
+            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-sm btn-info">Validar</button></form>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'VALIDADO'): ?>
-            <form method="post" action="<?= url('/guias/estado') ?>" onsubmit="return confirm('¿Publicar esta guía? Bayer podrá verla de inmediato.');"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-sm btn-success">Publicar</button></form>
+            <form method="post" action="<?= url('/guias/estado') ?>" onsubmit="return confirm('¿Publicar esta guía? Bayer podrá verla de inmediato.');"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-sm btn-success">Publicar</button></form>
             <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#observarModal">Observar</button>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'OBSERVADO'): ?>
-            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="BORRADOR"><button class="btn btn-sm btn-secondary">Devolver a borrador</button></form>
+            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="BORRADOR"><button class="btn btn-sm btn-secondary">Devolver a borrador</button></form>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'PUBLICADO'): ?>
             <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#anularModal">Anular</button>
@@ -75,7 +75,7 @@
     <div class="modal-dialog">
         <form method="post" action="<?= url('/guias/estado') ?>" class="modal-content">
             <?= csrf_field() ?>
-            <input type="hidden" name="id" value="<?= $h['id'] ?>">
+            <input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>">
             <input type="hidden" name="status" value="OBSERVADO">
             <div class="modal-header"><h5 class="modal-title">Observar guía</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
@@ -94,7 +94,7 @@
     <div class="modal-dialog">
         <form method="post" action="<?= url('/guias/estado') ?>" class="modal-content">
             <?= csrf_field() ?>
-            <input type="hidden" name="id" value="<?= $h['id'] ?>">
+            <input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>">
             <input type="hidden" name="status" value="ANULADO">
             <div class="modal-header"><h5 class="modal-title">Anular guía</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
