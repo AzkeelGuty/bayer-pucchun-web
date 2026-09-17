@@ -21,6 +21,7 @@ function testController(string $module, string $controllerClass, string $reposit
     $invalid = [null, '', [], ['4'], true, false, 4.0, '4.0', '4abc', '4e0', '-1', '0', ' 4', '+4', '04', str_repeat('9', 30)];
     foreach ($invalid as $value) {
         $GLOBALS['workflowPdo'] = new WorkflowPDO();
+        db()->grants[23] = ['validation.review', 'publications.publish'];
         $repo = new $repositoryClass(db());
         $_POST = ['id' => '7', 'status' => 'VALIDADO'];
         if ($value !== null) $_POST['version'] = $value;
@@ -34,6 +35,7 @@ function testController(string $module, string $controllerClass, string $reposit
     foreach ([['BORRADOR','VALIDADO'], ['VALIDADO','PUBLICADO'], ['VALIDADO','OBSERVADO'], ['OBSERVADO','BORRADOR'], ['PUBLICADO','ANULADO']] as [$from,$target]) {
         foreach ([3, 4] as $version) {
             $GLOBALS['workflowPdo'] = new WorkflowPDO();
+            db()->grants[23] = ['validation.review', 'publications.publish'];
             $repo = new $repositoryClass(db());
             $repo->state = $from;
             $_POST = ['id' => '7', 'status' => $target, 'version' => (string)$version, 'reason' => 'Motivo de prueba', 'actor_id' => 999];

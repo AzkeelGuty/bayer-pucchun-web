@@ -127,10 +127,10 @@ final class StockController
     public function changeStatus(): void
     {
         \require_role('ADMIN','SUPERVISOR');
+        $status=OperationalPermissionPolicy::workflow(\input('status',''));
         $id=(int)\input('id',0); $record=$this->repository->find($id);
         if(!$record) throw new HttpException(404,'Stock no encontrado.');
         $version=WorkflowValidator::version($_POST['version'] ?? null);
-        $status=strtoupper(trim((string)\input('status','')));
         $reason=trim((string)\input('reason',''));
         (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);
         \audit('stock','estado_'.$status,$id); \flash('success','Estado del stock actualizado.');

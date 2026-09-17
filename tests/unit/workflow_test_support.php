@@ -22,7 +22,17 @@ final class WorkflowStatement extends PDOStatement {
     public function execute(?array $params = null): bool { return true; }
     public function rowCount(): int { return $this->affected; }
 }
+final class WorkflowPermissionRows extends PDOStatement {
+    private int $userId = 0;
+    public function __construct(private WorkflowPDO $connection) {}
+    public function execute(?array $params = null): bool { $this->userId = (int)$params[0]; return true; }
+    public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array {
+        return $this->connection->grants[$this->userId] ?? [];
+    }
+}
 final class WorkflowPDO extends PDO {
+    public array $grants = [];
+    public int $permissionLookups = 0;
     public bool $active = false;
     public int $commits = 0;
     public int $rollbacks = 0;
@@ -34,6 +44,10 @@ final class WorkflowPDO extends PDO {
     public function rollBack(): bool { ++$this->rollbacks; $this->active = false; return true; }
     public function prepare(string $query, array $options = []): PDOStatement|false {
         if ($this->failure) throw $this->failure;
+        if (str_contains($query, 'SELECT DISTINCT p.codigo')) {
+            ++$this->permissionLookups;
+            return new WorkflowPermissionRows($this);
+        }
         return new WorkflowStatement();
     }
     public function lastInsertId(?string $name = null): string|false { return '10'; }
@@ -42,9 +56,11 @@ trait WorkflowRepositoryDouble {
     public string $state = 'BORRADOR';
     public int $version = 4;
     public array $writes = [];
+    public int $reads = 0;
     public ?Throwable $failure = null;
     public bool $concurrentChange = false;
     public function find(int $id): ?array {
+        ++$this->reads;
         return ['header' => ['id' => $id, 'estado_registro' => $this->state, 'version' => $this->version], 'details' => []];
     }
     protected function execute(string $sql, array $values = []): PDOStatement {

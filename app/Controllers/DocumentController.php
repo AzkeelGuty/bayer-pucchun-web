@@ -72,9 +72,9 @@ final class DocumentController
 
     public function changeStatus(): void {
         \require_role('ADMIN','SUPERVISOR');
+        $status=OperationalPermissionPolicy::workflow(\input('status',''));
         $id=(int)\input('id');
         $version=(int)\input('version');
-        $status=strtoupper(trim((string)\input('status')));
         $reason=trim((string)\input('reason',''));
         (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);
         \audit('documentos','estado_'.$status,$id);
