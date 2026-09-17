@@ -57,6 +57,10 @@ jobs:
           php tests/unit/guide_permissions_test.php
           php tests/unit/stock_permissions_test.php
           php tests/unit/workflow_permissions_test.php
+          php tests/unit/document_ownership_test.php
+          php tests/unit/repository_ownership_test.php
+          php tests/unit/guide_ownership_test.php
+          php tests/unit/stock_ownership_test.php
 
       - name: Integration tests
         run: |
