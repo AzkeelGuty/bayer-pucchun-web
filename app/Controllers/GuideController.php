@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Exceptions\HttpException;
+use App\Policies\OperationalPermissionPolicy;
 use App\Repositories\{GuideRepository,MasterDataRepository};
 use App\Services\WorkflowService;
 use App\Validators\WorkflowValidator;
@@ -48,7 +49,7 @@ final class GuideController
 
     public function index(): void
     {
-        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('guides.read');
         $filters=$this->filters();
         \view('guias.index',[
             'rows'=>$this->repository->all($filters),
@@ -59,7 +60,7 @@ final class GuideController
 
     public function show(): void
     {
-        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('guides.read');
         $id=(int)\input('id',0);
         $record=$this->repository->find($id);
         if(!$record) throw new HttpException(404,'Guía no encontrada.');
@@ -79,13 +80,13 @@ final class GuideController
 
     public function create(): void
     {
-        \require_role('ADMIN','DIGITADOR');
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         \view('guias.form',$this->viewData());
     }
 
     public function edit(): void
     {
-        \require_role('ADMIN','DIGITADOR');
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         $id=(int)\input('id',0);
         $record=$this->repository->find($id);
         if(!$record) throw new HttpException(404,'Guía no encontrada.');
@@ -103,8 +104,8 @@ final class GuideController
         \view('guias.form',$this->viewData()+['record'=>$record]);
     }
 
-    public function store(): void { \require_role('ADMIN','DIGITADOR'); $this->save(false); }
-    public function update(): void { \require_role('ADMIN','DIGITADOR'); $this->save(true); }
+    public function store(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create'); $this->save(false); }
+    public function update(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create'); $this->save(true); }
 
     private function save(bool $editing): void
     {
@@ -156,7 +157,7 @@ final class GuideController
 
     public function destroy(): void
     {
-        \require_role('ADMIN','DIGITADOR');
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         $id=(int)\input('id',0);
         try{
             $this->repository->deleteDraft($id,(int)\input('version',0),(int)\auth_user()['id']);

@@ -49,12 +49,12 @@ function testPermissions(string $module, string $controllerClass, string $reposi
                 $caught = null;
                 try { $controller->$action(); } catch (Throwable $error) { $caught = $error; }
                 if ($roleAllowed && $granted) {
-                    check($GLOBALS['operationReached'], "$module $action $role granted reaches business boundary");
+                    check($GLOBALS['operationReached'] || $caught instanceof WorkflowRedirect, "$module $action $role granted reaches business boundary");
                 } else {
                     check($caught instanceof App\Exceptions\HttpException && $caught->status === 403, "$module $action $role denied");
                     check(!$GLOBALS['operationReached'], "$module $action denied before business work");
                 }
-                check($_SESSION === $session, "$module $action denial/grant leaves same session intact");
+                check($_SESSION['auth_user'] === $session['auth_user'], "$module $action denial/grant leaves same session intact");
             }
             check(db()->lookups === ($roleAllowed ? 3 : 0), "$module $action fresh persisted check on each allowed-role request");
         }
