@@ -27,7 +27,7 @@ $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'lote_id' =
                 <label class="form-label" for="idempotency_key">Clave de idempotencia</label>
                 <input class="form-control <?= form_error('idempotency_key') ? 'is-invalid' : '' ?>" type="text" id="idempotency_key" name="idempotency_key"
                        value="<?= e((string) old('idempotency_key')) ?>" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,63}" required <?= $editing ? 'readonly' : '' ?>>
-                <div class="form-text"><?= $editing ? 'Es inmutable una vez creado el borrador.' : 'Identifica esta carga; reenviar la misma clave con el mismo contenido no la duplica.' ?></div>
+                <div class="form-text"><?= $editing ? 'No se puede cambiar una vez creado el borrador.' : 'La clave evita que este stock se registre dos veces por accidente.' ?></div>
                 <div class="invalid-feedback"><?= e(form_error('idempotency_key')) ?></div>
             </div>
         </div>

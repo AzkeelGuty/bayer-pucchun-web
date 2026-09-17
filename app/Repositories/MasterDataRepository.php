@@ -15,9 +15,10 @@ class MasterDataRepository
         $this->pdo = $pdo ?? \db();
     }
 
+    /** Includes the cliente's own ubigeo so the form can auto-fill Ubicación when one is selected. */
     public function clientes(): array
     {
-        return $this->all('SELECT id, nro_doc, razon_social FROM clientes ORDER BY razon_social');
+        return $this->all('SELECT id, nro_doc, razon_social, departamento_id, provincia_id, distrito_id FROM clientes ORDER BY razon_social');
     }
 
     public function vendedores(): array

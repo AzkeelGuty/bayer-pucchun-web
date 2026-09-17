@@ -25,12 +25,12 @@ $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'unidad_id'
             <?php field('fecha', 'Fecha', 'date'); ?>
             <div class="col-md-4"></div>
 
-            <?php select('cliente_id', 'Cliente', $clientes, 'id', 'razon_social'); ?>
+            <?php select('cliente_id', 'Cliente', $clientes, 'id', 'razon_social', true, 'data-role="cliente"'); ?>
             <?php select('vendedor_id', 'Vendedor', $vendedores, 'id', 'nombre'); ?>
             <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre'); ?>
 
             <div class="col-12" data-ubigeo-scope>
-                <h2 class="h6 mt-2">Ubicación (opcional en borrador; completa o vacía)</h2>
+                <h2 class="h6 mt-2">Ubicación (se completa sola al elegir el Cliente; puedes ajustarla)</h2>
                 <div class="row g-3">
                     <?php select('departamento_id', 'Departamento', $departamentos, 'id', 'nombre', false, 'data-role="departamento" data-old="' . e((string) old('departamento_id')) . '"'); ?>
                     <?php select('provincia_id', 'Provincia', [], 'id', 'nombre', false, 'data-role="provincia" data-old="' . e((string) old('provincia_id')) . '"'); ?>
@@ -76,6 +76,7 @@ $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'unidad_id'
 </form>
 <script>
 window.BP_GEO = <?= json_encode(['provincias' => $provincias, 'distritos' => $distritos], JSON_UNESCAPED_UNICODE) ?>;
+window.BP_CLIENTES = <?= json_encode(index_by($clientes, 'id'), JSON_UNESCAPED_UNICODE) ?>;
 window.BP_DETAIL_REPEATER = {tableId: 'detalle-table', templateId: 'detalle-row-template', addButtonId: 'add-line-btn', hasLote: false};
 </script>
 <script src="<?= url('/assets/js/forms.js') ?>"></script>
