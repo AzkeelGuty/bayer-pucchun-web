@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\Exceptions\HttpException;
 use App\Policies\OperationalPermissionPolicy;
+use App\Policies\OperationalOwnershipPolicy;
 use App\Repositories\{StockRepository,MasterDataRepository};
 use App\Services\WorkflowService;
 use App\Validators\WorkflowValidator;
@@ -18,6 +19,14 @@ final class StockController
 
     private function masters(): MasterDataRepository { return new MasterDataRepository(); }
 
+    private function record(int $id): array
+    {
+        $record = $id > 0 ? $this->repository->find($id) : null;
+        if (!$record) throw new HttpException(404, 'Stock no encontrado.');
+        OperationalOwnershipPolicy::require($record['header']);
+        return $record;
+    }
+
     private function filters(): array
     {
         $filters=[];
@@ -29,7 +38,7 @@ final class StockController
         }
         $almacen=(string)\input('almacen_id','');
         if(ctype_digit($almacen) && (int)$almacen>0) $filters['almacen_id']=(int)$almacen;
-        return $filters;
+        return OperationalOwnershipPolicy::scope($filters);
     }
 
     private function viewData(): array
@@ -48,8 +57,7 @@ final class StockController
     public function show(): void
     {
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('stock.read');
-        $id=(int)\input('id',0); $record=$this->repository->find($id);
-        if(!$record) throw new HttpException(404,'Registro de stock no encontrado.');
+        $id=(int)\input('id',0); $record=$this->record($id);
         $m=$this->masters();
         \view('stock.show',['record'=>$record,'almacenes'=>\index_by($m->almacenes(),'id'),'productos'=>\index_by($m->productos(),'id'),'unidades'=>\index_by($m->unidades(),'id'),'lotes'=>\index_by($m->lotes(),'id')]);
     }
@@ -59,8 +67,7 @@ final class StockController
     public function edit(): void
     {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('stock.create');
-        $id=(int)\input('id',0); $record=$this->repository->find($id);
-        if(!$record) throw new HttpException(404,'Stock no encontrado.');
+        $id=(int)\input('id',0); $record=$this->record($id);
         if(($record['header']['estado_registro']??'')!=='BORRADOR') throw new HttpException(409,'Solo se puede editar stock en BORRADOR.');
         $_SESSION['_old']=['fecha_stock'=>$record['header']['fecha_stock']??'','almacen_id'=>$record['header']['almacen_id']??'','idempotency_key'=>$record['header']['idempotency_key']??''];
         \view('stock.form',$this->viewData()+['record'=>$record]);
@@ -71,6 +78,7 @@ final class StockController
 
     private function save(bool $editing): void
     {
+        if ($editing) $this->record((int)\input('id',0));
         $details=is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[];
         $header=[
             'fecha_stock'=>(string)\input('fecha_stock',''),
@@ -117,6 +125,7 @@ final class StockController
     {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('stock.create');
         $id=(int)\input('id',0);
+        $this->record($id);
         try{
             $this->repository->deleteDraft($id,(int)\input('version',0),(int)\auth_user()['id']);
             \audit('stock','eliminar',$id); \flash('success','Stock en borrador eliminado.');
