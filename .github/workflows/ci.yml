@@ -65,5 +65,6 @@ jobs:
       - name: Integration tests
         run: |
           php tests/integration/schema_v2_test.php
+          php tests/integration/operational_permissions_migration_test.php
           php tests/integration/repositories_test.php
           php tests/integration/core_security_test.php
