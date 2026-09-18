@@ -51,6 +51,27 @@
         if (distSelect.dataset.old) distSelect.value = distSelect.dataset.old;
     }
 
+    /** When a Cliente is picked, pre-fill Ubicación from the cliente's own registered ubigeo. */
+    function wireClienteUbigeo(clienteSelect) {
+        const clientes = window.BP_CLIENTES;
+        const form = clienteSelect.closest('form');
+        if (!clientes || !form) return;
+        const depSelect = form.querySelector('[data-role="departamento"]');
+        const provSelect = form.querySelector('[data-role="provincia"]');
+        const distSelect = form.querySelector('[data-role="distrito"]');
+        if (!depSelect || !provSelect || !distSelect) return;
+
+        clienteSelect.addEventListener('change', function () {
+            const cliente = clientes[clienteSelect.value];
+            if (!cliente) return;
+            depSelect.value = cliente.departamento_id || '';
+            depSelect.dispatchEvent(new Event('change'));
+            provSelect.value = cliente.provincia_id || '';
+            provSelect.dispatchEvent(new Event('change'));
+            distSelect.value = cliente.distrito_id || '';
+        });
+    }
+
     function wireLoteCascade(row) {
         const lotes = window.BP_LOTES || [];
         const productoSelect = row.querySelector('[data-role="producto"]');
@@ -95,6 +116,7 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-ubigeo-scope]').forEach(wireUbigeo);
+        document.querySelectorAll('[data-role="cliente"]').forEach(wireClienteUbigeo);
         if (window.BP_DETAIL_REPEATER) initDetailRepeater(window.BP_DETAIL_REPEATER);
     });
 })();
