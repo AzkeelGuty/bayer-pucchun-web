@@ -49,6 +49,18 @@ jobs:
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/validator_test.php
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/core_security_test.php
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/csrf_test.php
+          php tests/unit/workflow_test.php
+          php tests/unit/guide_workflow_test.php
+          php tests/unit/stock_workflow_test.php
+          php tests/unit/workflow_transitions_test.php
+          php tests/unit/document_permissions_test.php
+          php tests/unit/guide_permissions_test.php
+          php tests/unit/stock_permissions_test.php
+          php tests/unit/workflow_permissions_test.php
+          php tests/unit/document_ownership_test.php
+          php tests/unit/repository_ownership_test.php
+          php tests/unit/guide_ownership_test.php
+          php tests/unit/stock_ownership_test.php
 
       - name: Integration tests
         run: |

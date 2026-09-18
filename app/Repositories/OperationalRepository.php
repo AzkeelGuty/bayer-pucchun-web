@@ -294,13 +294,16 @@ abstract class OperationalRepository
             throw new InvalidArgumentException('Paginacion invalida: limite entre 1 y 300; offset no negativo.');
         }
         $fields = ['estado_registro' => 'h.estado_registro', 'fecha_desde' => 'h.' . static::DATE_FIELD,
-            'fecha_hasta' => 'h.' . static::DATE_FIELD, static::LOCATION_FIELD => 'h.' . static::LOCATION_FIELD];
+            'fecha_hasta' => 'h.' . static::DATE_FIELD, static::LOCATION_FIELD => 'h.' . static::LOCATION_FIELD, 'created_by' => 'h.created_by'];
         if (array_diff(array_keys($filters), array_keys($fields))) {
             throw new InvalidArgumentException('Filtro no admitido.');
         }
         $where = [];
         $values = [];
         foreach ($filters as $key => $value) {
+            if ($key === 'created_by') {
+                $value = self::positiveId($value);
+            }
             $operator = $key === 'fecha_desde' ? '>=' : ($key === 'fecha_hasta' ? '<=' : '=');
             $where[] = $fields[$key] . $operator . '?';
             $values[] = $value;

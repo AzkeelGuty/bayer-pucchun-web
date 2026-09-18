@@ -57,9 +57,18 @@ final class WorkflowService
 
             if($owns) $pdo->commit();
             return $newVersion;
+        } catch (HttpException $error) {
+            if($owns && $pdo->inTransaction()) $pdo->rollBack();
+            throw $error;
         } catch (RuntimeException $error) {
             if($owns && $pdo->inTransaction()) $pdo->rollBack();
-            throw new HttpException(409, 'El registro cambió mientras lo revisaba. Actualice la página e intente nuevamente.');
+            // Compatibility with persistState(): only its explicit concurrency failure is a 409.
+            // PDOException and unrelated runtime failures must reach the sanitized 500 handler.
+            if (get_class($error) === RuntimeException::class
+                && $error->getMessage() === 'Registro inexistente, estado de origen distinto o version desactualizada.') {
+                throw new HttpException(409, 'El registro cambió mientras lo revisaba. Actualice la página e intente nuevamente.');
+            }
+            throw $error;
         } catch (\InvalidArgumentException $error) {
             if($owns && $pdo->inTransaction()) $pdo->rollBack();
             throw new HttpException(422, $error->getMessage());
