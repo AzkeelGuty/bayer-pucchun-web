@@ -4,7 +4,7 @@
         <h1 class="page-title">Guías</h1>
         <p class="page-subtitle">Consulta tus guías de remisión y continúa su revisión.</p>
     </div>
-    <?php if (has_role('ADMIN', 'DIGITADOR', 'SUPERVISOR')): ?><a class="btn btn-primary" href="<?= url('/guias/nuevo') ?>">+ Nueva guía</a><?php endif; ?>
+    <?php if (has_role('ADMIN', 'DIGITADOR')): ?><a class="btn btn-primary" href="<?= url('/guias/nuevo') ?>">+ Nueva guía</a><?php endif; ?>
 </section>
 
 <form method="get" action="<?= url('/guias') ?>" class="card card-body mb-3">
