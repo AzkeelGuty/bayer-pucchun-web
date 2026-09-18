@@ -4,7 +4,7 @@
         <h1 class="page-title">Stock</h1>
         <p class="page-subtitle">Consulta tus cargas de stock y continúa su revisión.</p>
     </div>
-    <?php if (has_role('ADMIN', 'DIGITADOR', 'SUPERVISOR')): ?><a class="btn btn-primary" href="<?= url('/stock/nuevo') ?>">+ Nuevo stock</a><?php endif; ?>
+    <?php if (has_role('ADMIN', 'DIGITADOR')): ?><a class="btn btn-primary" href="<?= url('/stock/nuevo') ?>">+ Nuevo stock</a><?php endif; ?>
 </section>
 
 <form method="get" action="<?= url('/stock') ?>" class="card card-body mb-3">
