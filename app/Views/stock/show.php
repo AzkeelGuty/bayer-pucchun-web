@@ -5,7 +5,7 @@
 </div>
 <p class="d-flex gap-2">
     <a class="btn btn-sm btn-outline-secondary" href="<?= url('/stock') ?>">&larr; Volver al listado</a>
-    <?php if (has_role('ADMIN', 'DIGITADOR', 'SUPERVISOR') && $h['estado_registro'] === 'BORRADOR'): ?>
+    <?php if (has_role('ADMIN', 'DIGITADOR') && $h['estado_registro'] === 'BORRADOR'): ?>
         <a class="btn btn-sm btn-outline-primary" href="<?= url('/stock/editar?id=' . $h['id']) ?>">Editar</a>
     <?php endif; ?>
 </p>
