@@ -9,7 +9,7 @@ $metrics=[
 <section class="page-header portal-page-header">
     <div>
         <div class="page-eyebrow"><i class="bi bi-patch-check"></i> INFORMACIÓN VALIDADA Y PUBLICADA</div>
-        <h1 class="page-title">Dashboard Bayer</h1>
+        <h1 class="page-title">Panel Bayer</h1>
         <p class="page-subtitle">Consulta externa de información publicada por Pucchún.</p>
     </div>
     <div class="portal-updated"><span>Última publicación</span><strong><?=e($lastUpdate??'Sin publicaciones')?></strong></div>
