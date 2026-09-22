@@ -46,7 +46,7 @@
     <p class="text-muted small"><?= count($rows) ?> guías encontradas</p>
     <div class="table-responsive">
         <table class="table app-table align-middle">
-            <thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Sucursal</th><th>Items</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Sucursal</th><th>Ítems</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>
             <?php foreach ($rows as $r): ?>
                 <tr>
