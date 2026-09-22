@@ -9,10 +9,13 @@ final class DocumentScreenService
     {
         $queries = [
             'tipo_documento_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM tipos_documento ORDER BY codigo',
-            'cliente_id'=>'SELECT id,CONCAT(nro_doc," · ",razon_social) label FROM clientes ORDER BY razon_social',
+            'cliente_id'=>'SELECT c.id,CONCAT(c.nro_doc," · ",c.razon_social) label,
+                (SELECT h.vendedor_id FROM documentos_cabecera h WHERE h.cliente_id=c.id ORDER BY h.fecha DESC,h.id DESC LIMIT 1) vendedor_sugerido_id,
+                (SELECT h.sucursal_id FROM documentos_cabecera h WHERE h.cliente_id=c.id ORDER BY h.fecha DESC,h.id DESC LIMIT 1) sucursal_sugerida_id
+                FROM clientes c ORDER BY c.razon_social',
             'vendedor_id'=>'SELECT id,CONCAT(codigo," · ",nombres," ",COALESCE(apellidos,"")) label FROM vendedores WHERE estado=1 ORDER BY nombres',
             'sucursal_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM sucursales WHERE estado=1 ORDER BY nombre',
-            'producto_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM productos WHERE estado=1 ORDER BY nombre',
+            'producto_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label,unidad_base_id FROM productos WHERE estado=1 ORDER BY nombre',
             'unidad_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM unidades_medida ORDER BY nombre',
         ];
         $result=[];
