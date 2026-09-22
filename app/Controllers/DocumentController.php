@@ -4,7 +4,7 @@ namespace App\Controllers;
 use App\Exceptions\HttpException;
 use App\Policies\OperationalPermissionPolicy;
 use App\Repositories\DocumentRepository;
-use App\Services\{DocumentScreenService,WorkflowService};
+use App\Services\{DocumentScreenService,OperationalNumberingService,WorkflowService};
 
 final class DocumentController
 {
@@ -37,6 +37,10 @@ final class DocumentController
         $header=is_array($_POST['header']??null)?$_POST['header']:[];
         $details=is_array($_POST['details']??null)?array_values($_POST['details']):[];
         $id=(int)\input('id',0); $version=(int)\input('version',0);
+        $numberMode=(!$editing && (string)\input('number_mode','auto')==='manual')?'manual':'auto';
+        if(!$editing && $numberMode==='auto'){
+            $header['numero']=(new OperationalNumberingService())->nextDocumentNumber((int)($header['tipo_documento_id']??0));
+        }
         if($editing) { $r=$this->record($id); if($r['header']['estado_registro']!=='BORRADOR'||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
         $screen=new DocumentScreenService(); $errors=$screen->validate($header,$details,$screen->catalogs());
         if(!$errors) {
