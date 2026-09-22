@@ -55,7 +55,7 @@ $queryBase=http_build_query(array_filter([
     'q'=>$filters['q']??'',
 ],fn($v)=>$v!==''));
 ?>
-<link rel="stylesheet" href="<?=url('/assets/css/bayer-portal.css?v=1')?>">
+<link rel="stylesheet" href="<?=url('/assets/css/bayer-portal.css?v=2')?>">
 <section class="page-header portal-page-header">
     <div>
         <div class="page-eyebrow"><i class="bi bi-database-check"></i> INFORMACIÓN PUBLICADA</div>
