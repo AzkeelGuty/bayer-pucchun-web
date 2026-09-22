@@ -8,6 +8,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const client = form.querySelector('[name="header[cliente_id]"]');
         const seller = form.querySelector('[name="header[vendedor_id]"]');
         const branch = form.querySelector('[name="header[sucursal_id]"]');
+        const documentType = form.querySelector('[name="header[tipo_documento_id]"]');
+        const numberInput = form.querySelector('[data-number-input]');
+        const numberMode = form.querySelector('[data-number-mode]');
+        const manualNumber = form.querySelector('[data-number-manual]');
+        const numberHelp = form.querySelector('[data-number-help]');
+
+        const applyAutomaticNumber = () => {
+            if (!numberInput || !numberMode || numberMode.value !== 'auto') return;
+            const option = documentType?.selectedOptions?.[0];
+            numberInput.value = option?.dataset.nextNumber || '';
+        };
+
+        if (numberInput && numberMode && manualNumber) {
+            const refreshNumberMode = () => {
+                const manual = manualNumber.checked;
+                numberMode.value = manual ? 'manual' : 'auto';
+                numberInput.readOnly = !manual;
+                if (numberHelp) {
+                    numberHelp.textContent = manual
+                        ? 'Modo manual para un documento que ya existe fuera del sistema.'
+                        : 'Se genera automáticamente según el tipo seleccionado.';
+                }
+                if (manual) {
+                    numberInput.focus();
+                    numberInput.select();
+                } else {
+                    applyAutomaticNumber();
+                }
+            };
+            manualNumber.addEventListener('change', refreshNumberMode);
+            documentType?.addEventListener('change', applyAutomaticNumber);
+            refreshNumberMode();
+        }
 
         const applyClientSuggestions = (force = false) => {
             if (!client) return;
