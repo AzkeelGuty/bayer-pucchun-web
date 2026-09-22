@@ -18,7 +18,7 @@
 <div class="card">
 <div class="card-body p-0">
 <?php if(!$rows): ?><div class="empty-state"><strong>Sin pendientes.</strong><span>No hay registros esperando revisión.</span></div>
-<?php else: ?><div class="table-responsive"><table class="table app-table mb-0"><thead><tr><th>Dataset</th><th>Registro</th><th>Fecha</th><th>Referencia</th><th>Estado</th><th>Acción supervisada</th></tr></thead><tbody>
+<?php else: ?><div class="table-responsive"><table class="table app-table mb-0"><thead><tr><th>Conjunto de datos</th><th>Registro</th><th>Fecha</th><th>Referencia</th><th>Estado</th><th>Acción supervisada</th></tr></thead><tbody>
 <?php foreach($rows as $r): ?><tr>
 <td><strong><?=e($r['dataset'])?></strong></td>
 <td>#<?=e($r['id'])?></td>
