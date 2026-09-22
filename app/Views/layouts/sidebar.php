@@ -26,7 +26,7 @@ $sections=[];
 if (has_role('BAYER')) {
     $sections=[
         'PORTAL BAYER'=>[
-            ['/bayer','bi-speedometer2','Dashboard'],
+            ['/bayer','bi-speedometer2','Panel principal'],
             ['/bayer/datos?type=documents','bi-file-earmark-check','Documentos publicados'],
             ['/bayer/datos?type=guides','bi-truck','Guías publicadas'],
             ['/bayer/datos?type=stock','bi-box-seam','Stock publicado'],
@@ -36,7 +36,7 @@ if (has_role('BAYER')) {
     ];
 } else {
     if (has_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA')) {
-        $sections['ANALÍTICA']=[['/dashboard','bi-speedometer2','Dashboard Pucchún']];
+        $sections['ANALÍTICA']=[['/dashboard','bi-speedometer2','Panel Pucchún']];
     }
 
     $operations=[];
