@@ -2,6 +2,10 @@
 require base_path('app/Views/components/form_fields.php');
 $editing = isset($record);
 $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'lote_id' => null, 'unidad_id' => '', 'cantidad' => '']];
+$dateValue = (string)old('fecha_stock');
+if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('Y-m-d'));
+$idempotencyValue = (string)old('idempotency_key');
+if (!$editing && $idempotencyValue === '') $idempotencyValue = (string)($defaultIdempotency ?? '');
 ?>
 <section class="module-header">
     <div>
@@ -21,20 +25,24 @@ $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'lote_id' =
     <div class="card-body p-4">
         <h2 class="h5 mb-3">Datos generales</h2>
         <div class="row g-3">
-            <?php field('fecha_stock', 'Fecha de stock', 'date'); ?>
+            <div class="col-md-4">
+                <label class="form-label" for="stock-date">Fecha de stock</label>
+                <input class="form-control <?=form_error('fecha_stock')?'is-invalid':''?>" id="stock-date" type="date" name="fecha_stock" value="<?=e($dateValue)?>" required>
+                <div class="invalid-feedback"><?=e(form_error('fecha_stock'))?></div>
+            </div>
             <?php select('almacen_id', 'Almacén', $almacenes, 'id', 'nombre'); ?>
             <div class="col-md-4">
                 <label class="form-label" for="idempotency_key">Clave de idempotencia</label>
                 <input class="form-control <?= form_error('idempotency_key') ? 'is-invalid' : '' ?>" type="text" id="idempotency_key" name="idempotency_key"
-                       value="<?= e((string) old('idempotency_key')) ?>" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,63}" required <?= $editing ? 'readonly' : '' ?>>
-                <div class="form-text"><?= $editing ? 'No se puede cambiar una vez creado el borrador.' : 'La clave evita que este stock se registre dos veces por accidente.' ?></div>
+                       value="<?= e($idempotencyValue) ?>" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,63}" required readonly>
+                <div class="form-text"><?= $editing ? 'No se puede cambiar una vez creado el borrador.' : 'Se genera automáticamente para evitar registros duplicados.' ?></div>
                 <div class="invalid-feedback"><?= e(form_error('idempotency_key')) ?></div>
             </div>
         </div>
 
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4 mb-3">
             <h2 class="h5 mb-0">Detalle</h2>
-            <button type="button" id="add-line-btn" class="btn btn-outline-primary">+ Agregar línea</button>
+            <button type="button" id="add-line-btn" class="btn btn-outline-primary">+ Añadir producto al stock</button>
         </div>
         <div class="table-responsive">
             <table class="table app-table align-middle" id="detalle-table">
@@ -53,7 +61,7 @@ $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'lote_id' =
                 </tbody>
             </table>
         </div>
-        <p class="text-muted small">Agrega las líneas que necesites; la cantidad no puede ser negativa.</p>
+        <p class="text-muted small">Añade las líneas que necesites. Al elegir un producto, su unidad base se completa automáticamente; los lotes se filtran por producto.</p>
         <template id="detalle-row-template">
             <tr>
                 <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'nombre', 'data-role="producto"'); ?></td>
@@ -71,7 +79,8 @@ $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'lote_id' =
 </form>
 <script>
 window.BP_LOTES = <?= json_encode($lotes, JSON_UNESCAPED_UNICODE) ?>;
+window.BP_PRODUCTS = <?= json_encode(index_by($productos, 'id'), JSON_UNESCAPED_UNICODE) ?>;
 window.BP_DETAIL_REPEATER = {tableId: 'detalle-table', templateId: 'detalle-row-template', addButtonId: 'add-line-btn', hasLote: true};
 </script>
-<script src="<?= url('/assets/js/forms.js') ?>"></script>
+<script src="<?= url('/assets/js/forms.js?v=3') ?>"></script>
 <?php unset($_SESSION['_old'], $_SESSION['_errors']); ?>
