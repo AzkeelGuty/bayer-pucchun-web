@@ -62,7 +62,14 @@ final class StockController
         \view('stock.show',['record'=>$record,'almacenes'=>\index_by($m->almacenes(),'id'),'productos'=>\index_by($m->productos(),'id'),'unidades'=>\index_by($m->unidades(),'id'),'lotes'=>\index_by($m->lotes(),'id')]);
     }
 
-    public function create(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('stock.create'); \view('stock.form',$this->viewData()); }
+    public function create(): void {
+        \require_role('ADMIN','DIGITADOR');
+        OperationalPermissionPolicy::require('stock.create');
+        \view('stock.form',$this->viewData()+[
+            'defaultDate'=>date('Y-m-d'),
+            'defaultIdempotency'=>'stock-'.date('Ymd-His').'-'.bin2hex(random_bytes(6)),
+        ]);
+    }
 
     public function edit(): void
     {
@@ -80,10 +87,14 @@ final class StockController
     {
         if ($editing) $this->record((int)\input('id',0));
         $details=is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[];
+        $idempotencyKey=trim((string)\input('idempotency_key',''));
+        if(!$editing && $idempotencyKey===''){
+            $idempotencyKey='stock-'.date('Ymd-His').'-'.bin2hex(random_bytes(6));
+        }
         $header=[
             'fecha_stock'=>(string)\input('fecha_stock',''),
             'almacen_id'=>(int)\input('almacen_id',0),
-            'idempotency_key'=>trim((string)\input('idempotency_key','')),
+            'idempotency_key'=>$idempotencyKey,
         ];
         $errors=[];
         if($header['fecha_stock']==='') $errors['fecha_stock']='Campo obligatorio';
