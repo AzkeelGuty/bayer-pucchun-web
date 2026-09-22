@@ -9,7 +9,7 @@ $metrics=[
 <section class="page-header">
     <div>
         <div class="page-eyebrow"><i class="bi bi-speedometer2"></i> GESTIÓN OPERATIVA</div>
-        <h1 class="page-title">Dashboard Pucchún</h1>
+        <h1 class="page-title">Panel Pucchún</h1>
         <p class="page-subtitle">Captura, validación, publicación y seguimiento de la información.</p>
     </div>
     <div class="quick-actions">
