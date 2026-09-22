@@ -46,7 +46,7 @@
     <p class="text-muted small"><?= count($rows) ?> registros de stock encontrados</p>
     <div class="table-responsive">
         <table class="table app-table align-middle">
-            <thead><tr><th>Fecha</th><th>Almacén</th><th>Items</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Almacén</th><th>Ítems</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>
             <?php foreach ($rows as $r): ?>
                 <tr>
