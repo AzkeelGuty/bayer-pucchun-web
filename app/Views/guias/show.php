@@ -52,8 +52,8 @@
 
 <?php if (has_role('ADMIN', 'SUPERVISOR')): ?>
 <div class="card"><div class="card-body">
-    <h6 class="card-title">Workflow</h6>
-    <p class="text-muted small">Estas acciones dependen del Service de estados (en preparación); hasta entonces el backend responderá con un aviso temporal.</p>
+    <h6 class="card-title">Flujo de aprobación</h6>
+    <p class="text-muted small">Las acciones disponibles dependen del estado actual de la guía y de los permisos del usuario.</p>
     <div class="d-flex gap-2 flex-wrap">
         <?php if ($h['estado_registro'] === 'BORRADOR'): ?>
             <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-sm btn-info">Validar</button></form>
