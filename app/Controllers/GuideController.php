@@ -7,7 +7,7 @@ use App\Exceptions\HttpException;
 use App\Policies\OperationalPermissionPolicy;
 use App\Policies\OperationalOwnershipPolicy;
 use App\Repositories\{GuideRepository,MasterDataRepository};
-use App\Services\WorkflowService;
+use App\Services\{OperationalNumberingService,WorkflowService};
 use App\Validators\WorkflowValidator;
 
 final class GuideController
@@ -89,7 +89,10 @@ final class GuideController
     public function create(): void
     {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
-        \view('guias.form',$this->viewData());
+        \view('guias.form',$this->viewData()+[
+            'autoNumber'=>(new OperationalNumberingService())->nextGuideNumber(),
+            'defaultDate'=>date('Y-m-d'),
+        ]);
     }
 
     public function edit(): void
@@ -118,6 +121,7 @@ final class GuideController
     {
         if ($editing) $this->record((int)\input('id',0));
         $details=is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[];
+        $numberMode=(!$editing && (string)\input('number_mode','auto')==='manual')?'manual':'auto';
         $header=[
             'numero'=>trim((string)\input('numero','')),
             'fecha'=>(string)\input('fecha',''),
@@ -128,6 +132,9 @@ final class GuideController
             'provincia_id'=>\input('provincia_id','')!==''?(int)\input('provincia_id'):null,
             'distrito_id'=>\input('distrito_id','')!==''?(int)\input('distrito_id'):null,
         ];
+        if(!$editing && $numberMode==='auto'){
+            $header['numero']=(new OperationalNumberingService())->nextGuideNumber();
+        }
         $errors=[];
         foreach(['numero','fecha'] as $k) if(trim((string)$header[$k])==='') $errors[$k]='Campo obligatorio';
         foreach(['cliente_id','vendedor_id','sucursal_id'] as $k) if((int)$header[$k]<1) $errors[$k]='Seleccione una opción válida';
