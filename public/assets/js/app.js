@@ -1,3 +1,4 @@
+// Dashboard assets: mantener colores diferenciados y comportamiento visual vigente.
 (() => {
     const body = document.body;
     const toggle = document.getElementById('sidebarToggle');
