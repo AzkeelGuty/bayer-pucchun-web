@@ -60,9 +60,22 @@ Views / Exportaciones / API
 
 Para actualizar una base v1 existente, revisar primero `database/README.md` y usar la migración `database/migrations/002_schema_v2.sql` con respaldo previo.
 
-## API
+## API REST Bayer
 
-La API REST está deshabilitada por defecto mediante `API_ENABLED=false`. La versión actual es de transición y no debe exponerse como API pública de producción sin completar hardening, tokens por cliente/scopes, rate limiting y auditoría de consumo.
+La integración sistema-a-sistema está disponible en `/api/v1/bayer` y permanece deshabilitada por defecto mediante `API_ENABLED=false`.
+
+Endpoints principales:
+
+- `GET /api/v1/bayer/all`: devuelve en una sola llamada todos los documentos/ventas, guías y stock **PUBLICADOS**;
+- `GET /api/v1/bayer/sales`;
+- `GET /api/v1/bayer/shipments`;
+- `GET /api/v1/bayer/inventory`.
+
+La autenticación usa `Authorization: Bearer <API_TOKEN>`. El canal REST devuelve JSON, admite filtros opcionales de fecha/sucursal/búsqueda y registra el consumo en la bitácora de acceso. Las exportaciones XLSX/JSON/TXT/PDF se mantienen como alternativa manual.
+
+Configuración y ejemplos de integración: `docs/API_REST_BAYER.md`.
+
+En producción se debe usar HTTPS, un token largo y aleatorio, rotación de credenciales y límites de consumo adecuados al servidor.
 
 ## Trabajo en equipo
 
