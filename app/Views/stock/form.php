@@ -82,5 +82,5 @@ window.BP_LOTES = <?= json_encode($lotes, JSON_UNESCAPED_UNICODE) ?>;
 window.BP_PRODUCTS = <?= json_encode(index_by($productos, 'id'), JSON_UNESCAPED_UNICODE) ?>;
 window.BP_DETAIL_REPEATER = {tableId: 'detalle-table', templateId: 'detalle-row-template', addButtonId: 'add-line-btn', hasLote: true};
 </script>
-<script src="<?= url('/assets/js/forms.js?v=4') ?>"></script>
+<script src="<?= url('/assets/js/forms.js?v=20260923-3') ?>"></script>
 <?php unset($_SESSION['_old'], $_SESSION['_errors']); ?>
