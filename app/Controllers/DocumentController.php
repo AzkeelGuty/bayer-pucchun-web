@@ -18,7 +18,27 @@ final class DocumentController
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read');
         \view('documentos.index',(new DocumentScreenService())->listing($_GET));
     }
-    public function create(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->form(['fecha'=>date('Y-m-d')],[]); }
+    public function create(): void {
+        \require_role('ADMIN','DIGITADOR');
+        OperationalPermissionPolicy::require('documents.create');
+
+        $screen=new DocumentScreenService();
+        $catalogs=$screen->catalogs();
+        $types=$catalogs['tipo_documento_id']??[];
+        $defaultType=null;
+        foreach($types as $type){
+            if(($type['codigo']??'')==='FAC'){ $defaultType=$type; break; }
+        }
+        if($defaultType===null && $types) $defaultType=$types[0];
+
+        $header=['fecha'=>date('Y-m-d')];
+        if(is_array($defaultType)){
+            $header['tipo_documento_id']=$defaultType['id']??'';
+            $header['numero']=$defaultType['next_number']??'';
+        }
+
+        $this->form($header,[],false,[],$catalogs);
+    }
     public function edit(): void {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $r=$this->record((int)\input('id',0));
         if($r['header']['estado_registro']!=='BORRADOR') throw new HttpException(409,'Solo se pueden editar borradores.');
@@ -28,8 +48,9 @@ final class DocumentController
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read'); $r=$this->record((int)\input('id',0));
         \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogs()]);
     }
-    private function form(array $header,array $details,bool $editing=false,array $errors=[]): void {
-        \view('documentos.form',compact('header','details','editing','errors')+['catalogs'=>(new DocumentScreenService())->catalogs()]);
+    private function form(array $header,array $details,bool $editing=false,array $errors=[],?array $catalogs=null): void {
+        $catalogs??=(new DocumentScreenService())->catalogs();
+        \view('documentos.form',compact('header','details','editing','errors','catalogs'));
     }
     public function store(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->save(false); }
     public function update(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->save(true); }
