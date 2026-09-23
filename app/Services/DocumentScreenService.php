@@ -8,15 +8,31 @@ final class DocumentScreenService
     public function catalogs(): array
     {
         $queries = [
-            'tipo_documento_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM tipos_documento ORDER BY codigo',
-            'cliente_id'=>'SELECT id,CONCAT(nro_doc," · ",razon_social) label FROM clientes ORDER BY razon_social',
+            'tipo_documento_id'=>'SELECT id,codigo,CONCAT(codigo," · ",nombre) label FROM tipos_documento ORDER BY codigo',
+            'cliente_id'=>'SELECT c.id,CONCAT(c.nro_doc," · ",c.razon_social) label,
+                COALESCE(
+                    (SELECT h.vendedor_id FROM documentos_cabecera h WHERE h.cliente_id=c.id ORDER BY h.fecha DESC,h.id DESC LIMIT 1),
+                    (SELECT g.vendedor_id FROM guias_cabecera g WHERE g.cliente_id=c.id ORDER BY g.fecha DESC,g.id DESC LIMIT 1)
+                ) vendedor_sugerido_id,
+                COALESCE(
+                    (SELECT h.sucursal_id FROM documentos_cabecera h WHERE h.cliente_id=c.id ORDER BY h.fecha DESC,h.id DESC LIMIT 1),
+                    (SELECT g.sucursal_id FROM guias_cabecera g WHERE g.cliente_id=c.id ORDER BY g.fecha DESC,g.id DESC LIMIT 1)
+                ) sucursal_sugerida_id
+                FROM clientes c ORDER BY c.razon_social',
             'vendedor_id'=>'SELECT id,CONCAT(codigo," · ",nombres," ",COALESCE(apellidos,"")) label FROM vendedores WHERE estado=1 ORDER BY nombres',
             'sucursal_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM sucursales WHERE estado=1 ORDER BY nombre',
-            'producto_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM productos WHERE estado=1 ORDER BY nombre',
+            'producto_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label,unidad_base_id FROM productos WHERE estado=1 ORDER BY nombre',
             'unidad_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM unidades_medida ORDER BY nombre',
         ];
         $result=[];
         foreach($queries as $key=>$sql) $result[$key]=\db()->query($sql)->fetchAll();
+
+        $numbering=new OperationalNumberingService();
+        foreach($result['tipo_documento_id'] as &$type){
+            $type['next_number']=$numbering->nextDocumentNumber((int)$type['id']);
+        }
+        unset($type);
+
         return $result;
     }
 

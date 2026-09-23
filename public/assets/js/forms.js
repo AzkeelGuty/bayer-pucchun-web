@@ -51,6 +51,77 @@
         if (distSelect.dataset.old) distSelect.value = distSelect.dataset.old;
     }
 
+    /** When a Cliente is picked, pre-fill known operational data without inventing missing values. */
+    function wireClienteUbigeo(clienteSelect) {
+        const clientes = window.BP_CLIENTES;
+        const form = clienteSelect.closest('form');
+        if (!clientes || !form) return;
+        const depSelect = form.querySelector('[data-role="departamento"]');
+        const provSelect = form.querySelector('[data-role="provincia"]');
+        const distSelect = form.querySelector('[data-role="distrito"]');
+        const sellerSelect = form.querySelector('[name="vendedor_id"]');
+        const branchSelect = form.querySelector('[name="sucursal_id"]');
+
+        clienteSelect.addEventListener('change', function () {
+            const cliente = clientes[clienteSelect.value];
+            if (!cliente) return;
+
+            if (sellerSelect) sellerSelect.value = cliente.vendedor_sugerido_id || '';
+            if (branchSelect) branchSelect.value = cliente.sucursal_sugerida_id || '';
+
+            if (depSelect && provSelect && distSelect) {
+                depSelect.value = cliente.departamento_id || '';
+                depSelect.dispatchEvent(new Event('change'));
+                provSelect.value = cliente.provincia_id || '';
+                provSelect.dispatchEvent(new Event('change'));
+                distSelect.value = cliente.distrito_id || '';
+            }
+        });
+    }
+
+    function wireProductUnit(row) {
+        const productos = window.BP_PRODUCTS || {};
+        const productSelect = row.querySelector('[data-role="producto"]');
+        const unitSelect = row.querySelector('select[name$="[unidad_id]"]');
+        if (!productSelect || !unitSelect) return;
+
+        function refresh(force) {
+            const product = productos[productSelect.value];
+            if (!product || !product.unidad_base_id || (!force && unitSelect.value)) return;
+            unitSelect.value = String(product.unidad_base_id);
+        }
+
+        productSelect.addEventListener('change', function () { refresh(true); });
+        refresh(false);
+    }
+
+    function wireAutoNumber(form) {
+        const input = form.querySelector('[data-number-input]');
+        const mode = form.querySelector('[data-number-mode]');
+        const manual = form.querySelector('[data-number-manual]');
+        const help = form.querySelector('[data-number-help]');
+        if (!input || !mode || !manual) return;
+
+        function refresh() {
+            const isManual = manual.checked;
+            mode.value = isManual ? 'manual' : 'auto';
+            input.readOnly = !isManual;
+            if (!isManual) input.value = input.dataset.autoNumber || '';
+            if (help) {
+                help.textContent = isManual
+                    ? 'Modo manual para una guía que ya existe fuera del sistema.'
+                    : 'El correlativo se genera automáticamente al guardar.';
+            }
+            if (isManual) {
+                input.focus();
+                input.select();
+            }
+        }
+
+        manual.addEventListener('change', refresh);
+        refresh();
+    }
+
     function wireLoteCascade(row) {
         const lotes = window.BP_LOTES || [];
         const productoSelect = row.querySelector('[data-role="producto"]');
@@ -73,6 +144,7 @@
 
         function attachRow(row) {
             if (config.hasLote) wireLoteCascade(row);
+            wireProductUnit(row);
             const removeBtn = row.querySelector('.remove-line-btn');
             if (removeBtn) {
                 removeBtn.addEventListener('click', function () {
@@ -95,6 +167,8 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-ubigeo-scope]').forEach(wireUbigeo);
+        document.querySelectorAll('[data-role="cliente"]').forEach(wireClienteUbigeo);
+        document.querySelectorAll('form').forEach(wireAutoNumber);
         if (window.BP_DETAIL_REPEATER) initDetailRepeater(window.BP_DETAIL_REPEATER);
     });
 })();

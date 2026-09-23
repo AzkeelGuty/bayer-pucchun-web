@@ -4,8 +4,11 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Exceptions\HttpException;
+use App\Policies\OperationalPermissionPolicy;
+use App\Policies\OperationalOwnershipPolicy;
 use App\Repositories\{GuideRepository,MasterDataRepository};
-use App\Services\WorkflowService;
+use App\Services\{OperationalNumberingService,WorkflowService};
+use App\Validators\WorkflowValidator;
 
 final class GuideController
 {
@@ -15,6 +18,14 @@ final class GuideController
     }
 
     private function masters(): MasterDataRepository { return new MasterDataRepository(); }
+
+    private function record(int $id): array
+    {
+        $record = $id > 0 ? $this->repository->find($id) : null;
+        if (!$record) throw new HttpException(404, 'Guía no encontrada.');
+        OperationalOwnershipPolicy::require($record['header']);
+        return $record;
+    }
 
     private function filters(): array
     {
@@ -27,7 +38,7 @@ final class GuideController
         }
         $sucursal=(string)\input('sucursal_id','');
         if(ctype_digit($sucursal) && (int)$sucursal>0) $filters['sucursal_id']=(int)$sucursal;
-        return $filters;
+        return OperationalOwnershipPolicy::scope($filters);
     }
 
     private function viewData(): array
@@ -47,7 +58,7 @@ final class GuideController
 
     public function index(): void
     {
-        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('guides.read');
         $filters=$this->filters();
         \view('guias.index',[
             'rows'=>$this->repository->all($filters),
@@ -58,10 +69,9 @@ final class GuideController
 
     public function show(): void
     {
-        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('guides.read');
         $id=(int)\input('id',0);
-        $record=$this->repository->find($id);
-        if(!$record) throw new HttpException(404,'Guía no encontrada.');
+        $record=$this->record($id);
         $m=$this->masters();
         \view('guias.show',[
             'record'=>$record,
@@ -78,16 +88,18 @@ final class GuideController
 
     public function create(): void
     {
-        \require_role('ADMIN','DIGITADOR');
-        \view('guias.form',$this->viewData());
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
+        \view('guias.form',$this->viewData()+[
+            'autoNumber'=>(new OperationalNumberingService())->nextGuideNumber(),
+            'defaultDate'=>date('Y-m-d'),
+        ]);
     }
 
     public function edit(): void
     {
-        \require_role('ADMIN','DIGITADOR');
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         $id=(int)\input('id',0);
-        $record=$this->repository->find($id);
-        if(!$record) throw new HttpException(404,'Guía no encontrada.');
+        $record=$this->record($id);
         if(($record['header']['estado_registro']??'')!=='BORRADOR') throw new HttpException(409,'Solo se puede editar una guía en BORRADOR.');
         $_SESSION['_old']=[
             'numero'=>$record['header']['numero']??'',
@@ -102,12 +114,14 @@ final class GuideController
         \view('guias.form',$this->viewData()+['record'=>$record]);
     }
 
-    public function store(): void { \require_role('ADMIN','DIGITADOR'); $this->save(false); }
-    public function update(): void { \require_role('ADMIN','DIGITADOR'); $this->save(true); }
+    public function store(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create'); $this->save(false); }
+    public function update(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create'); $this->save(true); }
 
     private function save(bool $editing): void
     {
+        if ($editing) $this->record((int)\input('id',0));
         $details=is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[];
+        $numberMode=(!$editing && (string)\input('number_mode','auto')==='manual')?'manual':'auto';
         $header=[
             'numero'=>trim((string)\input('numero','')),
             'fecha'=>(string)\input('fecha',''),
@@ -118,6 +132,9 @@ final class GuideController
             'provincia_id'=>\input('provincia_id','')!==''?(int)\input('provincia_id'):null,
             'distrito_id'=>\input('distrito_id','')!==''?(int)\input('distrito_id'):null,
         ];
+        if(!$editing && $numberMode==='auto'){
+            $header['numero']=(new OperationalNumberingService())->nextGuideNumber();
+        }
         $errors=[];
         foreach(['numero','fecha'] as $k) if(trim((string)$header[$k])==='') $errors[$k]='Campo obligatorio';
         foreach(['cliente_id','vendedor_id','sucursal_id'] as $k) if((int)$header[$k]<1) $errors[$k]='Seleccione una opción válida';
@@ -155,8 +172,9 @@ final class GuideController
 
     public function destroy(): void
     {
-        \require_role('ADMIN','DIGITADOR');
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         $id=(int)\input('id',0);
+        $this->record($id);
         try{
             $this->repository->deleteDraft($id,(int)\input('version',0),(int)\auth_user()['id']);
             \audit('guias','eliminar',$id); \flash('success','Guía en borrador eliminada.');
@@ -167,11 +185,11 @@ final class GuideController
     public function changeStatus(): void
     {
         \require_role('ADMIN','SUPERVISOR');
+        $status=OperationalPermissionPolicy::workflow(\input('status',''));
         $id=(int)\input('id',0);
         $record=$this->repository->find($id);
         if(!$record) throw new HttpException(404,'Guía no encontrada.');
-        $version=(int)\input('version',(int)($record['header']['version']??0));
-        $status=strtoupper(trim((string)\input('status','')));
+        $version=WorkflowValidator::version($_POST['version'] ?? null);
         $reason=trim((string)\input('reason',''));
         (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);
         \audit('guias','estado_'.$status,$id);

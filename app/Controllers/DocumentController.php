@@ -2,8 +2,9 @@
 declare(strict_types=1);
 namespace App\Controllers;
 use App\Exceptions\HttpException;
+use App\Policies\OperationalPermissionPolicy;
 use App\Repositories\DocumentRepository;
-use App\Services\{DocumentScreenService,WorkflowService};
+use App\Services\{DocumentScreenService,OperationalNumberingService,WorkflowService};
 
 final class DocumentController
 {
@@ -14,28 +15,53 @@ final class DocumentController
         return $record;
     }
     public function index(): void {
-        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read');
         \view('documentos.index',(new DocumentScreenService())->listing($_GET));
     }
-    public function create(): void { \require_role('ADMIN','DIGITADOR'); $this->form([],[]); }
+    public function create(): void {
+        \require_role('ADMIN','DIGITADOR');
+        OperationalPermissionPolicy::require('documents.create');
+
+        $screen=new DocumentScreenService();
+        $catalogs=$screen->catalogs();
+        $types=$catalogs['tipo_documento_id']??[];
+        $defaultType=null;
+        foreach($types as $type){
+            if(($type['codigo']??'')==='FAC'){ $defaultType=$type; break; }
+        }
+        if($defaultType===null && $types) $defaultType=$types[0];
+
+        $header=['fecha'=>date('Y-m-d')];
+        if(is_array($defaultType)){
+            $header['tipo_documento_id']=$defaultType['id']??'';
+            $header['numero']=$defaultType['next_number']??'';
+        }
+
+        $this->form($header,[],false,[],$catalogs);
+    }
     public function edit(): void {
-        \require_role('ADMIN','DIGITADOR'); $r=$this->record((int)\input('id',0));
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $r=$this->record((int)\input('id',0));
         if($r['header']['estado_registro']!=='BORRADOR') throw new HttpException(409,'Solo se pueden editar borradores.');
         $this->form($r['header'],$r['details'],true);
     }
     public function show(): void {
-        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); $r=$this->record((int)\input('id',0));
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read'); $r=$this->record((int)\input('id',0));
         \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogs()]);
     }
-    private function form(array $header,array $details,bool $editing=false,array $errors=[]): void {
-        \view('documentos.form',compact('header','details','editing','errors')+['catalogs'=>(new DocumentScreenService())->catalogs()]);
+    private function form(array $header,array $details,bool $editing=false,array $errors=[],?array $catalogs=null): void {
+        $catalogs??=(new DocumentScreenService())->catalogs();
+        \view('documentos.form',compact('header','details','editing','errors','catalogs'));
     }
-    public function store(): void { \require_role('ADMIN','DIGITADOR'); $this->save(false); }
-    public function update(): void { \require_role('ADMIN','DIGITADOR'); $this->save(true); }
+    public function store(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->save(false); }
+    public function update(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->save(true); }
     private function save(bool $editing): void {
         $header=is_array($_POST['header']??null)?$_POST['header']:[];
         $details=is_array($_POST['details']??null)?array_values($_POST['details']):[];
         $id=(int)\input('id',0); $version=(int)\input('version',0);
+        $numberMode=(!$editing && (string)\input('number_mode','auto')==='manual')?'manual':'auto';
+        if(!$editing && $numberMode==='auto'){
+            $header['numero']=(new OperationalNumberingService())->nextDocumentNumber((int)($header['tipo_documento_id']??0));
+        }
         if($editing) { $r=$this->record($id); if($r['header']['estado_registro']!=='BORRADOR'||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
         $screen=new DocumentScreenService(); $errors=$screen->validate($header,$details,$screen->catalogs());
         if(!$errors) {
@@ -56,8 +82,9 @@ final class DocumentController
     }
 
     public function destroy(): void {
-        \require_role('ADMIN','DIGITADOR');
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create');
         $id=(int)\input('id',0);
+        $this->record($id); // Ownership denial must remain a 403, outside the persistence catch.
         $version=(int)\input('version',0);
         try{
             $this->repository->deleteDraft($id,$version,(int)\auth_user()['id']);
@@ -71,9 +98,9 @@ final class DocumentController
 
     public function changeStatus(): void {
         \require_role('ADMIN','SUPERVISOR');
+        $status=OperationalPermissionPolicy::workflow(\input('status',''));
         $id=(int)\input('id');
         $version=(int)\input('version');
-        $status=strtoupper(trim((string)\input('status')));
         $reason=trim((string)\input('reason',''));
         (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);
         \audit('documentos','estado_'.$status,$id);

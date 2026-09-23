@@ -1,3 +1,4 @@
+// Dashboard assets: mantener colores diferenciados y comportamiento visual vigente.
 (() => {
     const body = document.body;
     const toggle = document.getElementById('sidebarToggle');
@@ -355,6 +356,15 @@
 
     const topCanvas = document.getElementById('topChart');
     if (topCanvas) {
+        const topColors = top.map((_, index) => {
+            const palette = ['#075b9f','#f59e0b','#7c3aed','#d92d20','#0891b2','#c2410c','#4f46e5','#be185d','#65a30d','#0f766e'];
+            if (index < palette.length) return palette[index];
+
+            // Si aparecen más productos, generamos tonos distintos para evitar barras repetidas.
+            const hue = Math.round((index * 137.508) % 360);
+            return `hsl(${hue} 68% 44%)`;
+        });
+
         new Chart(topCanvas, {
             type: 'bar',
             data: {
@@ -362,7 +372,7 @@
                 datasets: [{
                     label: 'Cantidad',
                     data: top.map(item => Number(item.cantidad)),
-                    backgroundColor: green,
+                    backgroundColor: topColors,
                     borderRadius: 8,
                     borderSkipped: false
                 }]

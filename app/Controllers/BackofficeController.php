@@ -94,6 +94,18 @@ final class BackofficeController
     public function evolution(): void
     {
         \require_role('ADMIN','SUPERVISOR','GERENCIA');
-        \view('backoffice.evolution',['apiEnabled'=>(bool)\config('app.api_enabled')]);
+
+        $counts=[
+            'sales'=>(int)\db()->query("SELECT COUNT(*) FROM documentos_detalle d JOIN documentos_cabecera h ON h.id=d.documento_id WHERE h.estado_registro='PUBLICADO'")->fetchColumn(),
+            'shipments'=>(int)\db()->query("SELECT COUNT(*) FROM guias_detalle d JOIN guias_cabecera h ON h.id=d.guia_id WHERE h.estado_registro='PUBLICADO'")->fetchColumn(),
+            'inventory'=>(int)\db()->query("SELECT COUNT(*) FROM stock_detalle d JOIN stock_cabecera h ON h.id=d.stock_id WHERE h.estado_registro='PUBLICADO'")->fetchColumn(),
+        ];
+
+        \view('backoffice.evolution',[
+            'apiEnabled'=>(bool)\config('app.api_enabled'),
+            'apiTokenConfigured'=>trim((string)\config('app.api_token'))!=='',
+            'apiBase'=>rtrim((string)\config('app.url'),'\/').'/api/v1/bayer',
+            'apiCounts'=>$counts,
+        ]);
     }
 }
