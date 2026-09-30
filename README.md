@@ -73,6 +73,8 @@ Endpoints principales:
 
 La autenticación usa `Authorization: Bearer <API_TOKEN>`. El canal REST devuelve JSON, admite filtros opcionales de fecha/sucursal/búsqueda y registra el consumo en la bitácora de acceso. Las exportaciones XLSX/JSON/TXT/PDF se mantienen como alternativa manual.
 
+En los datasets operativos, `quantity` representa un **conteo entero de productos/presentaciones**. El API identifica este criterio con `quantityUnit=NIU` y `quantityMeaning=PRODUCT_COUNT`; `measureUnit` se conserva como referencia de la unidad del catálogo/presentación.
+
 Configuración y ejemplos de integración: `docs/API_REST_BAYER.md`.
 
 En producción se debe usar HTTPS, un token largo y aleatorio, rotación de credenciales y límites de consumo adecuados al servidor.
