@@ -42,7 +42,7 @@
                 <tr>
                     <td><?= e($productos[$line['producto_id']]['nombre'] ?? $line['producto_id']) ?></td>
                     <td><?= e($unidades[$line['unidad_id']]['nombre'] ?? $line['unidad_id']) ?></td>
-                    <td><?= e($line['cantidad']) ?></td>
+                    <td><?= e(format_quantity($line['cantidad'])) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
