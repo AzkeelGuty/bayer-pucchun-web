@@ -51,7 +51,7 @@ if (!$editing && $idempotencyValue === '') $idempotencyValue = (string)($default
                 <tbody>
                     <?php foreach ($detailRows as $i => $line): ?>
                     <tr>
-                        <td><?php select_inline("detalle[$i][producto_id]", $productos, 'id', 'nombre', 'data-role="producto"', 'Seleccione…', true, (string) $line['producto_id']); ?></td>
+                        <td><?php select_inline("detalle[$i][producto_id]", $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-placeholder="Buscar por código o producto..." data-search-min="1"', 'Seleccione…', true, (string) $line['producto_id']); ?></td>
                         <td><?php select_inline("detalle[$i][lote_id]", [], 'id', 'codigo_lote', 'data-role="lote"', 'Sin lote', false, (string) ($line['lote_id'] ?? '')); ?></td>
                         <td><?php select_inline("detalle[$i][unidad_id]", $unidades, 'id', 'nombre', '', 'Seleccione…', true, (string) $line['unidad_id']); ?></td>
                         <td><input type="number" step="0.001" min="0" class="form-control form-control-sm" name="detalle[<?= $i ?>][cantidad]" value="<?= e($line['cantidad']) ?>" required></td>
@@ -64,7 +64,7 @@ if (!$editing && $idempotencyValue === '') $idempotencyValue = (string)($default
         <p class="text-muted small">Añade las líneas que necesites. Al elegir un producto, su unidad base se completa automáticamente; los lotes se filtran por producto.</p>
         <template id="detalle-row-template">
             <tr>
-                <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'nombre', 'data-role="producto"'); ?></td>
+                <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-placeholder="Buscar por código o producto..." data-search-min="1"'); ?></td>
                 <td><?php select_inline('detalle[__IDX__][lote_id]', [], 'id', 'codigo_lote', 'data-role="lote"', 'Sin lote', false); ?></td>
                 <td><?php select_inline('detalle[__IDX__][unidad_id]', $unidades, 'id', 'nombre'); ?></td>
                 <td><input type="number" step="0.001" min="0" class="form-control form-control-sm" name="detalle[__IDX__][cantidad]" required></td>
@@ -82,5 +82,5 @@ window.BP_LOTES = <?= json_encode($lotes, JSON_UNESCAPED_UNICODE) ?>;
 window.BP_PRODUCTS = <?= json_encode(index_by($productos, 'id'), JSON_UNESCAPED_UNICODE) ?>;
 window.BP_DETAIL_REPEATER = {tableId: 'detalle-table', templateId: 'detalle-row-template', addButtonId: 'add-line-btn', hasLote: true};
 </script>
-<script src="<?= url('/assets/js/forms.js?v=20260923-3') ?>"></script>
+<script src="<?= asset_url('assets/js/forms.js') ?>"></script>
 <?php unset($_SESSION['_old'], $_SESSION['_errors']); ?>
