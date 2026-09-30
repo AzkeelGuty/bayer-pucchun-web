@@ -102,8 +102,11 @@ final class StockController
         if($header['idempotency_key']==='') $errors['idempotency_key']='Campo obligatorio';
         if(!$details) $errors['detalle']='Agregue al menos una línea.';
         foreach($details as $i=>$line){
-            if(!is_array($line) || (int)($line['producto_id']??0)<1 || (int)($line['unidad_id']??0)<1 || (float)($line['cantidad']??0)<0){
-                $errors['detalle']="Revise la línea ".($i+1)." del detalle.";
+            if(!is_array($line)
+                || (int)($line['producto_id']??0)<1
+                || (int)($line['unidad_id']??0)<1
+                || \quantity_integer_value($line['cantidad']??'',true)===null){
+                $errors['detalle']="Revise la línea ".($i+1).": la cantidad debe ser un entero igual o mayor que cero.";
             }
         }
         if($errors){
