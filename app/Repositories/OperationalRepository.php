@@ -183,7 +183,7 @@ abstract class OperationalRepository
                 } elseif (str_ends_with($field, '_id')) {
                     $line[$field] = self::positiveId($value);
                 } elseif ($field === 'cantidad') {
-                    $line[$field] = self::decimal($value, 3, static::HEADER === 'stock_cabecera');
+                    $line[$field] = self::quantity($value, static::HEADER === 'stock_cabecera');
                 } elseif ($field === 'valor_unitario') {
                     $line[$field] = self::decimal($value ?? 0, 2, true);
                 }
@@ -200,6 +200,17 @@ abstract class OperationalRepository
             throw new InvalidArgumentException('Identificador/version debe ser un entero positivo.');
         }
         return $id;
+    }
+
+    private static function quantity(mixed $value, bool $allowZero): string
+    {
+        $quantity=\quantity_integer_value($value,$allowZero);
+        if($quantity===null){
+            throw new InvalidArgumentException($allowZero
+                ? 'La cantidad debe ser un número entero igual o mayor que cero.'
+                : 'La cantidad debe ser un número entero mayor que cero.');
+        }
+        return (string)$quantity.'.000';
     }
 
     private static function decimal(mixed $value, int $scale, bool $allowZero): string
