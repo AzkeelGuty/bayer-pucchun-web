@@ -6,6 +6,18 @@
         const add = form.querySelector('[data-add-detail]');
         const template = body.querySelector('[data-detail-row]').cloneNode(true);
 
+        // Si la búsqueda incremental alcanzó a mejorar la fila antes de cargar este
+        // script (posible durante navegación interna), conservar una plantilla limpia.
+        template.querySelectorAll('.incremental-select').forEach(wrapper => {
+            const nativeSelect = wrapper.querySelector('select.incremental-select-native');
+            if (!nativeSelect) return;
+            nativeSelect.classList.remove('incremental-select-native');
+            nativeSelect.removeAttribute('aria-hidden');
+            nativeSelect.removeAttribute('tabindex');
+            nativeSelect.removeAttribute('data-search-enhanced');
+            wrapper.replaceWith(nativeSelect);
+        });
+
         const client = form.querySelector('[name="header[cliente_id]"]');
         const seller = form.querySelector('[name="header[vendedor_id]"]');
         const branch = form.querySelector('[name="header[sucursal_id]"]');
