@@ -137,3 +137,16 @@ Las credenciales de cPanel, correo, MySQL y tokens son secretos. Si una contrase
 ## Carga masiva de catálogos
 
 Después de ejecutar la migración 004, seguir `docs/manuals/importacion-catalogos.md`. La carga valida DNI/RUC, conserva códigos con ceros a la izquierda y evita insertar códigos conflictivos sin revisión.
+
+
+## Verificación de cantidades después del despliegue
+
+La captura nueva usa **cantidades enteras de productos o presentaciones**. Documentos y guías requieren cantidades mayores que cero; stock admite cero.
+
+Después de actualizar los archivos en cPanel, ejecutar desde la raíz privada del proyecto:
+
+```bash
+php scripts/maintenance/audit_quantities.php
+```
+
+El comando es de solo lectura. Si responde `OK`, no existen cantidades fraccionarias históricas. Si lista registros, deben revisarse con la fuente original; el sistema no redondea ni modifica automáticamente datos anteriores.
