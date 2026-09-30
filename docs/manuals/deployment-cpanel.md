@@ -68,9 +68,10 @@ Si la base ya fue creada previamente con Schema v2, no borrar ni volver a import
 
 ```text
 database/migrations/003_operational_permissions.sql
+database/migrations/004_catalogos_masivos_busqueda.sql
 ```
 
-Esta migración agrega/asigna los permisos persistidos requeridos por Documentos, Guías y Stock, sin reemplazar las tablas del Schema v2.
+La migración 003 agrega/asigna los permisos persistidos requeridos por Documentos, Guías y Stock. La migración 004 agrega el catálogo de proveedores y el campo `tipo_art` de productos para la carga masiva, sin reemplazar los registros existentes.
 
 ## Archivo .env
 
@@ -120,10 +121,19 @@ Probar como mínimo:
 
 ## Si el hosting no permite cambiar Document Root
 
-Como último recurso, colocar solamente el contenido de `public/` en el directorio público y mantener el resto del proyecto fuera de él. Ajustar las rutas de `public/index.php` para apuntar a la carpeta privada real.
+Como último recurso, colocar solamente el contenido de `public/` en el directorio público y mantener el resto del proyecto fuera de él.
+
+La versión actual de `public/index.php` detecta automáticamente el proyecto privado cuando está en `/home/USUARIO/bayer-pucchun-web`. También puede definirse la variable de entorno `BAYER_APP_ROOT` si se usa otro nombre o ruta.
+
+**Importante al actualizar:** reemplazar también `public_html/assets/` con el contenido actual de `public/assets/`. Los enlaces CSS/JS usan `filemtime` para cambiar automáticamente la versión y evitar que el navegador conserve archivos antiguos.
 
 No dejar `.env`, `database/`, `storage/`, backups SQL ni credenciales dentro de una URL pública.
 
 ## Seguridad de credenciales
 
 Las credenciales de cPanel, correo, MySQL y tokens son secretos. Si una contraseña fue compartida en una captura o chat, rotarla desde cPanel después de completar el acceso y antes de considerar el sitio listo para terceros.
+
+
+## Carga masiva de catálogos
+
+Después de ejecutar la migración 004, seguir `docs/manuals/importacion-catalogos.md`. La carga valida DNI/RUC, conserva códigos con ceros a la izquierda y evita insertar códigos conflictivos sin revisión.
