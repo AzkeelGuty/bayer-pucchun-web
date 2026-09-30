@@ -80,20 +80,30 @@ final class BackofficeController
         $q=trim((string)($_GET['q'] ?? ''));
         if(mb_strlen($q)>80) $q=mb_substr($q,0,80);
         $cfg=$catalogs[$key];
-        $sql=$cfg['select'];
-        $params=[];
-        if($q!==''){
-            $parts=[];
-            foreach($cfg['search'] as $column){
-                $parts[]=$column.' LIKE ?';
-                $params[]='%'.$q.'%';
+        $rows=[];
+        $catalogNotice=null;
+
+        // "Proveedores" fue agregado en la migración 004. En instalaciones
+        // existentes que todavía no la ejecutaron, no debe provocar un Error 500.
+        if($key==='proveedores' && !$this->tableExists('proveedores')){
+            $catalogNotice='El catálogo de proveedores todavía no está inicializado en esta base de datos. Ejecute la migración 004_catalogos_masivos_busqueda.sql.';
+        } else {
+            $sql=$cfg['select'];
+            $params=[];
+            if($q!==''){
+                $parts=[];
+                foreach($cfg['search'] as $column){
+                    $parts[]=$column.' LIKE ?';
+                    $params[]='%'.$q.'%';
+                }
+                $sql.=' WHERE ('.implode(' OR ',$parts).')';
             }
-            $sql.=' WHERE ('.implode(' OR ',$parts).')';
+            $sql.=' ORDER BY '.$cfg['order'].' LIMIT 300';
+            $st=\db()->prepare($sql);
+            $st->execute($params);
+            $rows=$st->fetchAll();
         }
-        $sql.=' ORDER BY '.$cfg['order'].' LIMIT 300';
-        $st=\db()->prepare($sql);
-        $st->execute($params);
-        $rows=$st->fetchAll();
+
         $tabs=[];
         foreach($catalogs as $tabKey=>$tabCfg) $tabs[$tabKey]=$tabCfg['title'];
         \view('backoffice.table',[
@@ -104,7 +114,15 @@ final class BackofficeController
             'active'=>$key,
             'base'=>'/maestros',
             'q'=>$q,
+            'catalogNotice'=>$catalogNotice,
         ]);
+    }
+
+    private function tableExists(string $table): bool
+    {
+        $st=\db()->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
+        $st->execute([$table]);
+        return (int)$st->fetchColumn()>0;
     }
 
     public function homologations(): void
