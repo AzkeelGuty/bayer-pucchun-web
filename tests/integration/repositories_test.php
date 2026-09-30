@@ -90,7 +90,7 @@ try {
         ensure((int) $record['header']['created_by'] === 1 && (int) $record['header']['version'] === 1, 'Actor and initial version');
         ensure($repository->find(999999) === null, 'Missing ID returns null');
         ensure(count($repository->all(['estado_registro' => 'BORRADOR'])) === 1, 'Filtered listing');
-        ensure((string) $repository->all()[0]['cantidad'] === '3.500', 'Aggregate total');
+        ensure((string) $repository->all()[0]['cantidad'] === '3.000', 'Aggregate total');
         ensure($repository->all(['fecha_desde' => '2027-01-01']) === [], 'Date filter');
         rejects(fn() => $repository->all(['estado_registro; DROP TABLE usuarios' => 'x']), InvalidArgumentException::class);
         rejects(fn() => $repository->all([], 301), InvalidArgumentException::class);
@@ -111,6 +111,9 @@ try {
     rejects(fn() => $documents->create(docHeader('ZERO'), [['producto_id' => 1, 'unidad_id' => 1, 'cantidad' => '0']], 1), InvalidArgumentException::class);
     rejects(fn() => $guides->create(guideHeader('ZERO'), [['producto_id' => 1, 'unidad_id' => 1, 'cantidad' => '0']], 1), InvalidArgumentException::class);
     rejects(fn() => $documents->create(docHeader('FLOAT'), [['producto_id' => 1, 'unidad_id' => 1, 'cantidad' => 0.1]], 1), InvalidArgumentException::class);
+    rejects(fn() => $documents->create(docHeader('FRACTION'), [['producto_id' => 1, 'unidad_id' => 1, 'cantidad' => '1.500']], 1), InvalidArgumentException::class);
+    $wholeDecimalId = $documents->create(docHeader('WHOLE-DECIMAL'), [['producto_id' => 1, 'unidad_id' => 1, 'cantidad' => '2.000']], 1);
+    ensure($documents->find($wholeDecimalId)['details'][0]['cantidad'] === '2.000', 'Whole decimal compatibility accepted');
     rejects(fn() => $documents->create(docHeader('OVERFLOW'), [['producto_id' => 1, 'unidad_id' => 1, 'cantidad' => '100000000000']], 1), InvalidArgumentException::class);
     rejects(fn() => $documents->create(docHeader('ACTOR'), lines(), 999), PDOException::class, 1452);
 
