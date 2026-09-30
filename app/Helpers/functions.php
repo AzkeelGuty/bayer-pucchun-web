@@ -28,6 +28,12 @@ function db(): PDO {
 }
 function e(mixed $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 function url(string $path=''): string { $base=config('app.url',''); return $base . '/' . ltrim($path,'/'); }
+function asset_url(string $path): string {
+    $relative=ltrim($path,'/');
+    $absolute=base_path('public/'.$relative);
+    $version=is_file($absolute) ? (string)@filemtime($absolute) : (string)time();
+    return url('/'.$relative).'?v='.rawurlencode($version);
+}
 function redirect(string $path): never { header('Location: '.url($path)); exit; }
 function request_method(): string { return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET'); }
 function input(string $key, mixed $default=null): mixed { return $_POST[$key] ?? $_GET[$key] ?? $default; }
