@@ -162,8 +162,10 @@ Ejemplo simplificado de `GET /api/v1/bayer/sales`:
       "customerName": "Agrícola Valle Verde S.A.C.",
       "materialId": "PRD-001",
       "materialName": "Bioestimulante foliar 1 L",
-      "measureUnit": "L",
-      "quantity": "40.000",
+      "measureUnit": "LIT",
+      "quantity": 2,
+      "quantityUnit": "NIU",
+      "quantityMeaning": "PRODUCT_COUNT",
       "unitValue": "86.50",
       "province": "Chincha",
       "department": "Ica",
@@ -174,6 +176,28 @@ Ejemplo simplificado de `GET /api/v1/bayer/sales`:
 ```
 
 Cada fila representa una línea de producto publicada. Un mismo documento o guía puede aparecer en varias filas cuando contiene varios productos.
+
+### Interpretación de cantidad y unidad
+
+En la operación de Pucchún, `quantity` representa el **número de productos o presentaciones físicas**, no el peso o volumen neto contenido dentro de cada presentación.
+
+Ejemplos:
+
+| Producto | `measureUnit` | `quantity` | Interpretación |
+| --- | --- | ---: | --- |
+| Fertilizante soluble 5 kg | `KGM` | `2` | 2 presentaciones del producto de 5 kg |
+| Adyuvante agrícola 500 ml | `LTR` | `3` | 3 presentaciones del producto de 500 ml |
+| Semilla de maíz híbrido 20 kg | `KGM` | `6` | 6 presentaciones del producto de 20 kg |
+
+Reglas de integración:
+
+- `quantity` se entrega como número entero.
+- `quantityUnit` se entrega como `NIU` para indicar conteo de unidades/presentaciones.
+- `quantityMeaning` será `PRODUCT_COUNT` para los registros conformes a esta política.
+- `measureUnit` conserva la unidad del catálogo o presentación del producto; **no debe interpretarse como la unidad matemática de `quantity`**.
+- El contenido neto de una presentación (por ejemplo, 5 kg o 500 ml) actualmente forma parte del nombre/descripción del producto y no se expone como un campo numérico independiente.
+- Si existiera un registro histórico fraccionario anterior a esta regla, la API no lo redondea ni lo trunca: lo marca con `quantityMeaning = LEGACY_FRACTIONAL_REVIEW_REQUIRED` para revisión de datos.
+
 
 ## Respuesta del endpoint completo
 
