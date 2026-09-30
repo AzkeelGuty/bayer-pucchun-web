@@ -977,3 +977,30 @@ button,input,select,textarea{font:inherit}
 .incremental-select-empty{padding:12px;color:#6b7f92;font-size:.9rem}
 .incremental-select.has-value .incremental-select-input{font-weight:650;color:#102f50}
 @media (max-width:767.98px){.incremental-select-menu{max-height:42vh}}
+
+/* Navegación interna fluida: evita el efecto visual de F5 entre módulos */
+body.bp-soft-navigating::before{
+    content:"";
+    position:fixed;
+    z-index:5000;
+    top:0;
+    left:0;
+    width:100%;
+    height:3px;
+    background:linear-gradient(90deg,var(--brand-primary),var(--brand-accent),var(--brand-primary));
+    background-size:220% 100%;
+    animation:bp-nav-progress .75s linear infinite;
+    box-shadow:0 1px 5px rgba(7,91,159,.18);
+}
+body.bp-soft-navigating .app-main{cursor:progress}
+@keyframes bp-nav-progress{
+    from{background-position:100% 0}
+    to{background-position:-120% 0}
+}
+@media (prefers-reduced-motion:reduce){
+    body.bp-soft-navigating::before{animation:none}
+}
+@view-transition{navigation:auto}
+::view-transition-old(root),
+::view-transition-new(root){animation-duration:.12s}
+
