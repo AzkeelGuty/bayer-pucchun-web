@@ -22,8 +22,8 @@ final class BackofficeController
             ],
             'productos'=>[
                 'title'=>'Productos',
-                'select'=>"SELECT pr.id,pr.codigo,pr.nombre,pr.tipo_art,c.nombre categoria,m.nombre marca,u.codigo unidad,IF(pr.estado=1,'ACTIVO','INACTIVO') estado FROM productos pr LEFT JOIN categorias_producto c ON c.id=pr.categoria_id LEFT JOIN marcas m ON m.id=pr.marca_id LEFT JOIN unidades_medida u ON u.id=pr.unidad_base_id",
-                'search'=>['pr.codigo','pr.nombre','pr.tipo_art','u.codigo'],
+                'select'=>"SELECT pr.id,pr.codigo,pr.nombre,c.nombre categoria,m.nombre marca,u.codigo unidad,IF(pr.estado=1,'ACTIVO','INACTIVO') estado FROM productos pr LEFT JOIN categorias_producto c ON c.id=pr.categoria_id LEFT JOIN marcas m ON m.id=pr.marca_id LEFT JOIN unidades_medida u ON u.id=pr.unidad_base_id",
+                'search'=>['pr.codigo','pr.nombre','u.codigo'],
                 'order'=>'pr.nombre',
             ],
             'proveedores'=>[
