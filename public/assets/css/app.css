@@ -961,3 +961,20 @@ button,input,select,textarea{font:inherit}
     border-radius:999px;
     background:#168c5b;
 }
+
+
+/* Incremental searchable selects - build 2026.09.30.1 */
+.incremental-select{position:relative;min-width:0;width:100%}
+.incremental-select-native{position:absolute!important;left:0!important;bottom:0!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;z-index:-1!important}
+.incremental-select-input{width:100%;padding-right:2.35rem;background:#fff;cursor:text}
+.incremental-select-input-wrap{position:relative}
+.incremental-select-input-wrap::after{content:"\\F282";font-family:"bootstrap-icons";position:absolute;right:.8rem;top:50%;transform:translateY(-50%);color:#60758a;pointer-events:none;font-size:.85rem}
+.incremental-select-menu{position:fixed;display:none;z-index:2200;max-height:320px;overflow:auto;background:#fff;border:1px solid #cfe0ee;border-radius:12px;box-shadow:0 16px 38px rgba(16,48,80,.18);padding:6px}
+.incremental-select-menu.open{display:block}
+.incremental-select-option{display:block;width:100%;border:0;background:transparent;text-align:left;border-radius:8px;padding:9px 10px;color:#102f50;line-height:1.25}
+.incremental-select-option:hover,.incremental-select-option.active{background:#eef6fb}
+.incremental-select-option strong{display:inline-block;margin-right:.35rem;color:var(--brand-primary);font-weight:800}
+.incremental-select-option small{display:block;margin-top:3px;color:#6b7f92}
+.incremental-select-empty{padding:12px;color:#6b7f92;font-size:.9rem}
+.incremental-select.has-value .incremental-select-input{font-weight:650;color:#102f50}
+@media (max-width:767.98px){.incremental-select-menu{max-height:42vh}}
