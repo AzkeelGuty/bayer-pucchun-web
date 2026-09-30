@@ -196,6 +196,7 @@
             }
 
             const html = await response.text();
+            if (controller !== localController) return;
             const freshDoc = new DOMParser().parseFromString(html, 'text/html');
             const freshMain = freshDoc.querySelector('.app-main');
 
@@ -214,7 +215,13 @@
                 window.BP_SearchableSelects.reset();
             }
 
-            const doSwap = () => swapMain(freshMain, freshDoc);
+            const targetScroll = Number.isFinite(Number(options.restoreScroll))
+                ? Math.max(0, Number(options.restoreScroll))
+                : 0;
+            const doSwap = () => {
+                swapMain(freshMain, freshDoc);
+                window.scrollTo({top:targetScroll,left:0,behavior:'auto'});
+            };
             if (document.startViewTransition) {
                 const transition = document.startViewTransition(doSwap);
                 await transition.updateCallbackDone.catch(() => {});
@@ -229,8 +236,10 @@
             }
 
             for (const descriptor of scripts) {
+                if (controller !== localController) return;
                 try { await runScript(descriptor); } catch (error) { console.error(error); }
             }
+            if (controller !== localController) return;
 
             if (window.BP_SearchableSelects?.enhanceAll) {
                 window.BP_SearchableSelects.enhanceAll(document.querySelector('.app-main'));
