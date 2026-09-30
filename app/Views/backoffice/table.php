@@ -2,6 +2,7 @@
 $tabIcons=[
     'clientes'=>'bi-people',
     'productos'=>'bi-box-seam',
+    'proveedores'=>'bi-truck',
     'vendedores'=>'bi-person-vcard',
     'sucursales'=>'bi-building',
     'almacenes'=>'bi-boxes',
@@ -16,6 +17,8 @@ $headingLabels=[
     'tipo_doc'=>'Tipo de documento',
     'nro_doc'=>'N.º documento',
     'razon_social'=>'Razón social',
+    'nombre'=>'Nombre',
+    'tipo_art'=>'Tipo de artículo',
     'nombre_comercial'=>'Nombre comercial',
     'codigo_interno'=>'Código interno',
     'codigo_bayer'=>'Código Bayer',
@@ -97,6 +100,27 @@ if($activeTab==='' && !empty($tabs)){
         </a>
     <?php endforeach; ?>
 </nav>
+<?php endif; ?>
+
+<?php if($base==='/maestros'): ?>
+<form class="card mb-3" method="get" action="<?=url($base)?>" role="search">
+    <div class="card-body py-3">
+        <input type="hidden" name="tab" value="<?=e($activeTab)?>">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-lg-8">
+                <label class="form-label" for="master-search">Buscar en el catálogo</label>
+                <input class="form-control" id="master-search" name="q" value="<?=e((string)($q??''))?>" placeholder="Código, DNI/RUC, nombre o descripción..." autocomplete="off">
+            </div>
+            <div class="col-12 col-lg-auto d-flex gap-2">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Buscar</button>
+                <?php if(trim((string)($q??''))!==''): ?>
+                    <a class="btn btn-outline-primary" href="<?=url($base.'?tab='.urlencode($activeTab))?>">Limpiar</a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <div class="form-text mt-2">La búsqueda consulta todo el catálogo y muestra hasta 300 coincidencias.</div>
+    </div>
+</form>
 <?php endif; ?>
 
 <div class="card data-table-card" data-live-refresh="6000" data-live-refresh-key="backoffice-data-table">
