@@ -165,10 +165,16 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    function init() {
         document.querySelectorAll('[data-ubigeo-scope]').forEach(wireUbigeo);
         document.querySelectorAll('[data-role="cliente"]').forEach(wireClienteUbigeo);
         document.querySelectorAll('form').forEach(wireAutoNumber);
         if (window.BP_DETAIL_REPEATER) initDetailRepeater(window.BP_DETAIL_REPEATER);
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init, {once:true});
+    } else {
+        init();
+    }
 })();
