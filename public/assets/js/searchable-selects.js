@@ -277,5 +277,10 @@
         }, 0);
     });
 
-    window.BP_SearchableSelects = {enhance, enhanceAll};
+    function reset() {
+        close(openWidget);
+        document.querySelectorAll('.incremental-select-menu').forEach(menu => menu.remove());
+    }
+
+    window.BP_SearchableSelects = {enhance, enhanceAll, reset};
 })();
