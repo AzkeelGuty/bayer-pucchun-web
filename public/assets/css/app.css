@@ -966,9 +966,8 @@ button,input,select,textarea{font:inherit}
 /* Incremental searchable selects - build 2026.09.30.1 */
 .incremental-select{position:relative;min-width:0;width:100%}
 .incremental-select-native{position:absolute!important;left:0!important;bottom:0!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;z-index:-1!important}
-.incremental-select-input{width:100%;padding-right:2.35rem;background:#fff;cursor:text}
+.incremental-select-input{width:100%;padding-right:.9rem;background:#fff;cursor:text}
 .incremental-select-input-wrap{position:relative}
-.incremental-select-input-wrap::after{content:"\\F282";font-family:"bootstrap-icons";position:absolute;right:.8rem;top:50%;transform:translateY(-50%);color:#60758a;pointer-events:none;font-size:.85rem}
 .incremental-select-menu{position:fixed;display:none;z-index:2200;max-height:320px;overflow:auto;background:#fff;border:1px solid #cfe0ee;border-radius:12px;box-shadow:0 16px 38px rgba(16,48,80,.18);padding:6px}
 .incremental-select-menu.open{display:block}
 .incremental-select-option{display:block;width:100%;border:0;background:transparent;text-align:left;border-radius:8px;padding:9px 10px;color:#102f50;line-height:1.25}
