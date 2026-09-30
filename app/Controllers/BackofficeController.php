@@ -14,20 +14,97 @@ final class BackofficeController
         \require_role('ADMIN');
         $key=(string)($_GET['tab'] ?? 'clientes');
         $catalogs=[
-            'clientes'=>['Clientes',"SELECT c.id,c.codigo,c.tipo_doc,c.nro_doc,c.razon_social,d.nombre distrito,p.nombre provincia,dp.nombre departamento FROM clientes c LEFT JOIN distritos d ON d.id=c.distrito_id LEFT JOIN provincias p ON p.id=c.provincia_id LEFT JOIN departamentos dp ON dp.id=c.departamento_id ORDER BY c.razon_social LIMIT 300"],
-            'productos'=>['Productos',"SELECT pr.id,pr.codigo,pr.nombre,c.nombre categoria,m.nombre marca,u.codigo unidad,IF(pr.estado=1,'ACTIVO','INACTIVO') estado FROM productos pr LEFT JOIN categorias_producto c ON c.id=pr.categoria_id LEFT JOIN marcas m ON m.id=pr.marca_id LEFT JOIN unidades_medida u ON u.id=pr.unidad_base_id ORDER BY pr.nombre LIMIT 300"],
-            'vendedores'=>['Vendedores',"SELECT id,codigo,TRIM(CONCAT(nombres,' ',COALESCE(apellidos,''))) vendedor,email,IF(estado=1,'ACTIVO','INACTIVO') estado FROM vendedores ORDER BY nombres LIMIT 300"],
-            'sucursales'=>['Sucursales',"SELECT s.id,s.codigo,s.nombre,e.razon_social empresa,s.direccion,d.nombre distrito,IF(s.estado=1,'ACTIVO','INACTIVO') estado FROM sucursales s JOIN empresas e ON e.id=s.empresa_id LEFT JOIN distritos d ON d.id=s.distrito_id ORDER BY s.nombre LIMIT 300"],
-            'almacenes'=>['Almacenes',"SELECT a.id,a.codigo,a.nombre,a.tipo,s.nombre sucursal,IF(a.estado=1,'ACTIVO','INACTIVO') estado FROM almacenes a JOIN sucursales s ON s.id=a.sucursal_id ORDER BY a.nombre LIMIT 300"],
-            'unidades'=>['Unidades de medida',"SELECT id,codigo,nombre,abreviatura,factor_base FROM unidades_medida ORDER BY nombre LIMIT 300"],
-            'empresas'=>['Empresas',"SELECT id,ruc,razon_social,nombre_comercial,IF(estado=1,'ACTIVO','INACTIVO') estado FROM empresas ORDER BY razon_social LIMIT 300"],
-            'tipos'=>['Tipos de documento',"SELECT id,codigo,nombre,sunat_code FROM tipos_documento ORDER BY nombre LIMIT 300"],
-            'ubigeo'=>['Ubigeo',"SELECT d.id,dp.nombre departamento,p.nombre provincia,d.nombre distrito FROM distritos d JOIN provincias p ON p.id=d.provincia_id JOIN departamentos dp ON dp.id=p.departamento_id ORDER BY dp.nombre,p.nombre,d.nombre LIMIT 300"],
+            'clientes'=>[
+                'title'=>'Clientes',
+                'select'=>"SELECT c.id,c.codigo,c.tipo_doc,c.nro_doc,c.razon_social,d.nombre distrito,p.nombre provincia,dp.nombre departamento FROM clientes c LEFT JOIN distritos d ON d.id=c.distrito_id LEFT JOIN provincias p ON p.id=c.provincia_id LEFT JOIN departamentos dp ON dp.id=c.departamento_id",
+                'search'=>['c.codigo','c.nro_doc','c.razon_social'],
+                'order'=>'c.razon_social',
+            ],
+            'productos'=>[
+                'title'=>'Productos',
+                'select'=>"SELECT pr.id,pr.codigo,pr.nombre,pr.tipo_art,c.nombre categoria,m.nombre marca,u.codigo unidad,IF(pr.estado=1,'ACTIVO','INACTIVO') estado FROM productos pr LEFT JOIN categorias_producto c ON c.id=pr.categoria_id LEFT JOIN marcas m ON m.id=pr.marca_id LEFT JOIN unidades_medida u ON u.id=pr.unidad_base_id",
+                'search'=>['pr.codigo','pr.nombre','pr.tipo_art','u.codigo'],
+                'order'=>'pr.nombre',
+            ],
+            'proveedores'=>[
+                'title'=>'Proveedores',
+                'select'=>"SELECT id,codigo,nombre,IF(estado=1,'ACTIVO','INACTIVO') estado FROM proveedores",
+                'search'=>['codigo','nombre'],
+                'order'=>'nombre',
+            ],
+            'vendedores'=>[
+                'title'=>'Vendedores',
+                'select'=>"SELECT id,codigo,TRIM(CONCAT(nombres,' ',COALESCE(apellidos,''))) vendedor,email,IF(estado=1,'ACTIVO','INACTIVO') estado FROM vendedores",
+                'search'=>['codigo','nombres','apellidos','email'],
+                'order'=>'nombres',
+            ],
+            'sucursales'=>[
+                'title'=>'Sucursales',
+                'select'=>"SELECT s.id,s.codigo,s.nombre,e.razon_social empresa,s.direccion,d.nombre distrito,IF(s.estado=1,'ACTIVO','INACTIVO') estado FROM sucursales s JOIN empresas e ON e.id=s.empresa_id LEFT JOIN distritos d ON d.id=s.distrito_id",
+                'search'=>['s.codigo','s.nombre','e.razon_social','s.direccion'],
+                'order'=>'s.nombre',
+            ],
+            'almacenes'=>[
+                'title'=>'Almacenes',
+                'select'=>"SELECT a.id,a.codigo,a.nombre,a.tipo,s.nombre sucursal,IF(a.estado=1,'ACTIVO','INACTIVO') estado FROM almacenes a JOIN sucursales s ON s.id=a.sucursal_id",
+                'search'=>['a.codigo','a.nombre','a.tipo','s.nombre'],
+                'order'=>'a.nombre',
+            ],
+            'unidades'=>[
+                'title'=>'Unidades de medida',
+                'select'=>"SELECT id,codigo,nombre,abreviatura,factor_base FROM unidades_medida",
+                'search'=>['codigo','nombre','abreviatura'],
+                'order'=>'nombre',
+            ],
+            'empresas'=>[
+                'title'=>'Empresas',
+                'select'=>"SELECT id,ruc,razon_social,nombre_comercial,IF(estado=1,'ACTIVO','INACTIVO') estado FROM empresas",
+                'search'=>['ruc','razon_social','nombre_comercial'],
+                'order'=>'razon_social',
+            ],
+            'tipos'=>[
+                'title'=>'Tipos de documento',
+                'select'=>"SELECT id,codigo,nombre,sunat_code FROM tipos_documento",
+                'search'=>['codigo','nombre','sunat_code'],
+                'order'=>'nombre',
+            ],
+            'ubigeo'=>[
+                'title'=>'Ubigeo',
+                'select'=>"SELECT d.id,dp.nombre departamento,p.nombre provincia,d.nombre distrito FROM distritos d JOIN provincias p ON p.id=d.provincia_id JOIN departamentos dp ON dp.id=p.departamento_id",
+                'search'=>['dp.nombre','p.nombre','d.nombre'],
+                'order'=>'dp.nombre,p.nombre,d.nombre',
+            ],
         ];
         if(!isset($catalogs[$key])) throw new HttpException(404,'Catálogo no encontrado.');
-        [$title,$sql]=$catalogs[$key];
-        $rows=\db()->query($sql)->fetchAll();
-        \view('backoffice.table',['section'=>'Catálogos maestros','title'=>$title,'rows'=>$rows,'tabs'=>array_map(fn($v)=>$v[0],$catalogs),'active'=>$key,'base'=>'/maestros']);
+
+        $q=trim((string)($_GET['q'] ?? ''));
+        if(mb_strlen($q)>80) $q=mb_substr($q,0,80);
+        $cfg=$catalogs[$key];
+        $sql=$cfg['select'];
+        $params=[];
+        if($q!==''){
+            $parts=[];
+            foreach($cfg['search'] as $column){
+                $parts[]=$column.' LIKE ?';
+                $params[]='%'.$q.'%';
+            }
+            $sql.=' WHERE ('.implode(' OR ',$parts).')';
+        }
+        $sql.=' ORDER BY '.$cfg['order'].' LIMIT 300';
+        $st=\db()->prepare($sql);
+        $st->execute($params);
+        $rows=$st->fetchAll();
+        $tabs=[];
+        foreach($catalogs as $tabKey=>$tabCfg) $tabs[$tabKey]=$tabCfg['title'];
+        \view('backoffice.table',[
+            'section'=>'Catálogos maestros',
+            'title'=>$cfg['title'],
+            'rows'=>$rows,
+            'tabs'=>$tabs,
+            'active'=>$key,
+            'base'=>'/maestros',
+            'q'=>$q,
+        ]);
     }
 
     public function homologations(): void
