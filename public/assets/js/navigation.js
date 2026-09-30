@@ -174,9 +174,12 @@
         const localController = controller;
         setBusy(true);
 
+        const method = String(options.method || 'GET').toUpperCase();
+
         try {
             const response = await fetch(url.href, {
-                method: 'GET',
+                method,
+                body: method === 'GET' || method === 'HEAD' ? undefined : options.body,
                 credentials: 'same-origin',
                 cache: 'no-store',
                 redirect: 'follow',
@@ -191,7 +194,8 @@
 
             const type = response.headers.get('content-type') || '';
             if (!type.includes('text/html')) {
-                location.assign(response.url || url.href);
+                if (method === 'GET') location.assign(response.url || url.href);
+                else location.reload();
                 return;
             }
 
@@ -201,7 +205,9 @@
             const freshMain = freshDoc.querySelector('.app-main');
 
             if (!freshMain || !freshDoc.querySelector('.app-shell')) {
-                location.assign(response.url || url.href);
+                const finalTarget = response.url || url.href;
+                if (method === 'GET' || response.redirected) location.assign(finalTarget);
+                else location.reload();
                 return;
             }
 
@@ -214,6 +220,10 @@
             if (window.BP_SearchableSelects?.reset) {
                 window.BP_SearchableSelects.reset();
             }
+            document.querySelectorAll('.modal-backdrop').forEach(node => node.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
 
             const targetScroll = Number.isFinite(Number(options.restoreScroll))
                 ? Math.max(0, Number(options.restoreScroll))
@@ -259,7 +269,10 @@
         } catch (error) {
             if (error && error.name === 'AbortError') return;
             console.error('Navegación interna:', error);
-            if (options.fallback !== false) location.assign(url.href);
+            if (options.fallback !== false) {
+                if (method === 'GET') location.assign(url.href);
+                else location.reload();
+            }
         } finally {
             if (controller === localController) {
                 controller = null;
@@ -286,14 +299,16 @@
     document.addEventListener('submit', (event) => {
         const form = event.target;
         if (!(form instanceof HTMLFormElement)) return;
-        if ((form.method || 'get').toLowerCase() !== 'get') return;
         if (form.matches('[data-native-navigation],[data-no-soft-nav]')) return;
         if (form.target && form.target !== '_self') return;
 
+        const method = (form.method || 'get').toLowerCase();
+        if (!['get','post'].includes(method)) return;
+
         const action = new URL(form.action || location.href, location.href);
         if (action.origin !== location.origin || /\/export$/i.test(action.pathname)) return;
+        if (/\/logout$/i.test(action.pathname)) return;
 
-        event.preventDefault();
         let data;
         try {
             data = new FormData(form, event.submitter || undefined);
@@ -301,12 +316,25 @@
             data = new FormData(form);
             if (event.submitter?.name) data.append(event.submitter.name, event.submitter.value || '');
         }
-        action.search = '';
-        for (const [key, value] of data.entries()) {
-            if (value instanceof File) continue;
-            action.searchParams.append(key, value);
+
+        event.preventDefault();
+
+        if (method === 'get') {
+            action.search = '';
+            for (const [key, value] of data.entries()) {
+                if (value instanceof File) continue;
+                action.searchParams.append(key, value);
+            }
+            navigate(action.href, {historyMode:'push', method:'GET'});
+            return;
         }
-        navigate(action.href, {historyMode:'push'});
+
+        navigate(action.href, {
+            historyMode:'push',
+            method:'POST',
+            body:data,
+            fallback:true
+        });
     });
 
     window.addEventListener('popstate', (event) => {
