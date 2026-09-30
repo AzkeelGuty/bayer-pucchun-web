@@ -27,6 +27,27 @@ function db(): PDO {
     return $pdo;
 }
 function e(mixed $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+function quantity_integer_value(mixed $value, bool $allowZero=false): ?int {
+    if ((!is_string($value) && !is_int($value)) || is_bool($value)) return null;
+    $raw=trim((string)$value);
+    if (!preg_match('/^\d+(?:\.0{1,3})?$/D',$raw)) return null;
+    $whole=explode('.',$raw,2)[0];
+    $whole=ltrim($whole,'0');
+    if ($whole==='') $whole='0';
+    if (strlen($whole)>11) return null;
+    $quantity=(int)$whole;
+    if ($allowZero ? $quantity<0 : $quantity<1) return null;
+    return $quantity;
+}
+function format_quantity(mixed $value): string {
+    $integer=quantity_integer_value($value,true);
+    if ($integer!==null) return (string)$integer;
+    if (!is_scalar($value)) return '—';
+    $raw=trim((string)$value);
+    if ($raw==='') return '—';
+    if (preg_match('/^\d+\.\d+$/D',$raw)) return rtrim(rtrim($raw,'0'),'.');
+    return $raw;
+}
 function url(string $path=''): string { $base=config('app.url',''); return $base . '/' . ltrim($path,'/'); }
 function asset_url(string $path): string {
     $relative=ltrim($path,'/');
