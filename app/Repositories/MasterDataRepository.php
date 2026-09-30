@@ -18,7 +18,7 @@ class MasterDataRepository
     /** Includes ubigeo and last known operational seller/branch for assisted capture. */
     public function clientes(): array
     {
-        return $this->all('SELECT c.id,c.nro_doc,c.razon_social,c.departamento_id,c.provincia_id,c.distrito_id,
+        return $this->all('SELECT c.id,c.codigo,c.nro_doc,c.razon_social,CONCAT(c.nro_doc," · ",c.razon_social) label,c.departamento_id,c.provincia_id,c.distrito_id,
             COALESCE(
                 (SELECT g.vendedor_id FROM guias_cabecera g WHERE g.cliente_id=c.id ORDER BY g.fecha DESC,g.id DESC LIMIT 1),
                 (SELECT d.vendedor_id FROM documentos_cabecera d WHERE d.cliente_id=c.id ORDER BY d.fecha DESC,d.id DESC LIMIT 1)
@@ -47,7 +47,7 @@ class MasterDataRepository
 
     public function productos(): array
     {
-        return $this->all('SELECT id, codigo, nombre, unidad_base_id FROM productos WHERE estado = 1 ORDER BY nombre');
+        return $this->all('SELECT id, codigo, nombre, CONCAT(codigo," · ",nombre) label, unidad_base_id FROM productos WHERE estado = 1 ORDER BY nombre');
     }
 
     public function unidades(): array
