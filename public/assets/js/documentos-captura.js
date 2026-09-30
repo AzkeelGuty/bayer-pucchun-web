@@ -87,7 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 field.name = field.name.replace(/details\[\d+\]/, `details[${index}]`);
                 field.id = field.id.replace(/details-\d+-/, `details-${index}-`);
                 row.querySelectorAll('label').forEach(label => { if(label.htmlFor === oldId) label.htmlFor = field.id; });
-                field.value = field.name.endsWith('[valor_unitario]') ? '0' : '';
+                if (field.name.endsWith('[cantidad]')) field.value = '1';
+                else if (field.name.endsWith('[valor_unitario]')) field.value = '0';
+                else field.value = '';
                 field.classList.remove('is-invalid'); field.setAttribute('aria-invalid','false'); field.removeAttribute('aria-describedby');
             });
             body.appendChild(row); refresh(); row.querySelector('select').focus();
