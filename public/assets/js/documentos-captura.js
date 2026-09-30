@@ -1,4 +1,5 @@
-document.addEventListener('DOMContentLoaded', () => {
+(() => {
+    const init = () => {
     const form = document.querySelector('[data-documents-form]');
     if (form) {
         const body = form.querySelector('[data-details-body]');
@@ -119,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit', () => {
             const save = form.querySelector('[data-save]'); save.disabled = true; save.textContent = 'Guardando…';
         });
-        window.addEventListener('pageshow', () => { const save=form.querySelector('[data-save]');save.disabled=false;save.textContent='Guardar borrador'; });
         refresh(); document.querySelector('[data-error-summary]')?.focus();
     }
     const dialog = document.querySelector('[data-workflow-dialog]');
@@ -134,4 +134,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
         dialog.querySelector('[data-close-dialog]').addEventListener('click', () => dialog.close());
     }
-});
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init, {once:true});
+    } else {
+        init();
+    }
+})();
