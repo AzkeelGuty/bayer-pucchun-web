@@ -38,7 +38,7 @@
                     <td><?= e($lotes[$line['lote_id']]['codigo_lote'] ?? '—') ?></td>
                     <td><?= e($lotes[$line['lote_id']]['fecha_vencimiento'] ?? '—') ?></td>
                     <td><?= e($unidades[$line['unidad_id']]['nombre'] ?? $line['unidad_id']) ?></td>
-                    <td><?= e($line['cantidad']) ?></td>
+                    <td><?= e(format_quantity($line['cantidad'])) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
