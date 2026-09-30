@@ -210,6 +210,10 @@
                 try { delete window[name]; } catch (_) { window[name] = undefined; }
             });
 
+            if (window.BP_SearchableSelects?.reset) {
+                window.BP_SearchableSelects.reset();
+            }
+
             const doSwap = () => swapMain(freshMain, freshDoc);
             if (document.startViewTransition) {
                 const transition = document.startViewTransition(doSwap);
@@ -281,7 +285,13 @@
         if (action.origin !== location.origin || /\/export$/i.test(action.pathname)) return;
 
         event.preventDefault();
-        const data = new FormData(form, event.submitter || undefined);
+        let data;
+        try {
+            data = new FormData(form, event.submitter || undefined);
+        } catch (_) {
+            data = new FormData(form);
+            if (event.submitter?.name) data.append(event.submitter.name, event.submitter.value || '');
+        }
         action.search = '';
         for (const [key, value] of data.entries()) {
             if (value instanceof File) continue;
