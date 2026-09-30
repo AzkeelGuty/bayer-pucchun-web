@@ -21,7 +21,7 @@ $columnLabels=[
     'materialId'=>'Cód. producto',
     'materialName'=>'Producto',
     'measureUnit'=>'Unidad',
-    'quantity'=>'Cantidad',
+    'quantity'=>'Cantidad de productos',
     'unitValue'=>'Valor unitario',
     'province'=>'Provincia',
     'department'=>'Departamento',
@@ -44,6 +44,7 @@ $formatValue=static function(string $key,mixed $value) use($dateColumns): string
     if(in_array($key,$dateColumns,true) && preg_match('/^(\\d{4})-(\\d{2})-(\\d{2})$/',$display,$parts)){
         return $parts[3].'/'.$parts[2].'/'.$parts[1];
     }
+    if($key==='quantity') return format_quantity($value);
     return $display;
 };
 
