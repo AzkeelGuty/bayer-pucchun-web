@@ -37,6 +37,11 @@ final class ApiController
                     '/api/v1/bayer/inventory',
                 ],
                 'optionalFilters'=>['from','to','branch','q'],
+                'quantityModel'=>[
+                    'quantity'=>'Número entero de productos o presentaciones.',
+                    'quantityUnit'=>'NIU',
+                    'measureUnit'=>'Unidad del catálogo/presentación del producto.',
+                ],
             ],
         ]);
     }
@@ -65,9 +70,9 @@ final class ApiController
             $filters=$this->filters();
             $service=new BayerDataService();
 
-            $sales=$service->completeDataset('sales',$filters);
-            $shipments=$service->completeDataset('shipments',$filters);
-            $inventory=$service->completeDataset('inventory',$filters);
+            $sales=$this->prepareRows('sales',$service->completeDataset('sales',$filters));
+            $shipments=$this->prepareRows('shipments',$service->completeDataset('shipments',$filters));
+            $inventory=$this->prepareRows('inventory',$service->completeDataset('inventory',$filters));
             $total=count($sales)+count($shipments)+count($inventory);
 
             $this->recordAccess('api_all');
@@ -101,7 +106,7 @@ final class ApiController
 
         try {
             $filters=$this->filters();
-            $rows=(new BayerDataService())->completeDataset($dataset,$filters);
+            $rows=$this->prepareRows($dataset,(new BayerDataService())->completeDataset($dataset,$filters));
 
             $action=match($dataset){
                 'sales'=>'api_sales',
@@ -206,7 +211,33 @@ final class ApiController
             'dataStatus'=>'PUBLICADO',
             'recordCount'=>$count,
             'filters'=>$filters,
+            'quantityModel'=>[
+                'quantity'=>'Número entero de productos o presentaciones.',
+                'quantityUnit'=>'NIU',
+                'measureUnit'=>'Unidad del catálogo/presentación del producto; no multiplica automáticamente quantity.',
+            ],
         ];
+    }
+
+    private function prepareRows(string $dataset,array $rows): array
+    {
+        $allowZero=$dataset==='inventory';
+        foreach($rows as &$row){
+            $quantity=$row['quantity']??null;
+            $integer=\quantity_integer_value($quantity,$allowZero);
+            if($integer!==null){
+                $row['quantity']=$integer;
+                $row['quantityUnit']='NIU';
+                $row['quantityMeaning']='PRODUCT_COUNT';
+                continue;
+            }
+
+            // Compatibilidad segura con datos históricos: nunca truncar ni redondear una cantidad fraccionaria.
+            $row['quantityUnit']='NIU';
+            $row['quantityMeaning']='LEGACY_FRACTIONAL_REVIEW_REQUIRED';
+        }
+        unset($row);
+        return $rows;
     }
 
     private function error(string $code,string $message,int $status): never
