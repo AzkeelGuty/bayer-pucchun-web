@@ -56,7 +56,7 @@
                     <td><?= e($r['vendedor']) ?></td>
                     <td><?= e($r['sucursal']) ?></td>
                     <td><?= e($r['items']) ?></td>
-                    <td><?= e($r['cantidad']) ?></td>
+                    <td><?= e(format_quantity($r['cantidad'])) ?></td>
                     <td><span class="badge-status status-<?= e(strtolower($r['estado_registro'])) ?>"><?= e($r['estado_registro']) ?></span></td>
                     <td>
                         <div class="d-flex gap-2 align-items-center flex-wrap">
