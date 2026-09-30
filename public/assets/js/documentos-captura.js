@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const count = body.querySelectorAll('[data-detail-row]').length;
             body.querySelectorAll('[data-remove-detail]').forEach(button => button.disabled = count === 1);
             add.disabled = count >= 200;
-            form.querySelector('[data-detail-feedback]').textContent = `${count} ${count === 1 ? 'producto' : 'productos'}. Máximo 200 líneas. La unidad se completa automáticamente al elegir el producto.`;
+            form.querySelector('[data-detail-feedback]').textContent = `${count} ${count === 1 ? 'producto' : 'productos'}. Máximo 200 líneas. Cantidad = número entero de productos o presentaciones. La unidad se completa automáticamente.`;
         };
         add.addEventListener('click', () => {
             if (body.children.length >= 200) return;
