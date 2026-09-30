@@ -108,6 +108,14 @@ CREATE TABLE clientes (
     FOREIGN KEY(distrito_id) REFERENCES distritos(id)
 ) ENGINE=InnoDB;
 
+CREATE TABLE proveedores (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(20) NOT NULL UNIQUE,
+    nombre VARCHAR(150) NOT NULL,
+    estado TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 CREATE TABLE vendedores (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     codigo VARCHAR(20) NOT NULL UNIQUE,
@@ -141,6 +149,7 @@ CREATE TABLE productos (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     codigo VARCHAR(30) NOT NULL UNIQUE,
     nombre VARCHAR(150) NOT NULL,
+    tipo_art VARCHAR(20) NULL,
     categoria_id INT NULL,
     marca_id INT NULL,
     unidad_base_id INT NULL,
