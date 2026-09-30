@@ -2,7 +2,8 @@
 declare(strict_types=1);
 
 // Importador CLI de los catálogos masivos entregados por el cliente.
-// Uso: php scripts/maintenance/import_catalogs.php [directorio_csv]
+// Uso normal: php scripts/maintenance/import_catalogs.php [directorio_csv]
+// Reemplazo total de catálogos demo: php scripts/maintenance/import_catalogs.php --replace [directorio_csv]
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
     exit("Solo disponible por CLI.\n");
@@ -10,7 +11,11 @@ if (PHP_SAPI !== 'cli') {
 
 $root = dirname(__DIR__, 2);
 require $root . '/config/bootstrap.php';
-$dir = $argv[1] ?? ($root . '/database/imports');
+
+$args = array_slice($argv, 1);
+$replace = in_array('--replace', $args, true);
+$args = array_values(array_filter($args, static fn($arg) => $arg !== '--replace'));
+$dir = $args[0] ?? ($root . '/database/imports');
 
 function readCsv(string $path): Generator
 {
@@ -20,6 +25,11 @@ function readCsv(string $path): Generator
     $header = fgetcsv($handle);
     if (!$header) throw new RuntimeException('CSV sin cabecera: ' . $path);
     $header = array_map(static fn($v) => trim((string)$v), $header);
+    // Excel/Windows suele guardar CSV UTF-8 con BOM. Si no se retira,
+    // la primera columna queda como "\xEF\xBB\xBFcodigo" y no se reconoce.
+    if (isset($header[0])) {
+        $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]) ?? $header[0];
+    }
     while (($row = fgetcsv($handle)) !== false) {
         if (count($row) === 1 && trim((string)$row[0]) === '') continue;
         $row = array_pad($row, count($header), '');
@@ -40,6 +50,31 @@ $errors = [];
 
 try {
     $pdo->beginTransaction();
+
+    if ($replace) {
+        // Los datos demo/transaccionales dependen de clientes y productos.
+        // Se limpian dentro de la misma transacción para evitar huérfanos.
+        $cleanup = [
+            'DELETE FROM detalle_publicacion',
+            'DELETE FROM publicaciones',
+            'DELETE FROM validaciones_detalle',
+            'DELETE FROM validaciones',
+            'DELETE FROM exportaciones',
+            'DELETE FROM homologacion_productos_bayer',
+            'DELETE FROM homologacion_clientes',
+            'DELETE FROM documentos_detalle',
+            'DELETE FROM documentos_cabecera',
+            'DELETE FROM guias_detalle',
+            'DELETE FROM guias_cabecera',
+            'DELETE FROM stock_detalle',
+            'DELETE FROM lotes',
+            'DELETE FROM stock_cabecera',
+            'DELETE FROM proveedores',
+            'DELETE FROM clientes',
+            'DELETE FROM productos',
+        ];
+        foreach ($cleanup as $sql) $pdo->exec($sql);
+    }
 
     $providerStmt = $pdo->prepare("INSERT INTO proveedores(codigo,nombre,estado) VALUES(?,?,1)
         ON DUPLICATE KEY UPDATE nombre=VALUES(nombre),estado=1");
@@ -106,7 +141,7 @@ try {
     exit(1);
 }
 
-echo "Importación terminada" . PHP_EOL;
+echo ($replace ? "Reemplazo e importación terminados" : "Importación terminada") . PHP_EOL;
 foreach ($stats as $key => $value) echo str_pad($key, 14) . ': ' . $value . PHP_EOL;
 if ($errors) {
     echo PHP_EOL . "Observaciones:" . PHP_EOL;
