@@ -54,20 +54,20 @@ if (!$editing && $idempotencyValue === '') $idempotencyValue = (string)($default
                         <td><?php select_inline("detalle[$i][producto_id]", $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-placeholder="Buscar por código o producto..." data-search-min="1"', 'Seleccione…', true, (string) $line['producto_id']); ?></td>
                         <td><?php select_inline("detalle[$i][lote_id]", [], 'id', 'codigo_lote', 'data-role="lote"', 'Sin lote', false, (string) ($line['lote_id'] ?? '')); ?></td>
                         <td><?php select_inline("detalle[$i][unidad_id]", $unidades, 'id', 'nombre', '', 'Seleccione…', true, (string) $line['unidad_id']); ?></td>
-                        <td><input type="number" step="0.001" min="0" class="form-control form-control-sm" name="detalle[<?= $i ?>][cantidad]" value="<?= e($line['cantidad']) ?>" required></td>
+                        <td><input type="number" step="1" min="0" inputmode="numeric" class="form-control form-control-sm" name="detalle[<?= $i ?>][cantidad]" value="<?= e($line['cantidad']) ?>" required></td>
                         <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
-        <p class="text-muted small">Añade las líneas que necesites. Al elegir un producto, su unidad base se completa automáticamente; los lotes se filtran por producto.</p>
+        <p class="text-muted small">Añade las líneas que necesites. La cantidad es el número entero de productos o presentaciones. En stock se admite 0; la unidad del catálogo se completa automáticamente y los lotes se filtran por producto.</p>
         <template id="detalle-row-template">
             <tr>
                 <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-placeholder="Buscar por código o producto..." data-search-min="1"'); ?></td>
                 <td><?php select_inline('detalle[__IDX__][lote_id]', [], 'id', 'codigo_lote', 'data-role="lote"', 'Sin lote', false); ?></td>
                 <td><?php select_inline('detalle[__IDX__][unidad_id]', $unidades, 'id', 'nombre'); ?></td>
-                <td><input type="number" step="0.001" min="0" class="form-control form-control-sm" name="detalle[__IDX__][cantidad]" required></td>
+                <td><input type="number" step="1" min="0" inputmode="numeric" class="form-control form-control-sm" name="detalle[__IDX__][cantidad]" required></td>
                 <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
             </tr>
         </template>
