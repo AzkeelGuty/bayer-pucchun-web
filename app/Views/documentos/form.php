@@ -1,5 +1,5 @@
 <?php
-$details=$details?:[['producto_id'=>'','unidad_id'=>'','cantidad'=>'','valor_unitario'=>'0']];
+$details=$details?:[['producto_id'=>'','unidad_id'=>'','cantidad'=>'1','valor_unitario'=>'0']];
 $field=function(string $name,string $label,string $key,mixed $value,string $catalog='',string $type='text',string $extra='')use($catalogs,$errors):void {
     $id='doc-'.str_replace('.','-',$key); $error=$errors[$key]??''; $value=is_scalar($value)?$value:'';
     echo '<label class="form-label" for="'.e($id).'">'.e($label).'</label>';
