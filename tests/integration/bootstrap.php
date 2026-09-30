@@ -138,7 +138,7 @@ function stockHeader(string $key = 'request-1', string $date = '2026-09-11'): ar
 function lines(bool $stock = false): array
 {
     $lines = [
-        ['producto_id' => 1, 'unidad_id' => 1, 'cantidad' => '2.500'],
+        ['producto_id' => 1, 'unidad_id' => 1, 'cantidad' => '2'],
         ['producto_id' => 2, 'unidad_id' => 2, 'cantidad' => '1.000'],
     ];
     if ($stock) {
