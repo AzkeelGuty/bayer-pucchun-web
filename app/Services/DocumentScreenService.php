@@ -70,9 +70,13 @@ final class DocumentScreenService
             foreach(['producto_id','unidad_id'] as $key) {
                 if(!is_scalar($line[$key]??null)||!in_array((string)$line[$key],array_map('strval',array_column($catalogs[$key],'id')),true)) $errors["details.$i.$key"]='VAL-003: selecciona una opción vigente.';
             }
-            foreach(['cantidad'=>3,'valor_unitario'=>2] as $key=>$precision) {
-                $value=$line[$key]??($key==='valor_unitario'?'0':'');
-                if(!is_scalar($value)||!preg_match('/^\d{1,'.(14-$precision).'}(\.\d{1,'.$precision.'})?$/D',(string)$value)||($key==='cantidad'&&(float)$value<=0)) $errors["details.$i.$key"]='VAL-002: usa un decimal válido'.($key==='cantidad'?' mayor que cero.':'.');
+            $quantity=$line['cantidad']??'';
+            if(\quantity_integer_value($quantity,false)===null){
+                $errors["details.$i.cantidad"]='VAL-002: ingresa una cantidad entera mayor que cero.';
+            }
+            $unitValue=$line['valor_unitario']??'0';
+            if(!is_scalar($unitValue)||!preg_match('/^\d{1,12}(\.\d{1,2})?$/D',(string)$unitValue)){
+                $errors["details.$i.valor_unitario"]='VAL-002: usa un valor unitario válido con hasta 2 decimales.';
             }
         }
         return $errors;
