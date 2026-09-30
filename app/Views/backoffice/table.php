@@ -102,6 +102,13 @@ if($activeTab==='' && !empty($tabs)){
 </nav>
 <?php endif; ?>
 
+<?php if(!empty($catalogNotice)): ?>
+<div class="alert alert-warning mb-3" role="status">
+    <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>
+    <?=e((string)$catalogNotice)?>
+</div>
+<?php endif; ?>
+
 <?php if($base==='/maestros'): ?>
 <form class="card mb-3" method="get" action="<?=url($base)?>" role="search">
     <div class="card-body py-3">
