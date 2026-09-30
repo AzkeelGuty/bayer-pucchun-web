@@ -1,9 +1,9 @@
 <?php
 $metrics=[
- ['documentos','Documentos publicados','Disponibles para consulta','bi-file-earmark-check'],
- ['guias','Guías publicadas','Disponibles para consulta','bi-truck'],
- ['stock','Movimientos de stock','Disponibles para consulta','bi-box-seam'],
- ['publicados','Total publicado','Fuente de datos compartida','bi-cloud-check'],
+ ['documentos','Documentos publicados','Disponibles para consulta','bi-file-earmark-check','blue'],
+ ['guias','Guías publicadas','Disponibles para consulta','bi-truck','green'],
+ ['stock','Movimientos de stock','Disponibles para consulta','bi-box-seam','warning'],
+ ['publicados','Total publicado','Fuente de datos compartida','bi-cloud-check','danger'],
 ];
 ?>
 <section class="page-header portal-page-header">
@@ -16,8 +16,8 @@ $metrics=[
 </section>
 
 <div class="kpi-grid kpi-grid-four portal-kpis">
-<?php foreach($metrics as [$key,$label,$note,$icon]): ?>
-<article class="surface-card kpi-card kpi-accent-green"><div class="kpi-card-head"><span class="kpi-mini-icon"><i class="bi <?=e($icon)?>"></i></span><span class="kpi-label"><?=e($label)?></span></div><div class="kpi-value"><?=number_format((int)($kpis[$key]??0))?></div><div class="kpi-note"><?=e($note)?></div></article>
+<?php foreach($metrics as [$key,$label,$note,$icon,$accent]): ?>
+<article class="surface-card kpi-card kpi-accent-<?=e($accent)?>"><div class="kpi-card-head"><span class="kpi-mini-icon"><i class="bi <?=e($icon)?>"></i></span><span class="kpi-label"><?=e($label)?></span></div><div class="kpi-value"><?=number_format((int)($kpis[$key]??0))?></div><div class="kpi-note"><?=e($note)?></div></article>
 <?php endforeach;?>
 </div>
 
