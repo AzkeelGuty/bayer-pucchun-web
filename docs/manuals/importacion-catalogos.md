@@ -71,3 +71,17 @@ El proceso usa transacción, actualiza registros ya existentes por su código/do
 En **Catálogos maestros** comprobar las pestañas Clientes, Productos y Proveedores. El buscador permite consultar por código, DNI/RUC o nombre aunque existan miles de registros.
 
 En **Nuevo documento**, **Nueva guía** y **Nuevo stock**, Cliente y Producto usan búsqueda incremental. La selección continúa disparando los autocompletados ya existentes (vendedor, sucursal, ubicación, unidad y lote).
+## Reemplazar los catálogos de demostración por los datos reales
+
+Si la instalación todavía contiene los datos de ejemplo y se desea sustituir **Proveedores, Clientes y Productos** por los archivos reales, usar el modo de reemplazo:
+
+```bash
+php scripts/maintenance/import_catalogs.php --replace database/imports
+```
+
+Este modo limpia primero, dentro de la misma transacción, los registros demo que dependen de clientes/productos (documentos, guías, stock, lotes, homologaciones relacionadas, validaciones, publicaciones y exportaciones) y luego importa los catálogos nuevos. Si la importación falla, la transacción se revierte para no dejar una base parcialmente vacía.
+
+No usar `DROP TABLE` ni eliminar manualmente solo `clientes` o `productos`, porque existen claves foráneas desde los módulos operativos.
+
+El importador también admite CSV UTF-8 con BOM, habitual al exportar desde Excel.
+
