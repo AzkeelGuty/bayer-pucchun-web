@@ -211,7 +211,12 @@
                 return;
             }
 
-            const finalUrl = response.url || url.href;
+            const finalUrl = (method === 'POST' && !response.redirected)
+                ? location.href
+                : (response.url || url.href);
+            const effectiveHistoryMode = (method === 'POST' && !response.redirected)
+                ? 'replace'
+                : options.historyMode;
             const scripts = extractScripts(freshMain, finalUrl);
             PAGE_GLOBALS.forEach(name => {
                 try { delete window[name]; } catch (_) { window[name] = undefined; }
@@ -239,9 +244,9 @@
                 doSwap();
             }
 
-            if (options.historyMode === 'push') {
+            if (effectiveHistoryMode === 'push') {
                 history.pushState({bpSoftNavigation:true, scrollY:0}, '', finalUrl);
-            } else if (options.historyMode === 'replace') {
+            } else if (effectiveHistoryMode === 'replace') {
                 history.replaceState({bpSoftNavigation:true, scrollY:0}, '', finalUrl);
             }
 
