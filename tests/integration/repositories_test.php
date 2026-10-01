@@ -141,7 +141,9 @@ try {
     rejects(fn() => $documents->markObserved($docId, $version, 2, ' '), InvalidArgumentException::class);
     $version = $documents->markObserved($docId, $version, 2, 'Corregir cantidad');
     $version = $documents->updateDraft($docId, $version, docHeader('CORREGIDO'), lines(), 1);
-    $corrected = $documents->find($docId)['header'];
+    $correctedRecord = $documents->find($docId);
+    $corrected = $correctedRecord['header'];
+    $correctedDetailCount = count($correctedRecord['details']);
     ensure($corrected['estado_registro'] === 'BORRADOR' && $corrected['observation_reason'] === null, 'Correcting an observed record returns it to draft');
     $version = $documents->markValidated($docId, $version, 2);
     $version = $documents->markPublished($docId, $version, 2);
@@ -151,7 +153,7 @@ try {
     $record = $documents->find($docId)['header'];
     ensure($record['estado_registro'] === 'ANULADO' && $record['cancellation_reason'] === 'Anulacion documentada', 'Logical cancellation');
     ensure($record['published_at'] !== null && $record['cancelled_at'] !== null && (int) $record['cancelled_by'] === 2, 'Publication/cancellation audit');
-    ensure(count($documents->find($docId)['details']) === 1, 'Cancellation preserves details');
+    ensure(count($documents->find($docId)['details']) === $correctedDetailCount, 'Cancellation preserves details');
 
     // Caller transaction survives both success and failure and can roll back the whole use case.
     $pdo->beginTransaction();
