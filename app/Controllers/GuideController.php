@@ -114,6 +114,36 @@ final class GuideController
         \view('guias.form',$this->viewData()+['record'=>$record]);
     }
 
+    private function applyClientDefaults(array $header): array
+    {
+        $clients=\index_by($this->masters()->clientes(),'id');
+        $client=$clients[(int)($header['cliente_id']??0)]??null;
+        if(!$client) return $header;
+
+        if((int)($header['vendedor_id']??0)<1 && (int)($client['vendedor_sugerido_id']??0)>0){
+            $header['vendedor_id']=(int)$client['vendedor_sugerido_id'];
+        }
+        if((int)($header['sucursal_id']??0)<1 && (int)($client['sucursal_sugerida_id']??0)>0){
+            $header['sucursal_id']=(int)$client['sucursal_sugerida_id'];
+        }
+
+        $clientGeo=[
+            $client['departamento_id']??null,
+            $client['provincia_id']??null,
+            $client['distrito_id']??null,
+        ];
+        $currentGeo=[
+            $header['departamento_id']??null,
+            $header['provincia_id']??null,
+            $header['distrito_id']??null,
+        ];
+        if(!in_array(null,$clientGeo,true) && in_array(null,$currentGeo,true)){
+            [$header['departamento_id'],$header['provincia_id'],$header['distrito_id']]=$clientGeo;
+        }
+
+        return $header;
+    }
+
     private function normalizeDetails(array $details): array
     {
         $products=\index_by($this->masters()->productos(),'id');
@@ -170,9 +200,14 @@ final class GuideController
         if(!$editing && $numberMode==='auto'){
             $header['numero']=(new OperationalNumberingService())->nextGuideNumber();
         }
+        $header=$this->applyClientDefaults($header);
         $errors=[];
         foreach(['numero','fecha'] as $k) if(trim((string)$header[$k])==='') $errors[$k]='Campo obligatorio';
         foreach(['cliente_id','vendedor_id','sucursal_id'] as $k) if((int)$header[$k]<1) $errors[$k]='Seleccione una opción válida';
+        $geo=[$header['departamento_id'],$header['provincia_id'],$header['distrito_id']];
+        if($geo!==[null,null,null] && in_array(null,$geo,true)){
+            foreach(['departamento_id','provincia_id','distrito_id'] as $k) $errors[$k]='Completa el destino de entrega.';
+        }
         if(!$details) $errors['detalle']='Agregue al menos una línea.';
         foreach($details as $i=>$line){
             if(!is_array($line)
