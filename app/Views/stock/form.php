@@ -1,6 +1,7 @@
 <?php
 require base_path('app/Views/components/form_fields.php');
 $editing = isset($record);
+$correcting = $editing && (($record['header']['estado_registro'] ?? '') === 'OBSERVADO');
 $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'lote_id' => null, 'unidad_id' => '', 'cantidad' => '1']];
 $dateValue = (string)old('fecha_stock');
 if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('Y-m-d'));
@@ -10,7 +11,7 @@ if (!$editing && $idempotencyValue === '') $idempotencyValue = (string)($default
 <section class="module-header">
     <div>
         <div class="page-eyebrow">STOCK · <?= $editing ? 'EDICIÓN' : 'CAPTURA' ?></div>
-        <h1 class="page-title"><?= $editing ? 'Editar borrador' : 'Nuevo stock' ?></h1>
+        <h1 class="page-title"><?= $correcting ? 'Corregir stock' : ($editing ? 'Editar borrador' : 'Nuevo stock') ?></h1>
         <p class="page-subtitle">Selecciona los catálogos y agrega los productos del stock.</p>
     </div>
     <a class="btn btn-outline-primary" href="<?= url('/stock') ?>">Volver al listado</a>
@@ -66,7 +67,7 @@ if (!$editing && $idempotencyValue === '') $idempotencyValue = (string)($default
         </template>
     </div>
     <div class="card-footer d-flex gap-2 flex-wrap">
-        <button class="btn btn-primary" type="submit"><?= $editing ? 'Actualizar borrador' : 'Guardar borrador' ?></button>
+        <button class="btn btn-primary" type="submit"><?= $correcting ? 'Guardar corrección' : ($editing ? 'Actualizar borrador' : 'Guardar borrador') ?></button>
         <a class="btn btn-outline-primary" href="<?= url('/stock') ?>">Cancelar</a>
     </div>
 </form>
