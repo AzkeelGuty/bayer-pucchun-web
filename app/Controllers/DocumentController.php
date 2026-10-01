@@ -41,7 +41,7 @@ final class DocumentController
     }
     public function edit(): void {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $r=$this->record((int)\input('id',0));
-        if($r['header']['estado_registro']!=='BORRADOR') throw new HttpException(409,'Solo se pueden editar borradores.');
+        if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)) throw new HttpException(409,'Solo se pueden editar documentos en borrador u observados.');
         $this->form($r['header'],$r['details'],true);
     }
     public function show(): void {
@@ -52,6 +52,41 @@ final class DocumentController
         $catalogs??=(new DocumentScreenService())->catalogs();
         \view('documentos.form',compact('header','details','editing','errors','catalogs'));
     }
+    private function normalizeDetails(array $details,array $catalogs): array {
+        $products=\index_by($catalogs['producto_id']??[],'id');
+        $normalized=[];
+        $positions=[];
+
+        foreach($details as $line){
+            if(!is_array($line)){
+                $normalized[]=$line;
+                continue;
+            }
+
+            $productId=(int)($line['producto_id']??0);
+            if($productId>0 && isset($products[$productId]['unidad_base_id'])){
+                $line['unidad_id']=(int)$products[$productId]['unidad_base_id'];
+            }
+
+            $quantity=\quantity_integer_value($line['cantidad']??'',false);
+            $unitValue=is_scalar($line['valor_unitario']??null)?trim((string)$line['valor_unitario']):'0';
+            if($productId>0 && $quantity!==null){
+                $key=$productId.':'.$unitValue;
+                if(isset($positions[$key])){
+                    $pos=$positions[$key];
+                    $normalized[$pos]['cantidad']=(string)((int)$normalized[$pos]['cantidad']+$quantity);
+                    continue;
+                }
+                $line['cantidad']=(string)$quantity;
+                $positions[$key]=count($normalized);
+            }
+
+            $normalized[]=$line;
+        }
+
+        return array_values($normalized);
+    }
+
     public function store(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->save(false); }
     public function update(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->save(true); }
     private function save(bool $editing): void {
@@ -62,8 +97,17 @@ final class DocumentController
         if(!$editing && $numberMode==='auto'){
             $header['numero']=(new OperationalNumberingService())->nextDocumentNumber((int)($header['tipo_documento_id']??0));
         }
-        if($editing) { $r=$this->record($id); if($r['header']['estado_registro']!=='BORRADOR'||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
-        $screen=new DocumentScreenService(); $errors=$screen->validate($header,$details,$screen->catalogs());
+        if($editing) { $r=$this->record($id); if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
+        $screen=new DocumentScreenService();
+        $catalogs=$screen->catalogs();
+        $clients=\index_by($catalogs['cliente_id']??[],'id');
+        $client=$clients[(int)($header['cliente_id']??0)]??null;
+        if($client){
+            if((int)($header['vendedor_id']??0)<1 && (int)($client['vendedor_sugerido_id']??0)>0) $header['vendedor_id']=(int)$client['vendedor_sugerido_id'];
+            if((int)($header['sucursal_id']??0)<1 && (int)($client['sucursal_sugerida_id']??0)>0) $header['sucursal_id']=(int)$client['sucursal_sugerida_id'];
+        }
+        $details=$this->normalizeDetails($details,$catalogs);
+        $errors=$screen->validate($header,$details,$catalogs);
         if(!$errors) {
             $duplicate=$this->repository->findByNumber((int)$header['tipo_documento_id'],trim($header['numero']));
             if($duplicate&&(!$editing||(int)$duplicate['header']['id']!==$id)) $errors['header.numero']='VAL-004: ya existe ese número para el tipo seleccionado.';
@@ -105,6 +149,8 @@ final class DocumentController
         (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);
         \audit('documentos','estado_'.$status,$id);
         \flash('success','Estado del documento actualizado.');
+        $returnTo=trim((string)\input('return_to',''));
+        if(in_array($returnTo,['/validacion','/documentos'],true)) \redirect($returnTo);
         \redirect('/documentos/ver?id='.$id);
     }
 }

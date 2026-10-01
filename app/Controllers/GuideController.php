@@ -100,7 +100,7 @@ final class GuideController
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         $id=(int)\input('id',0);
         $record=$this->record($id);
-        if(($record['header']['estado_registro']??'')!=='BORRADOR') throw new HttpException(409,'Solo se puede editar una guía en BORRADOR.');
+        if(!in_array((string)($record['header']['estado_registro']??''),['BORRADOR','OBSERVADO'],true)) throw new HttpException(409,'Solo se puede editar una guía en borrador u observada.');
         $_SESSION['_old']=[
             'numero'=>$record['header']['numero']??'',
             'fecha'=>$record['header']['fecha']??'',
@@ -114,13 +114,78 @@ final class GuideController
         \view('guias.form',$this->viewData()+['record'=>$record]);
     }
 
+    private function applyClientDefaults(array $header): array
+    {
+        $clients=\index_by($this->masters()->clientes(),'id');
+        $client=$clients[(int)($header['cliente_id']??0)]??null;
+        if(!$client) return $header;
+
+        if((int)($header['vendedor_id']??0)<1 && (int)($client['vendedor_sugerido_id']??0)>0){
+            $header['vendedor_id']=(int)$client['vendedor_sugerido_id'];
+        }
+        if((int)($header['sucursal_id']??0)<1 && (int)($client['sucursal_sugerida_id']??0)>0){
+            $header['sucursal_id']=(int)$client['sucursal_sugerida_id'];
+        }
+
+        $clientGeo=[
+            $client['departamento_id']??null,
+            $client['provincia_id']??null,
+            $client['distrito_id']??null,
+        ];
+        $currentGeo=[
+            $header['departamento_id']??null,
+            $header['provincia_id']??null,
+            $header['distrito_id']??null,
+        ];
+        if(!in_array(null,$clientGeo,true) && in_array(null,$currentGeo,true)){
+            [$header['departamento_id'],$header['provincia_id'],$header['distrito_id']]=$clientGeo;
+        }
+
+        return $header;
+    }
+
+    private function normalizeDetails(array $details): array
+    {
+        $products=\index_by($this->masters()->productos(),'id');
+        $normalized=[];
+        $positions=[];
+
+        foreach($details as $i=>$line){
+            if(!is_array($line)){
+                $normalized[]=$line;
+                continue;
+            }
+
+            $productId=(int)($line['producto_id']??0);
+            if($productId>0 && isset($products[$productId]['unidad_base_id'])){
+                $line['unidad_id']=(int)$products[$productId]['unidad_base_id'];
+            }
+
+            $quantity=\quantity_integer_value($line['cantidad']??'',false);
+            if($productId>0 && $quantity!==null){
+                $key=(string)$productId;
+                if(isset($positions[$key])){
+                    $pos=$positions[$key];
+                    $normalized[$pos]['cantidad']=(string)((int)$normalized[$pos]['cantidad']+$quantity);
+                    continue;
+                }
+                $line['cantidad']=(string)$quantity;
+                $positions[$key]=count($normalized);
+            }
+
+            $normalized[]=$line;
+        }
+
+        return array_values($normalized);
+    }
+
     public function store(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create'); $this->save(false); }
     public function update(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create'); $this->save(true); }
 
     private function save(bool $editing): void
     {
         if ($editing) $this->record((int)\input('id',0));
-        $details=is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[];
+        $details=$this->normalizeDetails(is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[]);
         $numberMode=(!$editing && (string)\input('number_mode','auto')==='manual')?'manual':'auto';
         $header=[
             'numero'=>trim((string)\input('numero','')),
@@ -135,9 +200,14 @@ final class GuideController
         if(!$editing && $numberMode==='auto'){
             $header['numero']=(new OperationalNumberingService())->nextGuideNumber();
         }
+        $header=$this->applyClientDefaults($header);
         $errors=[];
         foreach(['numero','fecha'] as $k) if(trim((string)$header[$k])==='') $errors[$k]='Campo obligatorio';
         foreach(['cliente_id','vendedor_id','sucursal_id'] as $k) if((int)$header[$k]<1) $errors[$k]='Seleccione una opción válida';
+        $geo=[$header['departamento_id'],$header['provincia_id'],$header['distrito_id']];
+        if($geo!==[null,null,null] && in_array(null,$geo,true)){
+            foreach(['departamento_id','provincia_id','distrito_id'] as $k) $errors[$k]='Completa el destino de entrega.';
+        }
         if(!$details) $errors['detalle']='Agregue al menos una línea.';
         foreach($details as $i=>$line){
             if(!is_array($line)
@@ -197,6 +267,8 @@ final class GuideController
         (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);
         \audit('guias','estado_'.$status,$id);
         \flash('success','Estado de la guía actualizado.');
+        $returnTo=trim((string)\input('return_to',''));
+        if(in_array($returnTo,['/validacion','/guias'],true)) \redirect($returnTo);
         \redirect('/guias/ver?id='.$id);
     }
 }

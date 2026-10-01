@@ -47,14 +47,20 @@ abstract class OperationalRepository
         [$header, $details] = $this->normalize($header, $details);
         return $this->atomic(function () use ($id, $expectedVersion, $header, $details, $actorId): int {
             $current = $this->lockedHeader($id);
-            if (!$current || $current['estado_registro'] !== 'BORRADOR' || (int) $current['version'] !== $expectedVersion) {
-                throw new RuntimeException('Registro inexistente, fuera de BORRADOR o version desactualizada.');
+            $editableStates = ['BORRADOR', 'OBSERVADO'];
+            if (!$current || !in_array((string) $current['estado_registro'], $editableStates, true) || (int) $current['version'] !== $expectedVersion) {
+                throw new RuntimeException('Registro inexistente, fuera de edición o version desactualizada.');
             }
             $this->checkReferences($header, $details);
             $assignments = implode(',', array_map(static fn(string $field): string => "$field=?", array_keys($header)));
-            $sql = 'UPDATE ' . static::HEADER . " SET $assignments,updated_by=?,updated_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=? AND version=? AND estado_registro='BORRADOR'";
+            // Corregir un OBSERVADO lo devuelve automáticamente a BORRADOR; el motivo
+            // histórico permanece registrado en validaciones.
+            $sql = 'UPDATE ' . static::HEADER . " SET $assignments,estado_registro='BORRADOR',observation_reason=NULL,updated_by=?,updated_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=? AND version=? AND estado_registro IN ('BORRADOR','OBSERVADO')";
             $this->execute('DELETE FROM ' . static::DETAIL . ' WHERE ' . static::PARENT_KEY . '=?', [$id]);
-            $this->execute($sql, [...array_values($header), $actorId, $id, $expectedVersion]);
+            $statement = $this->execute($sql, [...array_values($header), $actorId, $id, $expectedVersion]);
+            if ($statement->rowCount() !== 1) {
+                throw new RuntimeException('Registro inexistente, fuera de edición o version desactualizada.');
+            }
             $this->insertDetails($id, $details);
             return $expectedVersion + 1;
         });

@@ -1,3 +1,4 @@
+<?php require_once base_path('app/Views/components/workflow_control.php'); ?>
 <section class="module-header">
     <div>
         <div class="page-eyebrow">CAPTURA Y CONTROL</div>
@@ -61,20 +62,10 @@
                     <td>
                         <div class="d-flex gap-2 align-items-center flex-wrap">
                             <a class="btn btn-sm btn-outline-primary" href="<?= url('/guias/ver?id=' . $r['id']) ?>">Ver</a>
-                            <?php if (has_role('ADMIN', 'DIGITADOR') && $r['estado_registro'] === 'BORRADOR'): ?>
-                                <a class="btn btn-sm btn-outline-primary" href="<?= url('/guias/editar?id=' . $r['id']) ?>">Editar</a>
+                            <?php if (has_role('ADMIN', 'DIGITADOR') && in_array($r['estado_registro'], ['BORRADOR','OBSERVADO'], true)): ?>
+                                <a class="btn btn-sm btn-outline-primary" href="<?= url('/guias/editar?id=' . $r['id']) ?>"><?= $r['estado_registro']==='OBSERVADO' ? 'Corregir' : 'Editar' ?></a>
                             <?php endif; ?>
-                            <?php if (has_role('ADMIN', 'SUPERVISOR') && in_array($r['estado_registro'], ['BORRADOR', 'VALIDADO'], true)): ?>
-                                <form method="post" action="<?= url('/guias/estado') ?>" class="d-flex gap-1">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="id" value="<?= $r['id'] ?>">
-                                    <select name="status" class="form-select form-select-sm">
-                                        <option value="VALIDADO" <?= $r['estado_registro'] === 'BORRADOR' ? '' : 'disabled' ?>>Validar</option>
-                                        <option value="PUBLICADO" <?= $r['estado_registro'] === 'VALIDADO' ? '' : 'disabled' ?>>Publicar</option>
-                                    </select>
-                                    <button class="btn btn-sm btn-success">Aplicar</button>
-                                </form>
-                            <?php endif; ?>
+                            <?php if (has_role('ADMIN', 'SUPERVISOR')) workflow_control('guias',$r,'/guias'); ?>
                         </div>
                     </td>
                 </tr>

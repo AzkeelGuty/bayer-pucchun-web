@@ -77,10 +77,39 @@
             if (!row) return;
             const product = row.querySelector('select[name$="[producto_id]"]');
             const unit = row.querySelector('select[name$="[unidad_id]"]');
-            if (!product || !unit || (!force && unit.value)) return;
+            if (!product || !unit) return;
 
+            unit.classList.add('auto-unit-select');
+            unit.setAttribute('aria-readonly', 'true');
+            unit.tabIndex = -1;
+
+            if (!force && unit.value) return;
             const option = product.selectedOptions?.[0];
             unit.value = option?.dataset.unitId || '';
+        };
+
+        const mergeDuplicateProducts = () => {
+            const seen = new Map();
+            [...body.querySelectorAll('[data-detail-row]')].forEach(row => {
+                if (!row.isConnected) return;
+                const product = row.querySelector('select[name$="[producto_id]"]');
+                if (!product?.value) return;
+
+                if (!seen.has(product.value)) {
+                    seen.set(product.value, row);
+                    return;
+                }
+
+                const first = seen.get(product.value);
+                const firstQty = first.querySelector('input[name$="[cantidad]"]');
+                const rowQty = row.querySelector('input[name$="[cantidad]"]');
+                const a = Math.max(1, Number.parseInt(firstQty?.value || '1', 10) || 1);
+                const b = Math.max(1, Number.parseInt(rowQty?.value || '1', 10) || 1);
+                if (firstQty) firstQty.value = String(a + b);
+                row.remove();
+                firstQty?.focus({preventScroll: true});
+            });
+            refresh();
         };
 
         const refresh = () => {
@@ -120,6 +149,7 @@
             const product = event.target.closest('select[name$="[producto_id]"]');
             if (!product) return;
             applyProductUnit(product.closest('[data-detail-row]'), true);
+            mergeDuplicateProducts();
         });
 
         body.addEventListener('click', event => {
@@ -130,6 +160,7 @@
             row.remove(); refresh(); focusRow?.querySelector('select').focus();
         });
         form.addEventListener('submit', () => {
+            mergeDuplicateProducts();
             const save = form.querySelector('[data-save]'); save.disabled = true; save.textContent = 'Guardando…';
         });
         refresh(); document.querySelector('[data-error-summary]')?.focus();

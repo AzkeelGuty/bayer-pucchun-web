@@ -5,8 +5,8 @@
 </div>
 <p class="d-flex gap-2">
     <a class="btn btn-sm btn-outline-secondary" href="<?= url('/guias') ?>">&larr; Volver al listado</a>
-    <?php if (has_role('ADMIN', 'DIGITADOR') && $h['estado_registro'] === 'BORRADOR'): ?>
-        <a class="btn btn-sm btn-outline-primary" href="<?= url('/guias/editar?id=' . $h['id']) ?>">Editar</a>
+    <?php if (has_role('ADMIN', 'DIGITADOR') && in_array($h['estado_registro'], ['BORRADOR','OBSERVADO'], true)): ?>
+        <a class="btn btn-sm btn-outline-primary" href="<?= url('/guias/editar?id=' . $h['id']) ?>"><?= $h['estado_registro']==='OBSERVADO' ? 'Corregir' : 'Editar' ?></a>
     <?php endif; ?>
 </p>
 
@@ -19,9 +19,14 @@
         <div class="col-md-3"><strong>Sucursal</strong><div><?= e($sucursales[$h['sucursal_id']]['nombre'] ?? $h['sucursal_id']) ?></div></div>
     </div>
     <div class="row mt-3">
-        <div class="col-md-3"><strong>Departamento</strong><div><?= e($departamentos[$h['departamento_id']]['nombre'] ?? '—') ?></div></div>
-        <div class="col-md-3"><strong>Provincia</strong><div><?= e($provincias[$h['provincia_id']]['nombre'] ?? '—') ?></div></div>
-        <div class="col-md-3"><strong>Distrito</strong><div><?= e($distritos[$h['distrito_id']]['nombre'] ?? '—') ?></div></div>
+        <div class="col-md-9">
+            <strong>Destino de entrega</strong>
+            <div><?= e(implode(' · ', array_filter([
+                $distritos[$h['distrito_id']]['nombre'] ?? null,
+                $provincias[$h['provincia_id']]['nombre'] ?? null,
+                $departamentos[$h['departamento_id']]['nombre'] ?? null,
+            ])) ?: 'Sin destino registrado') ?></div>
+        </div>
         <div class="col-md-3"><strong>Versión</strong><div><?= e($h['version']) ?></div></div>
     </div>
     <?php if ($h['estado_registro'] === 'OBSERVADO' && $h['observation_reason']): ?>
@@ -59,11 +64,8 @@
             <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-sm btn-info">Validar</button></form>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'VALIDADO'): ?>
-            <form method="post" action="<?= url('/guias/estado') ?>" onsubmit="return confirm('¿Publicar esta guía? Bayer podrá verla de inmediato.');"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-sm btn-success">Publicar</button></form>
+            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-sm btn-success">Publicar</button></form>
             <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#observarModal">Observar</button>
-        <?php endif; ?>
-        <?php if ($h['estado_registro'] === 'OBSERVADO'): ?>
-            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="BORRADOR"><button class="btn btn-sm btn-secondary">Devolver a borrador</button></form>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'PUBLICADO'): ?>
             <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#anularModal">Anular</button>
