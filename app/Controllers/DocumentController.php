@@ -49,7 +49,7 @@ final class DocumentController
         \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogs(false)]);
     }
     private function form(array $header,array $details,bool $editing=false,array $errors=[],?array $catalogs=null): void {
-        $catalogs??=(new DocumentScreenService())->catalogs();
+        $catalogs??=(new DocumentScreenService())->catalogs(!$editing);
         \view('documentos.form',compact('header','details','editing','errors','catalogs'));
     }
     private function normalizeDetails(array $details,array $catalogs): array {
