@@ -61,7 +61,6 @@ if (!$editing && $idempotencyValue === '') $idempotencyValue = (string)($default
                 </tbody>
             </table>
         </div>
-        <p class="text-muted small">Añade las líneas que necesites. La cantidad es el número entero de productos o presentaciones. En stock se admite 0; la unidad del catálogo se completa automáticamente y los lotes se filtran por producto.</p>
         <template id="detalle-row-template">
             <tr>
                 <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-placeholder="Buscar por código o producto..." data-search-min="1"'); ?></td>
