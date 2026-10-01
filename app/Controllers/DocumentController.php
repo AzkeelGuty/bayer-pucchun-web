@@ -23,7 +23,7 @@ final class DocumentController
         OperationalPermissionPolicy::require('documents.create');
 
         $screen=new DocumentScreenService();
-        $catalogs=$screen->catalogs(false);
+        $catalogs=$screen->catalogs();
         $types=$catalogs['tipo_documento_id']??[];
         $defaultType=null;
         foreach($types as $type){
@@ -100,7 +100,7 @@ final class DocumentController
         }
         if($editing) { $r=$this->record($id); if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
         $screen=new DocumentScreenService();
-        $catalogs=$screen->catalogs();
+        $catalogs=$screen->catalogs(false);
         $clients=[];
         foreach(($catalogs['cliente_id']??[]) as $row) $clients[(int)$row['id']]=$row;
         $client=$clients[(int)($header['cliente_id']??0)]??null;
