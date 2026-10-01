@@ -3,7 +3,7 @@ $metrics=[
  ['documentos','Documentos','Total registrados','bi-file-earmark-text','blue'],
  ['guias','Guías de remisión','Total registradas','bi-truck','green'],
  ['stock','Movimientos de stock','Total registrados','bi-box-seam','warning'],
- ['pendientes','Pendientes de revisión','Requieren atención','bi-exclamation-circle','danger'],
+ ['pendientes',($digitadorOnly??false)?'Mis pendientes':'Pendientes de revisión',($digitadorOnly??false)?'Registros propios en proceso':'Requieren atención','bi-exclamation-circle','danger'],
 ];
 ?>
 <section class="page-header">
@@ -13,7 +13,11 @@ $metrics=[
         <p class="page-subtitle">Captura, validación, publicación y seguimiento de la información.</p>
     </div>
     <div class="quick-actions">
-        <?php if(has_role('ADMIN','DIGITADOR')): ?><a class="btn btn-outline-primary btn-with-icon" href="<?=url('/documentos/nuevo')?>"><i class="bi bi-file-earmark-plus"></i><span>Nuevo documento</span></a><a class="btn btn-outline-primary btn-with-icon" href="<?=url('/guias/nuevo')?>"><i class="bi bi-truck"></i><span>Nueva guía</span></a><?php endif;?>
+        <?php if(has_role('ADMIN','DIGITADOR')): ?>
+            <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/documentos/nuevo')?>"><i class="bi bi-file-earmark-plus"></i><span>Nuevo documento</span></a>
+            <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/guias/nuevo')?>"><i class="bi bi-truck"></i><span>Nueva guía</span></a>
+            <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/stock/nuevo')?>"><i class="bi bi-box-seam"></i><span>Nuevo stock</span></a>
+        <?php endif;?>
         <?php if(has_role('ADMIN','SUPERVISOR')): ?><a class="btn btn-primary btn-with-icon" href="<?=url('/validacion')?>"><i class="bi bi-patch-check"></i><span>Revisar pendientes</span></a><?php endif;?>
     </div>
 </section>
