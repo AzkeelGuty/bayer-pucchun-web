@@ -975,7 +975,37 @@ button,input,select,textarea{font:inherit}
 .incremental-select-option strong{display:inline-block;margin-right:.35rem;color:var(--brand-primary);font-weight:800}
 .incremental-select-option small{display:block;margin-top:3px;color:#6b7f92}
 .incremental-select-empty{padding:12px;color:#6b7f92;font-size:.9rem}
-.incremental-select.has-value .incremental-select-input{font-weight:650;color:#111827}
+.incremental-select-selected{
+    position:absolute;
+    inset:0 .9rem 0 .75rem;
+    display:none;
+    align-items:center;
+    min-width:0;
+    pointer-events:none;
+    white-space:nowrap;
+    overflow:hidden;
+}
+.incremental-select.has-value .incremental-select-selected{display:flex}
+.incremental-select-selected-code{
+    flex:0 0 auto;
+    margin-right:.35rem;
+    color:var(--brand-primary);
+    font-weight:800;
+}
+.incremental-select-selected-label{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    color:#17324d;
+    font-weight:400;
+}
+.incremental-select-option-label{color:#102f50;font-weight:400}
+.incremental-select.has-value .incremental-select-input{
+    color:transparent;
+    font-weight:400;
+    caret-color:var(--brand-primary);
+}
+.incremental-select.has-value .incremental-select-input::selection{background:rgba(7,91,159,.12);color:transparent}
 @media (max-width:767.98px){.incremental-select-menu{max-height:42vh}}
 
 /* Navegación interna fluida: evita el efecto visual de F5 entre módulos */
