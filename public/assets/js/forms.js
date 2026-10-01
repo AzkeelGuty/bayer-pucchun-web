@@ -100,6 +100,12 @@
         if (!clienteSelect || !depSelect || !provSelect || !distSelect || !fields || !toggle || !summary) return;
 
         let manual = false;
+        let restoringAutomatic = false;
+
+        const getClient = () => (window.BP_CLIENTES || {})[clienteSelect.value] || null;
+        const clientHasDestination = (client) => Boolean(
+            client?.departamento_id && client?.provincia_id && client?.distrito_id
+        );
 
         const selectedText = (select) => {
             const option = select.selectedOptions?.[0];
@@ -108,6 +114,8 @@
 
         function refresh() {
             const hasClient = Boolean(clienteSelect.value);
+            const client = getClient();
+            const hasAutomatic = clientHasDestination(client);
             const complete = Boolean(depSelect.value && provSelect.value && distSelect.value);
 
             if (!hasClient) {
@@ -122,12 +130,20 @@
             if (complete) {
                 summary.textContent = [selectedText(distSelect), selectedText(provSelect), selectedText(depSelect)]
                     .filter(Boolean).join(' · ');
-                if (note) note.textContent = manual
-                    ? 'Destino ajustado para esta guía.'
-                    : 'Destino completado desde la ficha del cliente.';
-                toggle.hidden = false;
+
+                if (note) {
+                    note.textContent = manual
+                        ? 'Destino ajustado para esta guía.'
+                        : (hasAutomatic
+                            ? 'Destino completado desde la ficha del cliente.'
+                            : 'Destino definido para esta guía.');
+                }
+
                 fields.hidden = !manual;
-                toggle.textContent = manual ? 'Usar destino automático' : 'Cambiar destino';
+                toggle.hidden = !hasAutomatic;
+                if (hasAutomatic) {
+                    toggle.textContent = manual ? 'Restaurar destino del cliente' : 'Cambiar destino';
+                }
                 return;
             }
 
@@ -135,34 +151,61 @@
             fields.hidden = false;
             toggle.hidden = true;
             summary.textContent = 'Completa el destino de entrega.';
-            if (note) note.textContent = 'Este cliente no tiene una ubicación completa registrada.';
+            if (note) note.textContent = hasAutomatic
+                ? 'Puedes completar el destino o restaurar la ubicación registrada del cliente.'
+                : 'Este cliente no tiene una ubicación completa registrada.';
+        }
+
+        function restoreAutomaticDestination() {
+            const client = getClient();
+            if (!clientHasDestination(client)) return false;
+
+            restoringAutomatic = true;
+            manual = false;
+
+            depSelect.value = String(client.departamento_id);
+            depSelect.dispatchEvent(new Event('change', {bubbles: true}));
+
+            provSelect.value = String(client.provincia_id);
+            provSelect.dispatchEvent(new Event('change', {bubbles: true}));
+
+            distSelect.value = String(client.distrito_id);
+            distSelect.dispatchEvent(new Event('change', {bubbles: true}));
+
+            restoringAutomatic = false;
+            refresh();
+            return true;
         }
 
         toggle.addEventListener('click', function () {
             if (manual) {
-                const cliente = (window.BP_CLIENTES || {})[clienteSelect.value];
-                if (cliente) {
-                    depSelect.value = cliente.departamento_id || '';
-                    depSelect.dispatchEvent(new Event('change', {bubbles: true}));
-                    provSelect.value = cliente.provincia_id || '';
-                    provSelect.dispatchEvent(new Event('change', {bubbles: true}));
-                    distSelect.value = cliente.distrito_id || '';
-                    distSelect.dispatchEvent(new Event('change', {bubbles: true}));
-                }
-                manual = false;
-            } else {
-                manual = true;
+                restoreAutomaticDestination();
+                return;
             }
+
+            manual = true;
             refresh();
-            if (manual) depSelect.focus({preventScroll: true});
+            depSelect.focus({preventScroll: true});
         });
 
         clienteSelect.addEventListener('change', function () {
             manual = false;
-            window.setTimeout(refresh, 0);
+            window.setTimeout(() => {
+                const client = getClient();
+                const complete = Boolean(depSelect.value && provSelect.value && distSelect.value);
+                if (clientHasDestination(client) && !complete) {
+                    restoreAutomaticDestination();
+                } else {
+                    refresh();
+                }
+            }, 0);
         });
+
         [depSelect, provSelect, distSelect].forEach(function (select) {
-            select.addEventListener('change', refresh);
+            select.addEventListener('change', function () {
+                if (restoringAutomatic) return;
+                refresh();
+            });
         });
 
         refresh();
