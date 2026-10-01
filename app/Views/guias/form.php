@@ -54,8 +54,16 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
             <?php select('vendedor_id', 'Vendedor', $vendedores, 'id', 'nombre'); ?>
             <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre'); ?>
 
-            <div class="col-12" data-ubigeo-scope>
-                <div class="row g-3">
+            <div class="col-12" data-ubigeo-scope data-destination-shell>
+                <label class="form-label mb-2">Destino de entrega</label>
+                <div class="destination-card">
+                    <div class="destination-copy">
+                        <strong data-destination-summary>Selecciona un cliente para completar el destino.</strong>
+                        <small data-destination-note>El sistema usa la ubicación registrada del cliente y solo pide cambios cuando sea necesario.</small>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-destination-toggle hidden>Cambiar destino</button>
+                </div>
+                <div class="row g-3 mt-1" data-destination-fields hidden>
                     <?php select('departamento_id', 'Departamento', $departamentos, 'id', 'nombre', false, 'data-role="departamento" data-old="' . e((string) old('departamento_id')) . '"'); ?>
                     <?php select('provincia_id', 'Provincia', [], 'id', 'nombre', false, 'data-role="provincia" data-old="' . e((string) old('provincia_id')) . '"'); ?>
                     <?php select('distrito_id', 'Distrito', [], 'id', 'nombre', false, 'data-role="distrito" data-old="' . e((string) old('distrito_id')) . '"'); ?>
@@ -75,7 +83,7 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
                     <?php foreach ($detailRows as $i => $line): ?>
                     <tr>
                         <td><?php select_inline("detalle[$i][producto_id]", $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-placeholder="Buscar por código o producto..." data-search-min="1"', 'Seleccione…', true, (string) $line['producto_id']); ?></td>
-                        <td><?php select_inline("detalle[$i][unidad_id]", $unidades, 'id', 'nombre', '', 'Seleccione…', true, (string) $line['unidad_id']); ?></td>
+                        <td><?php select_inline("detalle[$i][unidad_id]", $unidades, 'id', 'nombre', 'data-auto-unit aria-readonly="true" tabindex="-1"', 'Seleccione…', true, (string) $line['unidad_id']); ?></td>
                         <td><input type="number" step="1" min="1" inputmode="numeric" class="form-control form-control-sm" name="detalle[<?= $i ?>][cantidad]" value="<?= e(($line['cantidad']??'')!=='' ? format_quantity($line['cantidad']) : '') ?>" required></td>
                         <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
                     </tr>
@@ -86,7 +94,7 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
         <template id="detalle-row-template">
             <tr>
                 <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-placeholder="Buscar por código o producto..." data-search-min="1"'); ?></td>
-                <td><?php select_inline('detalle[__IDX__][unidad_id]', $unidades, 'id', 'nombre'); ?></td>
+                <td><?php select_inline('detalle[__IDX__][unidad_id]', $unidades, 'id', 'nombre', 'data-auto-unit aria-readonly="true" tabindex="-1"'); ?></td>
                 <td><input type="number" step="1" min="1" inputmode="numeric" class="form-control form-control-sm" name="detalle[__IDX__][cantidad]" value="1" required></td>
                 <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
             </tr>
