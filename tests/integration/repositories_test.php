@@ -140,8 +140,9 @@ try {
     rejects(fn() => $documents->updateDraft($docId, $version, docHeader(), lines(), 1), RuntimeException::class);
     rejects(fn() => $documents->markObserved($docId, $version, 2, ' '), InvalidArgumentException::class);
     $version = $documents->markObserved($docId, $version, 2, 'Corregir cantidad');
-    rejects(fn() => $documents->updateDraft($docId, $version, docHeader(), lines(), 1), RuntimeException::class);
-    $version = $documents->returnToDraft($docId, $version, 2);
+    $version = $documents->updateDraft($docId, $version, docHeader('CORREGIDO'), lines(), 1);
+    $corrected = $documents->find($docId)['header'];
+    ensure($corrected['estado_registro'] === 'BORRADOR' && $corrected['observation_reason'] === null, 'Correcting an observed record returns it to draft');
     $version = $documents->markValidated($docId, $version, 2);
     $version = $documents->markPublished($docId, $version, 2);
     rejects(fn() => $documents->returnToDraft($docId, $version, 2), RuntimeException::class);
