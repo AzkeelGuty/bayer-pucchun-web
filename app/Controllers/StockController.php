@@ -75,9 +75,45 @@ final class StockController
     {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('stock.create');
         $id=(int)\input('id',0); $record=$this->record($id);
-        if(($record['header']['estado_registro']??'')!=='BORRADOR') throw new HttpException(409,'Solo se puede editar stock en BORRADOR.');
+        if(!in_array((string)($record['header']['estado_registro']??''),['BORRADOR','OBSERVADO'],true)) throw new HttpException(409,'Solo se puede editar stock en borrador u observado.');
         $_SESSION['_old']=['fecha_stock'=>$record['header']['fecha_stock']??'','almacen_id'=>$record['header']['almacen_id']??'','idempotency_key'=>$record['header']['idempotency_key']??''];
         \view('stock.form',$this->viewData()+['record'=>$record]);
+    }
+
+    private function normalizeDetails(array $details): array
+    {
+        $products=\index_by($this->masters()->productos(),'id');
+        $normalized=[];
+        $positions=[];
+
+        foreach($details as $line){
+            if(!is_array($line)){
+                $normalized[]=$line;
+                continue;
+            }
+
+            $productId=(int)($line['producto_id']??0);
+            $lotId=(isset($line['lote_id']) && $line['lote_id']!=='')?(int)$line['lote_id']:null;
+            if($productId>0 && isset($products[$productId]['unidad_base_id'])){
+                $line['unidad_id']=(int)$products[$productId]['unidad_base_id'];
+            }
+
+            $quantity=\quantity_integer_value($line['cantidad']??'',true);
+            if($productId>0 && $quantity!==null){
+                $key=$productId.':'.($lotId??0);
+                if(isset($positions[$key])){
+                    $pos=$positions[$key];
+                    $normalized[$pos]['cantidad']=(string)((int)$normalized[$pos]['cantidad']+$quantity);
+                    continue;
+                }
+                $line['cantidad']=(string)$quantity;
+                $positions[$key]=count($normalized);
+            }
+
+            $normalized[]=$line;
+        }
+
+        return array_values($normalized);
     }
 
     public function store(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('stock.create'); $this->save(false); }
@@ -86,7 +122,7 @@ final class StockController
     private function save(bool $editing): void
     {
         if ($editing) $this->record((int)\input('id',0));
-        $details=is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[];
+        $details=$this->normalizeDetails(is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[]);
         $idempotencyKey=trim((string)\input('idempotency_key',''));
         if(!$editing && $idempotencyKey===''){
             $idempotencyKey='stock-'.date('Ymd-His').'-'.bin2hex(random_bytes(6));
@@ -157,6 +193,8 @@ final class StockController
         $reason=trim((string)\input('reason',''));
         (new WorkflowService())->transition($this->repository,$id,$version,$status,(int)\auth_user()['id'],$reason);
         \audit('stock','estado_'.$status,$id); \flash('success','Estado del stock actualizado.');
+        $returnTo=trim((string)\input('return_to',''));
+        if(in_array($returnTo,['/validacion','/stock'],true)) \redirect($returnTo);
         \redirect('/stock/ver?id='.$id);
     }
 }
