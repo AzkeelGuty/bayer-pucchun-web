@@ -53,7 +53,8 @@ final class DocumentController
         \view('documentos.form',compact('header','details','editing','errors','catalogs'));
     }
     private function normalizeDetails(array $details,array $catalogs): array {
-        $products=\index_by($catalogs['producto_id']??[],'id');
+        $products=[];
+        foreach(($catalogs['producto_id']??[]) as $row) $products[(int)$row['id']]=$row;
         $normalized=[];
         $positions=[];
 
@@ -100,7 +101,8 @@ final class DocumentController
         if($editing) { $r=$this->record($id); if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
         $screen=new DocumentScreenService();
         $catalogs=$screen->catalogs();
-        $clients=\index_by($catalogs['cliente_id']??[],'id');
+        $clients=[];
+        foreach(($catalogs['cliente_id']??[]) as $row) $clients[(int)$row['id']]=$row;
         $client=$clients[(int)($header['cliente_id']??0)]??null;
         if($client){
             if((int)($header['vendedor_id']??0)<1 && (int)($client['vendedor_sugerido_id']??0)>0) $header['vendedor_id']=(int)$client['vendedor_sugerido_id'];
