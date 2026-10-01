@@ -153,6 +153,14 @@ final class BackofficeController
         foreach($docs as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'documentos','dataset'=>'Documentos',...$r];
         foreach($guides as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'guias','dataset'=>'Guías',...$r];
         foreach($stock as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'stock','dataset'=>'Stock',...$r];
+        $priority=['VALIDADO'=>0,'BORRADOR'=>1,'OBSERVADO'=>2];
+        usort($rows,static function(array $a,array $b)use($priority):int{
+            $stateCmp=($priority[$a['estado_registro']]??9)<=>($priority[$b['estado_registro']]??9);
+            if($stateCmp!==0) return $stateCmp;
+            $aDate=(string)($a['fecha']??$a['fecha_stock']??'');
+            $bDate=(string)($b['fecha']??$b['fecha_stock']??'');
+            return $bDate<=>$aDate;
+        });
         \view('backoffice.validation',['rows'=>$rows]);
     }
 
