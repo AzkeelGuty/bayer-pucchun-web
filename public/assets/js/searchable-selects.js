@@ -36,15 +36,48 @@
         if (openWidget === widget) openWidget = null;
     }
 
+    function splitLabel(label) {
+        const parts = String(label || '').split(' · ');
+        if (parts.length < 2) return {code: '', text: String(label || '')};
+        return {code: parts.shift(), text: parts.join(' · ')};
+    }
+
     function optionMarkup(button, item) {
-        const parts = item.label.split(' · ');
-        if (parts.length > 1) {
+        const parts = splitLabel(item.label);
+        if (parts.code) {
             const strong = document.createElement('strong');
-            strong.textContent = parts.shift();
+            strong.textContent = parts.code;
             button.appendChild(strong);
-            button.appendChild(document.createTextNode(parts.join(' · ')));
+
+            const label = document.createElement('span');
+            label.className = 'incremental-select-option-label';
+            label.textContent = parts.text;
+            button.appendChild(label);
         } else {
-            button.textContent = item.label;
+            button.textContent = parts.text;
+        }
+    }
+
+    function selectedMarkup(widget, label) {
+        widget.selectedDisplay.innerHTML = '';
+        const parts = splitLabel(label);
+        if (!label) return;
+
+        if (parts.code) {
+            const code = document.createElement('strong');
+            code.className = 'incremental-select-selected-code';
+            code.textContent = parts.code;
+            widget.selectedDisplay.appendChild(code);
+
+            const text = document.createElement('span');
+            text.className = 'incremental-select-selected-label';
+            text.textContent = parts.text;
+            widget.selectedDisplay.appendChild(text);
+        } else {
+            const text = document.createElement('span');
+            text.className = 'incremental-select-selected-label';
+            text.textContent = parts.text;
+            widget.selectedDisplay.appendChild(text);
         }
     }
 
@@ -111,6 +144,7 @@
         const option = widget.select.selectedOptions && widget.select.selectedOptions[0];
         const label = option && option.value ? option.textContent.trim() : '';
         widget.input.value = label;
+        selectedMarkup(widget, label);
         widget.input.setCustomValidity('');
         widget.wrapper.classList.toggle('has-value', Boolean(option && option.value));
     }
@@ -164,6 +198,12 @@
         input.setAttribute('aria-autocomplete', 'list');
         input.setAttribute('aria-expanded', 'false');
         inputWrap.appendChild(input);
+
+        const selectedDisplay = document.createElement('div');
+        selectedDisplay.className = 'incremental-select-selected';
+        selectedDisplay.setAttribute('aria-hidden', 'true');
+        inputWrap.appendChild(selectedDisplay);
+
         wrapper.appendChild(inputWrap);
 
         const menu = document.createElement('div');
@@ -175,6 +215,7 @@
             select,
             wrapper,
             input,
+            selectedDisplay,
             menu,
             items,
             rendered: [],
@@ -185,7 +226,10 @@
         enhanced.set(select, widget);
         sync(widget);
 
-        input.addEventListener('focus', () => render(widget));
+        input.addEventListener('focus', () => {
+            if (select.value) input.select();
+            render(widget);
+        });
         input.addEventListener('input', () => {
             const current = select.selectedOptions && select.selectedOptions[0];
             const currentLabel = current && current.value ? current.textContent.trim() : '';
