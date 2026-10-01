@@ -6,7 +6,6 @@ $databases = [];
 try {
     $clean = $databases[] = new TestDatabase();
     $clean->load('database/schemas/002_schema_v2.sql');
-    $clean->load('database/migrations/004_catalogos_masivos_busqueda.sql');
     fixtures($clean->pdo);
     ensure((int) $clean->pdo->query('SELECT version FROM schema_migrations')->fetchColumn() === 2, 'Clean schema version');
 
