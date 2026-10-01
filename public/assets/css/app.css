@@ -975,7 +975,7 @@ button,input,select,textarea{font:inherit}
 .incremental-select-option strong{display:inline-block;margin-right:.35rem;color:var(--brand-primary);font-weight:800}
 .incremental-select-option small{display:block;margin-top:3px;color:#6b7f92}
 .incremental-select-empty{padding:12px;color:#6b7f92;font-size:.9rem}
-.incremental-select.has-value .incremental-select-input{font-weight:400;color:#111}
+.incremental-select.has-value .incremental-select-input{font-weight:650;color:#111827}
 @media (max-width:767.98px){.incremental-select-menu{max-height:42vh}}
 
 /* Navegación interna fluida: evita el efecto visual de F5 entre módulos */
@@ -1004,3 +1004,75 @@ body.bp-soft-navigating .app-main{cursor:progress}
 ::view-transition-old(root),
 ::view-transition-new(root){animation-duration:.12s}
 
+
+
+/* Captura asistida y flujo por rol - build 2026.10.01.3 */
+.auto-unit-select{
+    pointer-events:none;
+    background:#f8fafc!important;
+    color:#111827!important;
+    font-weight:650;
+}
+.destination-card{
+    min-height:58px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:10px 12px;
+    border:1px solid var(--bp-border);
+    border-radius:12px;
+    background:#fff;
+}
+.destination-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
+.destination-copy strong{color:#111827;font-size:.92rem}
+.destination-copy small{color:var(--bp-muted);font-size:.76rem;line-height:1.35}
+[data-destination-fields][hidden]{display:none!important}
+
+.workflow-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.workflow-quick-form{display:inline-flex;margin:0}
+.workflow-observe{position:relative}
+.workflow-observe>summary{
+    list-style:none;
+    cursor:pointer;
+    display:inline-flex!important;
+    align-items:center;
+    gap:6px;
+}
+.workflow-observe>summary::-webkit-details-marker{display:none}
+.workflow-reason-form{
+    position:absolute;
+    right:0;
+    top:calc(100% + 6px);
+    z-index:30;
+    width:min(360px,80vw);
+    display:grid;
+    grid-template-columns:minmax(180px,1fr) auto;
+    gap:7px;
+    padding:10px;
+    background:#fff;
+    border:1px solid var(--bp-border);
+    border-radius:12px;
+    box-shadow:var(--bp-shadow);
+}
+.workflow-waiting{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    min-height:34px;
+    padding:5px 9px;
+    border-radius:9px;
+    background:#fff4df;
+    color:#8a5200;
+    font-size:.78rem;
+    font-weight:750;
+}
+.workflow-waiting.workflow-ready{background:var(--bp-green-soft);color:var(--bp-green-dark)}
+.workflow-summary-four{flex-wrap:wrap}
+.workflow-summary-four>div{min-width:170px;flex:1 1 170px}
+
+@media(max-width:767.98px){
+    .destination-card{align-items:flex-start;flex-direction:column}
+    .workflow-reason-form{position:fixed;left:14px;right:14px;top:auto;bottom:18px;width:auto}
+    .quick-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
