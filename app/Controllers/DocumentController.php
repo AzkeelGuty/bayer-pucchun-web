@@ -100,6 +100,12 @@ final class DocumentController
         if($editing) { $r=$this->record($id); if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
         $screen=new DocumentScreenService();
         $catalogs=$screen->catalogs();
+        $clients=\index_by($catalogs['cliente_id']??[],'id');
+        $client=$clients[(int)($header['cliente_id']??0)]??null;
+        if($client){
+            if((int)($header['vendedor_id']??0)<1 && (int)($client['vendedor_sugerido_id']??0)>0) $header['vendedor_id']=(int)$client['vendedor_sugerido_id'];
+            if((int)($header['sucursal_id']??0)<1 && (int)($client['sucursal_sugerida_id']??0)>0) $header['sucursal_id']=(int)$client['sucursal_sugerida_id'];
+        }
         $details=$this->normalizeDetails($details,$catalogs);
         $errors=$screen->validate($header,$details,$catalogs);
         if(!$errors) {
