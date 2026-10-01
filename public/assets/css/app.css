@@ -975,7 +975,7 @@ button,input,select,textarea{font:inherit}
 .incremental-select-option strong{display:inline-block;margin-right:.35rem;color:var(--brand-primary);font-weight:800}
 .incremental-select-option small{display:block;margin-top:3px;color:#6b7f92}
 .incremental-select-empty{padding:12px;color:#6b7f92;font-size:.9rem}
-.incremental-select.has-value .incremental-select-input{font-weight:650;color:#102f50}
+.incremental-select.has-value .incremental-select-input{font-weight:400;color:#111}
 @media (max-width:767.98px){.incremental-select-menu{max-height:42vh}}
 
 /* Navegación interna fluida: evita el efecto visual de F5 entre módulos */
