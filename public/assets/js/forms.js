@@ -65,14 +65,15 @@
         const sellerSelect = form.querySelector('[name="vendedor_id"]');
         const branchSelect = form.querySelector('[name="sucursal_id"]');
 
-        function apply() {
+        function apply(force) {
             const cliente = clientes[clienteSelect.value];
             if (!cliente) return;
 
-            if (sellerSelect) sellerSelect.value = cliente.vendedor_sugerido_id || '';
-            if (branchSelect) branchSelect.value = cliente.sucursal_sugerida_id || '';
+            if (sellerSelect && (force || !sellerSelect.value)) sellerSelect.value = cliente.vendedor_sugerido_id || '';
+            if (branchSelect && (force || !branchSelect.value)) branchSelect.value = cliente.sucursal_sugerida_id || '';
 
-            if (depSelect && provSelect && distSelect) {
+            const geoEmpty = !depSelect?.value && !provSelect?.value && !distSelect?.value;
+            if (depSelect && provSelect && distSelect && (force || geoEmpty)) {
                 depSelect.value = cliente.departamento_id || '';
                 depSelect.dispatchEvent(new Event('change', {bubbles: true}));
                 provSelect.value = cliente.provincia_id || '';
@@ -82,7 +83,8 @@
             }
         }
 
-        clienteSelect.addEventListener('change', apply);
+        clienteSelect.addEventListener('change', function () { apply(true); });
+        if (clienteSelect.value) apply(false);
     }
 
     function wireDestinationEditor(scope) {
