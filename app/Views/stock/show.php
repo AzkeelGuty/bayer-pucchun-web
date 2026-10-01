@@ -5,18 +5,17 @@
 </div>
 <p class="d-flex gap-2">
     <a class="btn btn-sm btn-outline-secondary" href="<?= url('/stock') ?>">&larr; Volver al listado</a>
-    <?php if (has_role('ADMIN', 'DIGITADOR') && $h['estado_registro'] === 'BORRADOR'): ?>
-        <a class="btn btn-sm btn-outline-primary" href="<?= url('/stock/editar?id=' . $h['id']) ?>">Editar</a>
+    <?php if (has_role('ADMIN', 'DIGITADOR') && in_array($h['estado_registro'], ['BORRADOR','OBSERVADO'], true)): ?>
+        <a class="btn btn-sm btn-outline-primary" href="<?= url('/stock/editar?id=' . $h['id']) ?>"><?= $h['estado_registro']==='OBSERVADO' ? 'Corregir' : 'Editar' ?></a>
     <?php endif; ?>
 </p>
 
 <div class="card mb-3"><div class="card-body">
     <h6 class="card-title">Cabecera</h6>
     <div class="row">
-        <div class="col-md-3"><strong>Fecha de stock</strong><div><?= e($h['fecha_stock']) ?></div></div>
-        <div class="col-md-3"><strong>Almacén</strong><div><?= e($almacenes[$h['almacen_id']]['nombre'] ?? $h['almacen_id']) ?></div></div>
-        <div class="col-md-3"><strong>Clave de idempotencia</strong><div><code><?= e($h['idempotency_key']) ?></code></div></div>
-        <div class="col-md-3"><strong>Versión</strong><div><?= e($h['version']) ?></div></div>
+        <div class="col-md-4"><strong>Fecha de stock</strong><div><?= e($h['fecha_stock']) ?></div></div>
+        <div class="col-md-4"><strong>Almacén</strong><div><?= e($almacenes[$h['almacen_id']]['nombre'] ?? $h['almacen_id']) ?></div></div>
+        <div class="col-md-4"><strong>Versión</strong><div><?= e($h['version']) ?></div></div>
     </div>
     <?php if ($h['estado_registro'] === 'OBSERVADO' && $h['observation_reason']): ?>
         <div class="alert alert-warning mt-3 mb-0"><strong>Motivo de observación:</strong> <?= e($h['observation_reason']) ?></div>
