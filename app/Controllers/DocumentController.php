@@ -23,7 +23,7 @@ final class DocumentController
         OperationalPermissionPolicy::require('documents.create');
 
         $screen=new DocumentScreenService();
-        $catalogs=$screen->catalogs();
+        $catalogs=$screen->catalogs(false);
         $types=$catalogs['tipo_documento_id']??[];
         $defaultType=null;
         foreach($types as $type){
