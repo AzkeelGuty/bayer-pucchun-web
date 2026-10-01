@@ -2,7 +2,7 @@
         </main>
         <footer class="app-footer">
             <span><?=e(branding()['system_name'])?> · <?=e(branding()['footer_text'])?></span>
-            <span><?= has_role('BAYER') ? 'Consulta de información publicada' : 'Operación, control y trazabilidad' ?> · build 2026.10.01.4</span>
+            <span><?= has_role('BAYER') ? 'Consulta de información publicada' : 'Operación, control y trazabilidad' ?> · build 2026.10.01.5</span>
         </footer>
     </section>
 </div>
