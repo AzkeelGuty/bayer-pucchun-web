@@ -1,6 +1,7 @@
 <?php
 require base_path('app/Views/components/form_fields.php');
 $editing = isset($record);
+$correcting = $editing && (($record['header']['estado_registro'] ?? '') === 'OBSERVADO');
 $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'unidad_id' => '', 'cantidad' => '1']];
 $numberMode = $editing ? 'manual' : ((string)old('number_mode') === 'manual' ? 'manual' : 'auto');
 $numberValue = $editing
@@ -12,7 +13,7 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
 <section class="module-header">
     <div>
         <div class="page-eyebrow">GUÍAS · <?= $editing ? 'EDICIÓN' : 'CAPTURA' ?></div>
-        <h1 class="page-title"><?= $editing ? 'Editar borrador' : 'Nueva guía' ?></h1>
+        <h1 class="page-title"><?= $correcting ? 'Corregir guía' : ($editing ? 'Editar borrador' : 'Nueva guía') ?></h1>
         <p class="page-subtitle">Selecciona los catálogos y agrega los productos de la guía.</p>
     </div>
     <a class="btn btn-outline-primary" href="<?= url('/guias') ?>">Volver al listado</a>
@@ -101,7 +102,7 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
         </template>
     </div>
     <div class="card-footer d-flex gap-2 flex-wrap">
-        <button class="btn btn-primary" type="submit"><?= $editing ? 'Actualizar borrador' : 'Guardar borrador' ?></button>
+        <button class="btn btn-primary" type="submit"><?= $correcting ? 'Guardar corrección' : ($editing ? 'Actualizar borrador' : 'Guardar borrador') ?></button>
         <a class="btn btn-outline-primary" href="<?= url('/guias') ?>">Cancelar</a>
     </div>
 </form>
