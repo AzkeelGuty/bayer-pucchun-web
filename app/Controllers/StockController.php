@@ -65,6 +65,14 @@ final class StockController
     public function create(): void {
         \require_role('ADMIN','DIGITADOR');
         OperationalPermissionPolicy::require('stock.create');
+
+        if(!isset($_SESSION['_old']['almacen_id'])){
+            $st=\db()->prepare('SELECT almacen_id FROM stock_cabecera WHERE created_by=? ORDER BY id DESC LIMIT 1');
+            $st->execute([(int)\auth_user()['id']]);
+            $lastWarehouse=(int)($st->fetchColumn()?:0);
+            if($lastWarehouse>0) $_SESSION['_old']['almacen_id']=$lastWarehouse;
+        }
+
         \view('stock.form',$this->viewData()+[
             'defaultDate'=>date('Y-m-d'),
             'defaultIdempotency'=>'stock-'.date('Ymd-His').'-'.bin2hex(random_bytes(6)),
