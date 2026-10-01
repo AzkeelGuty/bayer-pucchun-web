@@ -55,7 +55,6 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
             <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre'); ?>
 
             <div class="col-12" data-ubigeo-scope>
-                <h2 class="h6 mt-2">Ubicación (se completa sola al elegir el Cliente; puedes ajustarla)</h2>
                 <div class="row g-3">
                     <?php select('departamento_id', 'Departamento', $departamentos, 'id', 'nombre', false, 'data-role="departamento" data-old="' . e((string) old('departamento_id')) . '"'); ?>
                     <?php select('provincia_id', 'Provincia', [], 'id', 'nombre', false, 'data-role="provincia" data-old="' . e((string) old('provincia_id')) . '"'); ?>
