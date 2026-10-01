@@ -1,6 +1,6 @@
 <?php
 $label=function(string $catalog,mixed $id)use($catalogs):string{foreach($catalogs[$catalog]??[] as $item)if((string)$item['id']===(string)$id)return $item['label'];return 'Registro histórico #'.$id;};
-$state=$document['estado_registro']; $workflowAvailable=true; $options=has_role('ADMIN','SUPERVISOR')?match($state){'BORRADOR'=>['VALIDADO'=>'Validar'],'VALIDADO'=>['OBSERVADO'=>'Observar','PUBLICADO'=>'Publicar'],'OBSERVADO'=>['BORRADOR'=>'Devolver a borrador'],'PUBLICADO'=>['ANULADO'=>'Anular'],default=>[]}:[];
+$state=$document['estado_registro']; $workflowAvailable=true; $options=has_role('ADMIN','SUPERVISOR')?match($state){'BORRADOR'=>['VALIDADO'=>'Validar'],'VALIDADO'=>['OBSERVADO'=>'Observar','PUBLICADO'=>'Publicar'],'PUBLICADO'=>['ANULADO'=>'Anular'],default=>[]}:[];
 ?>
 <link rel="stylesheet" href="<?=asset_url('assets/css/documentos-captura.css')?>">
 <section class="module-header"><div><div class="page-eyebrow">DETALLE DEL DOCUMENTO</div><h1 class="page-title"><?=e($document['numero'])?></h1><p class="page-subtitle"><?=e($label('tipo_documento_id',$document['tipo_documento_id']))?> · <?=e($document['fecha'])?></p></div><a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Volver al listado</a></section>
