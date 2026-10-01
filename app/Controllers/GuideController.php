@@ -116,7 +116,8 @@ final class GuideController
 
     private function applyClientDefaults(array $header): array
     {
-        $clients=\index_by($this->masters()->clientes(),'id');
+        $clients=[];
+        foreach($this->masters()->clientes() as $row) $clients[(int)$row['id']]=$row;
         $client=$clients[(int)($header['cliente_id']??0)]??null;
         if(!$client) return $header;
 
@@ -146,7 +147,8 @@ final class GuideController
 
     private function normalizeDetails(array $details): array
     {
-        $products=\index_by($this->masters()->productos(),'id');
+        $products=[];
+        foreach($this->masters()->productos() as $row) $products[(int)$row['id']]=$row;
         $normalized=[];
         $positions=[];
 
