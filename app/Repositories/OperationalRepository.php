@@ -210,12 +210,33 @@ abstract class OperationalRepository
 
     private static function quantity(mixed $value, bool $allowZero): string
     {
-        $quantity=\quantity_integer_value($value,$allowZero);
-        if($quantity===null){
+        if ((!is_string($value) && !is_int($value)) || is_bool($value)) {
             throw new InvalidArgumentException($allowZero
                 ? 'La cantidad debe ser un número entero igual o mayor que cero.'
                 : 'La cantidad debe ser un número entero mayor que cero.');
         }
+
+        $raw=trim((string)$value);
+        if(!preg_match('/^\\d+(?:\\.0{1,3})?$/D',$raw)){
+            throw new InvalidArgumentException($allowZero
+                ? 'La cantidad debe ser un número entero igual o mayor que cero.'
+                : 'La cantidad debe ser un número entero mayor que cero.');
+        }
+
+        $whole=explode('.',$raw,2)[0];
+        $whole=ltrim($whole,'0');
+        if($whole==='') $whole='0';
+        if(strlen($whole)>11){
+            throw new InvalidArgumentException('Cantidad fuera de rango.');
+        }
+
+        $quantity=(int)$whole;
+        if($allowZero ? $quantity<0 : $quantity<1){
+            throw new InvalidArgumentException($allowZero
+                ? 'La cantidad debe ser un número entero igual o mayor que cero.'
+                : 'La cantidad debe ser un número entero mayor que cero.');
+        }
+
         return (string)$quantity.'.000';
     }
 

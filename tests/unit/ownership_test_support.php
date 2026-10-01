@@ -5,6 +5,17 @@ require __DIR__ . '/workflow_controller_test_support.php';
 // Real Controllers/Policies/PermissionService; all storage is in-memory, no SQL execution.
 function view(string $name, array $data = []): void { $GLOBALS['rendered'] = [$name,$data]; }
 function index_by(array $rows, string $key): array { return array_column($rows,null,$key); }
+function quantity_integer_value(mixed $value, bool $allowZero=false): ?int {
+    if ((!is_string($value) && !is_int($value)) || is_bool($value)) return null;
+    $raw=trim((string)$value);
+    if (!preg_match('/^\d+(?:\.0{1,3})?$/D',$raw)) return null;
+    $whole=ltrim(explode('.',$raw,2)[0],'0');
+    if ($whole==='') $whole='0';
+    if (strlen($whole)>11) return null;
+    $quantity=(int)$whole;
+    if ($allowZero ? $quantity<0 : $quantity<1) return null;
+    return $quantity;
+}
 final class OwnershipRows extends PDOStatement {
     private array $rows = [];
     public function __construct(private Closure $resolve) {}

@@ -90,7 +90,8 @@ final class StockController
 
     private function normalizeDetails(array $details): array
     {
-        $products=\index_by($this->masters()->productos(),'id');
+        $products=[];
+        foreach($this->masters()->productos() as $row) $products[(int)$row['id']]=$row;
         $normalized=[];
         $positions=[];
 

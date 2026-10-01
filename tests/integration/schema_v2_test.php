@@ -23,6 +23,7 @@ try {
     $upgrade->pdo->exec("INSERT INTO stock_detalle(stock_id,producto_id,unidad_id,cantidad) VALUES(2,2,1,4)");
     $before = $upgrade->pdo->query('SELECT * FROM documentos_cabecera')->fetch();
     $upgrade->load('database/migrations/002_schema_v2.sql');
+    $upgrade->load('database/migrations/004_catalogos_masivos_busqueda.sql');
     $after = $upgrade->pdo->query('SELECT * FROM documentos_cabecera')->fetch();
     ensure(array_intersect_key($after, $before) === $before, 'Upgrade preserves original header values');
     ensure($after['updated_at'] === null && $after['validated_by'] === null && (int) $after['version'] === 1, 'Do not invent historical audit data');

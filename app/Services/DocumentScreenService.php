@@ -5,7 +5,7 @@ namespace App\Services;
 /** Document screen adapter for Schema v2; does not create master records. */
 final class DocumentScreenService
 {
-    public function catalogs(): array
+    public function catalogs(bool $withNextNumbers=true): array
     {
         $queries = [
             'tipo_documento_id'=>'SELECT id,codigo,CONCAT(codigo," · ",nombre) label FROM tipos_documento ORDER BY codigo',
@@ -27,11 +27,13 @@ final class DocumentScreenService
         $result=[];
         foreach($queries as $key=>$sql) $result[$key]=\db()->query($sql)->fetchAll();
 
-        $numbering=new OperationalNumberingService();
-        foreach($result['tipo_documento_id'] as &$type){
-            $type['next_number']=$numbering->nextDocumentNumber((int)$type['id']);
+        if($withNextNumbers){
+            $numbering=new OperationalNumberingService();
+            foreach($result['tipo_documento_id'] as &$type){
+                $type['next_number']=$numbering->nextDocumentNumber((int)$type['id']);
+            }
+            unset($type);
         }
-        unset($type);
 
         return $result;
     }

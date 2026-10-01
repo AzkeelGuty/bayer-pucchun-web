@@ -46,14 +46,15 @@ final class DocumentController
     }
     public function show(): void {
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read'); $r=$this->record((int)\input('id',0));
-        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogs()]);
+        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogs(false)]);
     }
     private function form(array $header,array $details,bool $editing=false,array $errors=[],?array $catalogs=null): void {
-        $catalogs??=(new DocumentScreenService())->catalogs();
+        $catalogs??=(new DocumentScreenService())->catalogs(!$editing);
         \view('documentos.form',compact('header','details','editing','errors','catalogs'));
     }
     private function normalizeDetails(array $details,array $catalogs): array {
-        $products=\index_by($catalogs['producto_id']??[],'id');
+        $products=[];
+        foreach(($catalogs['producto_id']??[]) as $row) $products[(int)$row['id']]=$row;
         $normalized=[];
         $positions=[];
 
@@ -99,8 +100,9 @@ final class DocumentController
         }
         if($editing) { $r=$this->record($id); if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
         $screen=new DocumentScreenService();
-        $catalogs=$screen->catalogs();
-        $clients=\index_by($catalogs['cliente_id']??[],'id');
+        $catalogs=$screen->catalogs(false);
+        $clients=[];
+        foreach(($catalogs['cliente_id']??[]) as $row) $clients[(int)$row['id']]=$row;
         $client=$clients[(int)($header['cliente_id']??0)]??null;
         if($client){
             if((int)($header['vendedor_id']??0)<1 && (int)($client['vendedor_sugerido_id']??0)>0) $header['vendedor_id']=(int)$client['vendedor_sugerido_id'];
