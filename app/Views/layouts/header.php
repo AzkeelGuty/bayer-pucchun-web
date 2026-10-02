@@ -25,7 +25,7 @@ $favicon = branding_logo_url('favicon');
     <link rel="stylesheet" href="<?=asset_url('assets/css/app.css')?>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
-<body class="<?= $u ? 'app-authenticated' : 'app-guest' ?> sidebar-theme-<?=e($brand['sidebar_theme'])?>">
+<body class="<?= $u ? 'app-authenticated' : 'app-guest' ?> sidebar-theme-<?=e($brand['sidebar_theme'])?> ui-density-<?=e($brand['ui_density'])?> ui-corners-<?=e($brand['corner_style'])?> ui-shadow-<?=e($brand['shadow_style'])?> sidebar-size-<?=e($brand['sidebar_size'])?> topbar-style-<?=e($brand['topbar_style'])?>">
 <?php if($u): ?>
 <div class="app-shell">
     <?php require base_path('app/Views/layouts/sidebar.php'); ?>
