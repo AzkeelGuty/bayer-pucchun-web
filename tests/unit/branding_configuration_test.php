@@ -105,6 +105,13 @@ try {
         branding_test_assert(branding_logo_url($asset)!==null,'No se resolvió el archivo guardado de '.$asset);
     }
 
+    $css=@file_get_contents(base_path('public/assets/css/app.css'));
+    branding_test_assert(is_string($css) && $css!=='','No se pudo leer app.css.');
+    branding_test_assert(
+        str_contains($css,'.sidebar-link.active{background:linear-gradient(90deg,var(--brand-primary,#075b9f),var(--brand-accent,#168c5b))'),
+        'El menú lateral activo no está usando los colores configurables de identidad visual.'
+    );
+
     $navigation=@file_get_contents(base_path('public/assets/js/navigation.js'));
     branding_test_assert(is_string($navigation) && $navigation!=='','No se pudo leer navigation.js.');
     $methodPos=strpos($navigation,"const method = String(options.method || 'GET').toUpperCase();");
