@@ -15,8 +15,9 @@ final class SimplePdfExporter
         if(!$keys && $rows) $keys=ExportPresentation::keys($rows);
 
         $images=$this->prepareImages($meta);
-        $perPage=12;
-        $chunks=$rows ? array_chunk($rows,$perPage) : [[]];
+        $tableWidth=self::PAGE_W-(2*self::MARGIN);
+        $widths=$keys ? $this->columnWidths($keys,$tableWidth) : [];
+        $chunks=$rows ? $this->paginateRows($rows,$keys,$widths,310.0) : [[]];
         $pageCount=count($chunks);
 
         $objects=[];
@@ -133,7 +134,11 @@ final class SimplePdfExporter
             $content[]=$this->fillRect($x,$metaY-28,$cardW,40,.965,.982,.992);
             $content[]=$this->strokeRect($x,$metaY-28,$cardW,40,.84,.90,.94,.55);
             $content[]=$this->text($x+8,$metaY+1,$item[0],6.1,'F2',.35,.47,.57);
-            $content[]=$this->text($x+8,$metaY-13,$this->clip($item[1],28),7.4,'F2',.07,.20,.31);
+
+            $valueLines=$this->wrapForWidth($item[1],$cardW-16,6.9);
+            foreach(array_slice($valueLines,0,3) as $lineIndex=>$line){
+                $content[]=$this->text($x+8,$metaY-12-($lineIndex*7.5),$line,6.9,'F2',.07,.20,.31);
+            }
         }
 
         $content[]=$this->text($m,$metaY-47,'Filtros aplicados: '.$this->clip((string)($meta['filters']??'Sin filtros adicionales'),125),6.8,'F1',.35,.47,.57);
@@ -147,31 +152,42 @@ final class SimplePdfExporter
             $content[]=$this->text($m+16,$tableTop-34,'Sin datos para los filtros seleccionados.',10,'F2',.35,.47,.57);
         }else{
             $widths=$this->columnWidths($keys,$w-2*$m);
-            $headerH=25;
-            $rowH=21;
+            $headerLines=[];
+            $headerMaxLines=1;
+            foreach($keys as $idx=>$key){
+                $headerLines[$idx]=$this->wrapForWidth(ExportPresentation::fieldLabel($key),$widths[$idx],5.8);
+                $headerMaxLines=max($headerMaxLines,count($headerLines[$idx]));
+            }
+            $headerH=max(25.0,10.0+($headerMaxLines*6.9));
             $x=$m;
 
             foreach($keys as $idx=>$key){
                 $cw=$widths[$idx];
                 $content[]=$this->fillRect($x,$tableTop-$headerH,$cw,$headerH,$pr,$pg,$pb);
                 $content[]=$this->strokeRect($x,$tableTop-$headerH,$cw,$headerH,1,1,1,.18);
-                $label=ExportPresentation::fieldLabel($key);
-                $content[]=$this->text($x+4.5,$tableTop-16,$this->clipForWidth($label,$cw,6.0),6.0,'F2',1,1,1);
+                foreach($this->cellTextCommands($x,$tableTop-$headerH,$cw,$headerH,$headerLines[$idx],5.8,'F2',1,1,1) as $command){
+                    $content[]=$command;
+                }
                 $x+=$cw;
             }
 
             $y=$tableTop-$headerH;
             foreach($rows as $ri=>$row){
+                $rowH=$this->rowHeight($row,$keys,$widths);
                 $y-=$rowH;
                 $shade=$ri%2===0 ? .995 : .965;
                 $content[]=$this->fillRect($m,$y,$w-2*$m,$rowH,$shade,min(1,$shade+.003),min(1,$shade+.008));
                 $x=$m;
+
                 foreach($keys as $idx=>$key){
                     $cw=$widths[$idx];
                     $content[]=$this->strokeRect($x,$y,$cw,$rowH,.88,.92,.95,.42);
                     $value=ExportPresentation::displayValue($key,$row[$key]??null);
                     $font=in_array($key,['documentNumber','materialId','batch'],true)?'F2':'F1';
-                    $content[]=$this->text($x+4.5,$y+7.5,$this->clipForWidth($value,$cw,6.0),6.0,$font,.12,.20,.28);
+                    $lines=$this->wrapForWidth($value,$cw,5.8);
+                    foreach($this->cellTextCommands($x,$y,$cw,$rowH,$lines,5.8,$font,.12,.20,.28) as $command){
+                        $content[]=$command;
+                    }
                     $x+=$cw;
                 }
             }
@@ -439,10 +455,10 @@ final class SimplePdfExporter
     {
         $weights=[
             'documentNumber'=>1.12,'documentDate'=>.78,'stockDate'=>.78,
-            'customerName'=>1.48,'salesName'=>1.16,'branchName'=>1.06,
-            'warehouseName'=>1.20,'materialName'=>1.52,'measureUnit'=>.64,
-            'batch'=>.82,'quantity'=>.72,'unitValue'=>.80,'expirationDate'=>.85,
-            'district'=>.90,'province'=>.90,'department'=>.90,
+            'customerName'=>1.78,'salesName'=>1.25,'branchName'=>1.05,
+            'warehouseName'=>1.22,'materialName'=>1.62,'measureUnit'=>.62,
+            'batch'=>.82,'quantity'=>.70,'unitValue'=>.78,'expirationDate'=>.85,
+            'district'=>.78,'province'=>.78,'department'=>.78,
         ];
         $sum=0.0;
         foreach($keys as $key) $sum+=(float)($weights[$key]??1);
@@ -450,6 +466,93 @@ final class SimplePdfExporter
         $result=[];
         foreach($keys as $key) $result[]=$available*((float)($weights[$key]??1)/$sum);
         return $result;
+    }
+
+    private function paginateRows(array $rows,array $keys,array $widths,float $maxHeight): array
+    {
+        $pages=[];
+        $current=[];
+        $used=0.0;
+
+        foreach($rows as $row){
+            $height=$this->rowHeight($row,$keys,$widths);
+            if($current && $used+$height>$maxHeight){
+                $pages[]=$current;
+                $current=[];
+                $used=0.0;
+            }
+            $current[]=$row;
+            $used+=$height;
+        }
+
+        if($current) $pages[]=$current;
+        return $pages ?: [[]];
+    }
+
+    private function rowHeight(array $row,array $keys,array $widths): float
+    {
+        $maxLines=1;
+        foreach($keys as $idx=>$key){
+            $value=ExportPresentation::displayValue($key,$row[$key]??null);
+            $maxLines=max($maxLines,count($this->wrapForWidth($value,$widths[$idx]??40.0,5.8)));
+        }
+        return max(21.0,9.0+($maxLines*7.0));
+    }
+
+    private function wrapForWidth(string $text,float $width,float $fontSize): array
+    {
+        $text=trim(preg_replace('/\\s+/u',' ',$text)??$text);
+        if($text==='') return [''];
+
+        $maxChars=max(2,(int)floor(max(8.0,$width-8.0)/($fontSize*.52)));
+        $words=preg_split('/\\s+/u',$text,-1,PREG_SPLIT_NO_EMPTY) ?: [$text];
+        $lines=[];
+        $line='';
+
+        foreach($words as $word){
+            while(mb_strlen($word)>$maxChars){
+                if($line!==''){
+                    $lines[]=$line;
+                    $line='';
+                }
+                $lines[]=mb_substr($word,0,$maxChars);
+                $word=mb_substr($word,$maxChars);
+            }
+
+            $candidate=$line===''?$word:$line.' '.$word;
+            if($line!=='' && mb_strlen($candidate)>$maxChars){
+                $lines[]=$line;
+                $line=$word;
+            }else{
+                $line=$candidate;
+            }
+        }
+
+        if($line!=='' || !$lines) $lines[]=$line;
+        return $lines;
+    }
+
+    private function estimatedTextWidth(string $text,float $fontSize,string $font): float
+    {
+        $factor=$font==='F2'?.54:.50;
+        return mb_strlen($text)*$fontSize*$factor;
+    }
+
+    private function cellTextCommands(
+        float $x,float $y,float $width,float $height,array $lines,float $size,string $font,
+        float $r,float $g,float $b
+    ): array {
+        $lines=$lines ?: [''];
+        $lineHeight=$size*1.20;
+        $topBaseline=$y+($height/2)+((count($lines)-1)*$lineHeight/2)-($size*.50);
+        $commands=[];
+
+        foreach($lines as $i=>$line){
+            $textWidth=$this->estimatedTextWidth($line,$size,$font);
+            $tx=$x+max(3.0,($width-$textWidth)/2);
+            $commands[]=$this->text($tx,$topBaseline-($i*$lineHeight),$line,$size,$font,$r,$g,$b);
+        }
+        return $commands;
     }
 
     private function clipForWidth(string $text,float $width,float $fontSize): string
