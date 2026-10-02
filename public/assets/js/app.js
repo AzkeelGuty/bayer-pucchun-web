@@ -266,6 +266,99 @@
         if (!document.hidden) liveElements.forEach((element) => refreshLiveElement(element));
     });
 
+    /*
+     * Búsqueda incremental de Catálogos maestros.
+     * Actualiza solo la tabla, conserva el foco y no obliga a pulsar Enter.
+     */
+    let masterSearchTimer = null;
+    let masterSearchController = null;
+
+    const runMasterSearch = async (input) => {
+        const form = input.closest('[data-master-search-form]');
+        if (!form || !input.isConnected) return;
+
+        const table = document.querySelector('[data-live-refresh-key="backoffice-data-table"]');
+        if (!table) return;
+
+        const url = new URL(form.action || window.location.href, window.location.href);
+        const tab = form.querySelector('input[name="tab"]')?.value || '';
+        const query = input.value.trim();
+
+        if (tab) url.searchParams.set('tab', tab);
+        if (query) url.searchParams.set('q', query);
+        else url.searchParams.delete('q');
+
+        if (masterSearchController) masterSearchController.abort();
+        masterSearchController = new AbortController();
+        const controller = masterSearchController;
+
+        form.classList.add('is-searching');
+        table.setAttribute('aria-busy', 'true');
+
+        try {
+            const response = await fetch(url.href, {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'text/html,application/xhtml+xml',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            if (!response.ok) return;
+
+            const html = await response.text();
+            if (controller !== masterSearchController) return;
+
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const fresh = doc.querySelector('[data-live-refresh-key="backoffice-data-table"]');
+            if (!fresh) return;
+
+            table.innerHTML = fresh.innerHTML;
+            table.dataset.liveUpdatedAt = new Date().toISOString();
+
+            const clear = form.querySelector('[data-master-search-clear]');
+            if (clear) clear.classList.toggle('d-none', query === '');
+
+            try {
+                const state = {...(history.state || {}), bpSoftNavigation: true, scrollY: Math.round(window.scrollY || 0)};
+                history.replaceState(state, '', url.href);
+            } catch (_) {}
+        } catch (error) {
+            if (error?.name !== 'AbortError') console.error('Búsqueda incremental:', error);
+        } finally {
+            if (controller === masterSearchController) {
+                table.removeAttribute('aria-busy');
+                form.classList.remove('is-searching');
+            }
+        }
+    };
+
+    document.addEventListener('input', (event) => {
+        const input = event.target.closest?.('#master-search');
+        if (!input || !input.closest('[data-master-search-form]')) return;
+        if (event.isComposing) return;
+
+        if (masterSearchTimer) window.clearTimeout(masterSearchTimer);
+        masterSearchTimer = window.setTimeout(() => runMasterSearch(input), 220);
+    });
+
+    document.addEventListener('click', (event) => {
+        const clear = event.target.closest?.('[data-master-search-clear]');
+        if (!clear) return;
+        const form = clear.closest('[data-master-search-form]');
+        const input = form?.querySelector('#master-search');
+        if (!form || !input) return;
+
+        event.preventDefault();
+        input.value = '';
+        input.focus({preventScroll:true});
+        if (masterSearchTimer) window.clearTimeout(masterSearchTimer);
+        runMasterSearch(input);
+    });
+
     if (!window.dashboardData || typeof Chart === 'undefined') return;
 
     const series = window.dashboardData.series || [];
