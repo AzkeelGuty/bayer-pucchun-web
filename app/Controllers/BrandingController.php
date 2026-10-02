@@ -251,7 +251,9 @@ final class BrandingController
     {
         foreach($paths as $relative){
             if(!is_string($relative) || $relative==='') continue;
-            $absolute=\base_path('public/'.ltrim($relative,'/'));
+            $relative=ltrim($relative,'/');
+            if(!str_starts_with($relative,'uploads/branding/')) continue;
+            $absolute=\base_path('public/'.$relative);
             if(is_file($absolute)) @unlink($absolute);
         }
     }
