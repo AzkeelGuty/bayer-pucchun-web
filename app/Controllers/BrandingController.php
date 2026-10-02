@@ -20,6 +20,17 @@ final class BrandingController
         'footer_text'=>140,
     ];
 
+    private const APPEARANCE_OPTIONS = [
+        'sidebar_theme'=>['dark','light'],
+        'ui_density'=>['comfortable','compact'],
+        'corner_style'=>['rounded','balanced','square'],
+        'shadow_style'=>['soft','minimal','none'],
+        'sidebar_size'=>['normal','compact'],
+        'topbar_style'=>['glass','solid'],
+    ];
+
+    private const ASSETS = ['logo_primary','logo_partner','favicon'];
+
     public function index(): void
     {
         \require_role('ADMIN');
@@ -49,37 +60,66 @@ final class BrandingController
             $next[$key]=$value;
         }
 
-        $theme=strtolower(trim((string)($_POST['sidebar_theme'] ?? 'dark')));
-        if(!in_array($theme,['dark','light'],true)){
-            throw new HttpException(422, 'Tema del menú lateral inválido.');
+        foreach (self::APPEARANCE_OPTIONS as $key=>$allowed) {
+            $value=strtolower(trim((string)($_POST[$key] ?? $current[$key] ?? $allowed[0])));
+            if(!in_array($value,$allowed,true)){
+                throw new HttpException(422, 'Una opción de apariencia no es válida.');
+            }
+            $next[$key]=$value;
         }
-        $next['sidebar_theme']=$theme;
 
-        foreach (['logo_primary','logo_partner','favicon'] as $asset) {
-            if (!empty($_POST['remove_'.$asset])) $this->removeAsset($next, $asset);
-            $next[$asset] = $this->storeUpload($asset, $next[$asset] ?? null);
+        $newUploads=[];
+        $deleteAfterSave=[];
+
+        foreach (self::ASSETS as $asset) {
+            $old=is_string($current[$asset] ?? null) ? (string)$current[$asset] : null;
+
+            if($this->hasUpload($asset)){
+                $uploaded=$this->storeUpload($asset);
+                $next[$asset]=$uploaded;
+                $newUploads[]=$uploaded;
+                if($old && $old!==$uploaded) $deleteAfterSave[]=$old;
+                continue;
+            }
+
+            if(!empty($_POST['remove_'.$asset])){
+                $next[$asset]=null;
+                if($old) $deleteAfterSave[]=$old;
+            }
         }
 
         $dir = \base_path('storage/config');
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            $this->deleteAssets($newUploads);
             throw new HttpException(500, 'No se pudo preparar la carpeta de configuración.');
         }
 
         $payload = json_encode($next, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($payload === false || @file_put_contents($dir . '/branding.json', $payload . PHP_EOL, LOCK_EX) === false) {
+            $this->deleteAssets($newUploads);
             throw new HttpException(500, 'No se pudo guardar la identidad visual.');
         }
 
+        // Recién después de guardar la configuración eliminamos los archivos reemplazados.
+        // Así un upload inválido o un fallo al escribir branding.json nunca borra el activo actual.
+        $this->deleteAssets(array_values(array_unique($deleteAfterSave)));
+
         \audit('configuracion', 'actualizar_identidad');
-        \flash('success', 'Identidad visual actualizada correctamente.');
+        \flash('success', 'Identidad visual y apariencia actualizadas correctamente.');
         \redirect('/configuracion/identidad');
     }
 
-    private function storeUpload(string $field, ?string $current): ?string
+    private function hasUpload(string $field): bool
+    {
+        $file=$_FILES[$field] ?? null;
+        return is_array($file) && ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+    }
+
+    private function storeUpload(string $field): string
     {
         $file = $_FILES[$field] ?? null;
         if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-            return $current;
+            throw new HttpException(422, 'No se recibió el archivo de identidad.');
         }
         if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
             throw new HttpException(422, 'No se pudo cargar uno de los archivos de identidad.');
@@ -100,6 +140,8 @@ final class BrandingController
         if($originalExtension==='svg'){
             $sanitizedSvg=$this->sanitizeSvg($tmp);
             $extension='svg';
+        }elseif($field==='favicon' && $originalExtension==='ico' && $this->isIco($tmp)){
+            $extension='ico';
         }else{
             $finfo=new \finfo(FILEINFO_MIME_TYPE);
             $mime=$finfo->file($tmp);
@@ -107,9 +149,13 @@ final class BrandingController
                 'image/png'=>'png',
                 'image/jpeg'=>'jpg',
                 'image/webp'=>'webp',
+                'image/x-icon'=>'ico',
+                'image/vnd.microsoft.icon'=>'ico',
             ];
-            if(!isset($extensions[$mime])){
-                throw new HttpException(422, 'Formato no permitido. Use SVG, PNG, JPG o WEBP.');
+            if(!isset($extensions[$mime]) || ($extensions[$mime]==='ico' && $field!=='favicon')){
+                throw new HttpException(422, $field==='favicon'
+                    ? 'Formato no permitido. Use SVG, PNG, JPG, WEBP o ICO.'
+                    : 'Formato no permitido. Use SVG, PNG, JPG o WEBP.');
             }
             $extension=$extensions[$mime];
         }
@@ -130,12 +176,13 @@ final class BrandingController
             throw new HttpException(500, 'No se pudo guardar el archivo de identidad.');
         }
 
-        if($current){
-            $old=\base_path('public/'.ltrim($current,'/'));
-            if(is_file($old)) @unlink($old);
-        }
-
         return 'uploads/branding/'.$filename;
+    }
+
+    private function isIco(string $tmp): bool
+    {
+        $head=@file_get_contents($tmp,false,null,0,4);
+        return is_string($head) && ($head==="\x00\x00\x01\x00" || $head==="\x00\x00\x02\x00");
     }
 
     private function sanitizeSvg(string $tmp): string
@@ -200,13 +247,12 @@ final class BrandingController
         return $safe;
     }
 
-    private function removeAsset(array &$branding, string $key): void
+    private function deleteAssets(array $paths): void
     {
-        $relative=$branding[$key] ?? null;
-        if(is_string($relative) && $relative!==''){
+        foreach($paths as $relative){
+            if(!is_string($relative) || $relative==='') continue;
             $absolute=\base_path('public/'.ltrim($relative,'/'));
             if(is_file($absolute)) @unlink($absolute);
         }
-        $branding[$key]=null;
     }
 }
