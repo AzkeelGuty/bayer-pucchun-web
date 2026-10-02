@@ -71,9 +71,9 @@ function actorForRole(PDO $pdo, string $role, ?int $fallback = null): int
 function simulationIds(PDO $pdo): array
 {
     return [
-        'documents' => array_map('intval', array_column(all($pdo, "SELECT id FROM documentos_cabecera WHERE numero LIKE 'SIM-REAL-%'"), 'id')),
-        'guides' => array_map('intval', array_column(all($pdo, "SELECT id FROM guias_cabecera WHERE numero LIKE 'SIM-REAL-%'"), 'id')),
-        'stock' => array_map('intval', array_column(all($pdo, "SELECT id FROM stock_cabecera WHERE idempotency_key LIKE 'sim-real-%'"), 'id')),
+        'documents' => array_map('intval', array_column(all($pdo, "SELECT id FROM documentos_cabecera WHERE numero LIKE 'SIM-D-%' OR numero LIKE 'SIM-O-%' OR numero LIKE 'SIM-REAL-%'"), 'id')),
+        'guides' => array_map('intval', array_column(all($pdo, "SELECT id FROM guias_cabecera WHERE numero LIKE 'SIM-G-%' OR numero LIKE 'SIM-REAL-%'"), 'id')),
+        'stock' => array_map('intval', array_column(all($pdo, "SELECT id FROM stock_cabecera WHERE idempotency_key LIKE 'sim-stock-%' OR idempotency_key LIKE 'sim-real-%'"), 'id')),
     ];
 }
 
@@ -230,7 +230,7 @@ if ($mode === 'cleanup') {
     try {
         cleanupSimulation($pdo);
         $pdo->commit();
-        echo "OK: se eliminaron únicamente los registros SIM-REAL creados por este script.\n";
+        echo "OK: se eliminaron únicamente los registros de simulación creados por este script.\n";
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
@@ -251,6 +251,17 @@ if ($mode === 'preview') {
 
 $today = date('Y-m-d');
 $stamp = date('Ymd-His');
+
+// documentos_cabecera.numero y guias_cabecera.numero admiten máximo 25 bytes.
+// Prefijos cortos mantienen el identificador visible como simulación sin exceder el límite.
+$publishedDocNumber = 'SIM-D-' . $stamp;
+$observedDocNumber = 'SIM-O-' . $stamp;
+$guideNumber = 'SIM-G-' . $stamp;
+foreach ([$publishedDocNumber,$observedDocNumber,$guideNumber] as $simulationNumber) {
+    if (strlen($simulationNumber) > 25) {
+        throw new RuntimeException('Número de simulación fuera del máximo de 25 bytes.');
+    }
+}
 
 $docRepo = new DocumentRepository($pdo);
 $guideRepo = new GuideRepository($pdo);
@@ -293,7 +304,7 @@ try {
 
     $publishedDocId = $docRepo->create([
         'tipo_documento_id' => (int)$type['id'],
-        'numero' => 'SIM-REAL-DOC-'.$stamp,
+        'numero' => $publishedDocNumber,
         'fecha' => $today,
         'cliente_id' => (int)$client['id'],
         'vendedor_id' => (int)$seller['id'],
@@ -305,7 +316,7 @@ try {
 
     $observedDocId = $docRepo->create([
         'tipo_documento_id' => (int)$type['id'],
-        'numero' => 'SIM-REAL-OBS-'.$stamp,
+        'numero' => $observedDocNumber,
         'fecha' => $today,
         'cliente_id' => (int)$client['id'],
         'vendedor_id' => (int)$seller['id'],
@@ -316,7 +327,7 @@ try {
     $version = $workflow->transition($docRepo, $observedDocId, $version, 'OBSERVADO', $supervisorId, 'SIMULACIÓN: corregir y volver a validar este registro.');
 
     $guideId = $guideRepo->create([
-        'numero' => 'SIM-REAL-GUI-'.$stamp,
+        'numero' => $guideNumber,
         'fecha' => $today,
         'cliente_id' => (int)$client['id'],
         'vendedor_id' => (int)$seller['id'],
@@ -334,7 +345,7 @@ try {
     $stockId = $stockRepo->create([
         'fecha_stock' => $today,
         'almacen_id' => (int)$warehouse['id'],
-        'idempotency_key' => 'sim-real-'.$stamp,
+        'idempotency_key' => 'sim-stock-'.$stamp,
     ], $stockDetails, $creatorId);
     $version = 1;
     $version = $workflow->transition($stockRepo, $stockId, $version, 'VALIDADO', $supervisorId);
