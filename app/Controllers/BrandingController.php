@@ -160,7 +160,7 @@ final class BrandingController
             $extension=$extensions[$mime];
         }
 
-        $dir=\base_path('public/uploads/branding');
+        $dir=\public_path('uploads/branding');
         if(!is_dir($dir) && !@mkdir($dir,0775,true) && !is_dir($dir)){
             throw new HttpException(500, 'No se pudo preparar la carpeta de identidad visual.');
         }
@@ -253,7 +253,7 @@ final class BrandingController
             if(!is_string($relative) || $relative==='') continue;
             $relative=ltrim($relative,'/');
             if(!str_starts_with($relative,'uploads/branding/')) continue;
-            $absolute=\base_path('public/'.$relative);
+            $absolute=\public_path($relative);
             if(is_file($absolute)) @unlink($absolute);
         }
     }
