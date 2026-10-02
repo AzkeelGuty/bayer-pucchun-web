@@ -135,7 +135,7 @@ final class SimplePdfExporter
             $content[]=$this->strokeRect($x,$metaY-28,$cardW,40,.84,.90,.94,.55);
             $content[]=$this->text($x+8,$metaY+1,$item[0],6.1,'F2',.35,.47,.57);
 
-            $valueLines=$this->wrapForWidth($item[1],$cardW-16,6.9);
+            $valueLines=$this->wrapForWidth($item[1],$cardW-16,6.9,'F2');
             foreach(array_slice($valueLines,0,3) as $lineIndex=>$line){
                 $content[]=$this->text($x+8,$metaY-12-($lineIndex*7.5),$line,6.9,'F2',.07,.20,.31);
             }
@@ -155,7 +155,7 @@ final class SimplePdfExporter
             $headerLines=[];
             $headerMaxLines=1;
             foreach($keys as $idx=>$key){
-                $headerLines[$idx]=$this->wrapForWidth(ExportPresentation::fieldLabel($key),$widths[$idx],5.8);
+                $headerLines[$idx]=$this->wrapForWidth(ExportPresentation::fieldLabel($key),$widths[$idx],5.8,'F2');
                 $headerMaxLines=max($headerMaxLines,count($headerLines[$idx]));
             }
             $headerH=max(25.0,10.0+($headerMaxLines*6.9));
@@ -184,7 +184,7 @@ final class SimplePdfExporter
                     $content[]=$this->strokeRect($x,$y,$cw,$rowH,.88,.92,.95,.42);
                     $value=ExportPresentation::displayValue($key,$row[$key]??null);
                     $font=in_array($key,['documentNumber','materialId','batch'],true)?'F2':'F1';
-                    $lines=$this->wrapForWidth($value,$cw,5.8);
+                    $lines=$this->wrapForWidth($value,$cw,5.8,$font);
                     foreach($this->cellTextCommands($x,$y,$cw,$rowH,$lines,5.8,$font,.12,.20,.28) as $command){
                         $content[]=$command;
                     }
@@ -494,37 +494,39 @@ final class SimplePdfExporter
         $maxLines=1;
         foreach($keys as $idx=>$key){
             $value=ExportPresentation::displayValue($key,$row[$key]??null);
-            $maxLines=max($maxLines,count($this->wrapForWidth($value,$widths[$idx]??40.0,5.8)));
+            $font=in_array($key,['documentNumber','materialId','batch'],true)?'F2':'F1';
+            $maxLines=max($maxLines,count($this->wrapForWidth($value,$widths[$idx]??40.0,5.8,$font)));
         }
         return max(21.0,9.0+($maxLines*7.0));
     }
 
-    private function wrapForWidth(string $text,float $width,float $fontSize): array
+    private function wrapForWidth(string $text,float $width,float $fontSize,string $font='F1'): array
     {
         $text=trim(preg_replace('/\\s+/u',' ',$text)??$text);
         if($text==='') return [''];
 
-        $maxChars=max(2,(int)floor(max(8.0,$width-8.0)/($fontSize*.52)));
+        // El PDF usa Helvetica/Helvetica-Bold. Medimos por ancho aproximado de glifo,
+        // no por cantidad de caracteres: nombres en MAYÚSCULAS ocupan bastante más.
+        $available=max(4.0,$width-10.0);
         $words=preg_split('/\\s+/u',$text,-1,PREG_SPLIT_NO_EMPTY) ?: [$text];
         $lines=[];
         $line='';
 
         foreach($words as $word){
-            while(mb_strlen($word)>$maxChars){
-                if($line!==''){
+            $fragments=$this->splitWordForWidth($word,$available,$fontSize,$font);
+            foreach($fragments as $fragmentIndex=>$fragment){
+                if($fragmentIndex>0 && $line!==''){
                     $lines[]=$line;
                     $line='';
                 }
-                $lines[]=mb_substr($word,0,$maxChars);
-                $word=mb_substr($word,$maxChars);
-            }
 
-            $candidate=$line===''?$word:$line.' '.$word;
-            if($line!=='' && mb_strlen($candidate)>$maxChars){
-                $lines[]=$line;
-                $line=$word;
-            }else{
-                $line=$candidate;
+                $candidate=$line===''?$fragment:$line.' '.$fragment;
+                if($line!=='' && $this->estimatedTextWidth($candidate,$fontSize,$font)>$available){
+                    $lines[]=$line;
+                    $line=$fragment;
+                }else{
+                    $line=$candidate;
+                }
             }
         }
 
@@ -532,10 +534,54 @@ final class SimplePdfExporter
         return $lines;
     }
 
+    private function splitWordForWidth(string $word,float $available,float $fontSize,string $font): array
+    {
+        if($this->estimatedTextWidth($word,$fontSize,$font)<=$available) return [$word];
+
+        $parts=[];
+        $part='';
+        foreach(mb_str_split($word) as $char){
+            $candidate=$part.$char;
+            if($part!=='' && $this->estimatedTextWidth($candidate,$fontSize,$font)>$available){
+                $parts[]=$part;
+                $part=$char;
+            }else{
+                $part=$candidate;
+            }
+        }
+        if($part!=='') $parts[]=$part;
+        return $parts ?: [$word];
+    }
+
     private function estimatedTextWidth(string $text,float $fontSize,string $font): float
     {
-        $factor=$font==='F2'?.54:.50;
-        return mb_strlen($text)*$fontSize*$factor;
+        $units=0.0;
+        foreach(mb_str_split($text) as $char){
+            if($char===' '){
+                $factor=.278;
+            }elseif(str_contains("iIl1.,:;!'|",$char)){
+                $factor=.278;
+            }elseif(str_contains('MW@%&',$char)){
+                $factor=.90;
+            }elseif(str_contains('mw',$char)){
+                $factor=.78;
+            }elseif(preg_match('/^[A-ZÁÉÍÓÚÑÜ]$/u',$char)){
+                $factor=.68;
+            }elseif(preg_match('/^[0-9]$/',$char)){
+                $factor=.56;
+            }elseif(str_contains('-_/()[]',$char)){
+                $factor=.36;
+            }elseif(preg_match('/^[a-záéíóúñü]$/u',$char)){
+                $factor=.50;
+            }else{
+                $factor=.58;
+            }
+            $units+=$factor;
+        }
+
+        // Helvetica-Bold es ligeramente más ancha en la práctica.
+        if($font==='F2') $units*=1.035;
+        return $units*$fontSize;
     }
 
     private function cellTextCommands(
@@ -545,13 +591,26 @@ final class SimplePdfExporter
         $lines=$lines ?: [''];
         $lineHeight=$size*1.20;
         $topBaseline=$y+($height/2)+((count($lines)-1)*$lineHeight/2)-($size*.50);
-        $commands=[];
+
+        // Guardarraíl definitivo: todo el texto queda recortado físicamente por la
+        // caja de su celda. Aunque una métrica de fuente variara entre lectores PDF,
+        // jamás puede dibujarse encima de la columna vecina.
+        $commands=[
+            sprintf(
+                "q %.2f %.2f %.2f %.2f re W n",
+                $x+.75,
+                $y+.75,
+                max(1.0,$width-1.5),
+                max(1.0,$height-1.5)
+            )
+        ];
 
         foreach($lines as $i=>$line){
             $textWidth=$this->estimatedTextWidth($line,$size,$font);
-            $tx=$x+max(3.0,($width-$textWidth)/2);
+            $tx=$x+max(5.0,($width-$textWidth)/2);
             $commands[]=$this->text($tx,$topBaseline-($i*$lineHeight),$line,$size,$font,$r,$g,$b);
         }
+        $commands[]='Q';
         return $commands;
     }
 
