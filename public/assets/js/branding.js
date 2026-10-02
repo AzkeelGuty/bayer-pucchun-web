@@ -333,11 +333,14 @@
         }
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function initializeCurrentBranding() {
         const form = getForm();
         if (!form) return;
         updateColorPreview(form);
         updateAppearancePreview(form);
         updateBrowserTitle(form);
-    });
+    }
+
+    document.addEventListener('DOMContentLoaded', initializeCurrentBranding);
+    document.addEventListener('bp:navigation:complete', initializeCurrentBranding);
 })();
