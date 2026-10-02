@@ -110,7 +110,7 @@ if($activeTab==='' && !empty($tabs)){
 <?php endif; ?>
 
 <?php if($base==='/maestros'): ?>
-<form class="card mb-3" method="get" action="<?=url($base)?>" role="search">
+<form class="card mb-3" method="get" action="<?=url($base)?>" role="search" data-master-search-form>
     <div class="card-body py-3">
         <input type="hidden" name="tab" value="<?=e($activeTab)?>">
         <div class="row g-2 align-items-end">
@@ -120,9 +120,11 @@ if($activeTab==='' && !empty($tabs)){
             </div>
             <div class="col-12 col-lg-auto d-flex gap-2">
                 <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Buscar</button>
-                <?php if(trim((string)($q??''))!==''): ?>
-                    <a class="btn btn-outline-primary" href="<?=url($base.'?tab='.urlencode($activeTab))?>">Limpiar</a>
-                <?php endif; ?>
+                <a
+                    class="btn btn-outline-primary <?=trim((string)($q??''))===''?'d-none':''?>"
+                    href="<?=url($base.'?tab='.urlencode($activeTab))?>"
+                    data-master-search-clear
+                >Limpiar</a>
             </div>
         </div>
         <div class="form-text mt-2">La búsqueda consulta todo el catálogo y muestra hasta 300 coincidencias.</div>
