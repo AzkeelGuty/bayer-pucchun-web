@@ -359,6 +359,85 @@
         runMasterSearch(input);
     });
 
+    /*
+     * Diálogo de observación.
+     * Se usa en Documentos, Guías y Stock para evitar popovers dentro de tablas.
+     */
+    if (!window.BP_WORKFLOW_DIALOG_BOUND) {
+        window.BP_WORKFLOW_DIALOG_BOUND = true;
+
+        const resetWorkflowDialog = (dialog) => {
+            const reason = dialog?.querySelector('[data-workflow-dialog-reason]');
+            const counter = dialog?.querySelector('[data-workflow-reason-count]');
+            if (reason) {
+                reason.value = '';
+                reason.setCustomValidity('');
+            }
+            if (counter) counter.textContent = '0';
+        };
+
+        const closeWorkflowDialog = (dialog) => {
+            if (!dialog) return;
+            resetWorkflowDialog(dialog);
+            if (dialog.open) dialog.close();
+        };
+
+        document.addEventListener('click', (event) => {
+            const opener = event.target.closest?.('[data-workflow-dialog-open]');
+            if (opener) {
+                event.preventDefault();
+                const id = opener.getAttribute('data-workflow-dialog-open');
+                const dialog = id ? document.getElementById(id) : null;
+                if (!(dialog instanceof HTMLDialogElement)) return;
+
+                document.querySelectorAll('dialog[data-workflow-dialog][open]').forEach((openDialog) => {
+                    if (openDialog !== dialog) closeWorkflowDialog(openDialog);
+                });
+
+                resetWorkflowDialog(dialog);
+                if (!dialog.open) dialog.showModal();
+                window.setTimeout(() => dialog.querySelector('[data-workflow-dialog-reason]')?.focus(), 30);
+                return;
+            }
+
+            const closer = event.target.closest?.('[data-workflow-dialog-close]');
+            if (closer) {
+                event.preventDefault();
+                closeWorkflowDialog(closer.closest('dialog[data-workflow-dialog]'));
+                return;
+            }
+
+            const dialog = event.target.closest?.('dialog[data-workflow-dialog]');
+            if (dialog && event.target === dialog) {
+                closeWorkflowDialog(dialog);
+            }
+        });
+
+        document.addEventListener('input', (event) => {
+            const reason = event.target.closest?.('[data-workflow-dialog-reason]');
+            if (!reason) return;
+            const counter = reason.closest('dialog[data-workflow-dialog]')?.querySelector('[data-workflow-reason-count]');
+            if (counter) counter.textContent = String(reason.value.length);
+        });
+
+        document.addEventListener('submit', (event) => {
+            const form = event.target.closest?.('.workflow-dialog-form');
+            if (!form) return;
+            const reason = form.querySelector('[data-workflow-dialog-reason]');
+            if (!reason) return;
+
+            const value = reason.value.trim();
+            if (value.length < 3) {
+                event.preventDefault();
+                reason.setCustomValidity('Escribe un motivo de observación claro.');
+                reason.reportValidity();
+                reason.focus();
+            } else {
+                reason.setCustomValidity('');
+            }
+        }, true);
+    }
+
     if (!window.dashboardData || typeof Chart === 'undefined') return;
 
     const series = window.dashboardData.series || [];
