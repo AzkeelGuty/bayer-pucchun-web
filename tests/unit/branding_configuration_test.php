@@ -12,6 +12,25 @@ function branding_test_assert(bool $condition, string $message): void
 
 $brand=branding();
 
+$originalPublicRootEnv=$_ENV['BAYER_PUBLIC_ROOT'] ?? null;
+$originalPublicRootProcess=getenv('BAYER_PUBLIC_ROOT');
+$overrideRoot=base_path('storage/temp/branding-public-root-test');
+if(!is_dir($overrideRoot) && !mkdir($overrideRoot,0775,true) && !is_dir($overrideRoot)){
+    throw new RuntimeException('No se pudo preparar la raíz pública temporal.');
+}
+$_ENV['BAYER_PUBLIC_ROOT']=$overrideRoot;
+putenv('BAYER_PUBLIC_ROOT='.$overrideRoot);
+$expectedOverride=$overrideRoot.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.'branding';
+branding_test_assert(
+    public_path('uploads/branding')===$expectedOverride,
+    'BAYER_PUBLIC_ROOT no está controlando la raíz pública.'
+);
+if($originalPublicRootEnv===null) unset($_ENV['BAYER_PUBLIC_ROOT']);
+else $_ENV['BAYER_PUBLIC_ROOT']=$originalPublicRootEnv;
+if($originalPublicRootProcess===false) putenv('BAYER_PUBLIC_ROOT');
+else putenv('BAYER_PUBLIC_ROOT='.$originalPublicRootProcess);
+@rmdir($overrideRoot);
+
 $required=[
     'system_name','system_subtitle','partner_name','internal_title','portal_title',
     'primary_color','accent_color','sidebar_color','background_color',
@@ -42,7 +61,7 @@ foreach(['primary_color','accent_color','sidebar_color','background_color'] as $
 
 $configDir=base_path('storage/config');
 $configFile=$configDir.'/branding.json';
-$uploadDir=base_path('public/uploads/branding');
+$uploadDir=public_path('uploads/branding');
 $configDirExisted=is_dir($configDir);
 $uploadDirExisted=is_dir($uploadDir);
 $originalConfig=is_file($configFile) ? file_get_contents($configFile) : null;
@@ -61,7 +80,7 @@ try {
 
     foreach(['logo_primary','logo_partner','favicon'] as $asset){
         $relative='uploads/branding/'.$asset.'-test.png';
-        $absolute=base_path('public/'.$relative);
+        $absolute=public_path($relative);
         branding_test_assert(file_put_contents($absolute,$png)!==false,'No se pudo crear fixture de '.$asset);
         $fixtures[]=$absolute;
         $brand[$asset]=$relative;
@@ -105,14 +124,14 @@ try {
         branding_test_assert(branding_logo_url($asset)!==null,'No se resolvió el archivo guardado de '.$asset);
     }
 
-    $css=@file_get_contents(base_path('public/assets/css/app.css'));
+    $css=@file_get_contents(public_path('assets/css/app.css'));
     branding_test_assert(is_string($css) && $css!=='','No se pudo leer app.css.');
     branding_test_assert(
         str_contains($css,'.sidebar-link.active{background:linear-gradient(90deg,var(--brand-primary,#075b9f),var(--brand-accent,#168c5b))'),
         'El menú lateral activo no está usando los colores configurables de identidad visual.'
     );
 
-    $navigation=@file_get_contents(base_path('public/assets/js/navigation.js'));
+    $navigation=@file_get_contents(public_path('assets/js/navigation.js'));
     branding_test_assert(is_string($navigation) && $navigation!=='','No se pudo leer navigation.js.');
     $methodPos=strpos($navigation,"const method = String(options.method || 'GET').toUpperCase();");
     $guardPos=strpos($navigation,"if ((method === 'GET' || method === 'HEAD') && url.href === location.href");
