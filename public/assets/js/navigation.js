@@ -176,8 +176,12 @@
 
     const navigate = async (target, options = {}) => {
         const url = new URL(target, location.href);
+        const method = String(options.method || 'GET').toUpperCase();
 
-        if (url.href === location.href && options.historyMode !== 'none') {
+        // Repetir un GET de la misma URL solo desplaza al inicio, pero un POST
+        // a la misma URL SIEMPRE debe enviarse (formularios de configuración,
+        // uploads, cambios de estado, etc.).
+        if ((method === 'GET' || method === 'HEAD') && url.href === location.href && options.historyMode !== 'none') {
             finishScroll(0);
             return;
         }
@@ -187,8 +191,6 @@
         controller = new AbortController();
         const localController = controller;
         setBusy(true);
-
-        const method = String(options.method || 'GET').toUpperCase();
 
         try {
             const response = await fetch(url.href, {
