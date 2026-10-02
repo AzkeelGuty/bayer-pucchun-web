@@ -99,6 +99,11 @@ function branding(): array
         'sidebar_color' => '#0A2F55',
         'background_color' => '#F4F7FB',
         'sidebar_theme' => 'dark',
+        'ui_density' => 'comfortable',
+        'corner_style' => 'rounded',
+        'shadow_style' => 'soft',
+        'sidebar_size' => 'normal',
+        'topbar_style' => 'glass',
         'logo_primary' => null,
         'logo_partner' => null,
         'favicon' => null,
@@ -140,8 +145,18 @@ function branding(): array
         }
     }
 
-    if (!in_array($brand['sidebar_theme'], ['dark','light'], true)) {
-        $brand['sidebar_theme'] = $defaults['sidebar_theme'];
+    $appearance = [
+        'sidebar_theme'=>['dark','light'],
+        'ui_density'=>['comfortable','compact'],
+        'corner_style'=>['rounded','balanced','square'],
+        'shadow_style'=>['soft','minimal','none'],
+        'sidebar_size'=>['normal','compact'],
+        'topbar_style'=>['glass','solid'],
+    ];
+    foreach($appearance as $key=>$allowed){
+        if(!is_string($brand[$key]) || !in_array($brand[$key],$allowed,true)){
+            $brand[$key]=$defaults[$key];
+        }
     }
 
     foreach (['logo_primary','logo_partner','favicon'] as $key) {

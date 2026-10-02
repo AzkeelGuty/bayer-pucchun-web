@@ -107,13 +107,21 @@
             .find(node => node.textContent.includes('--brand-primary'));
         if (freshTheme && currentTheme) currentTheme.textContent = freshTheme.textContent;
 
-        const freshBodyTheme = Array.from(freshDoc.body.classList).find(name => name.startsWith('sidebar-theme-'));
-        if (freshBodyTheme) {
+        const appearancePrefixes = [
+            'sidebar-theme-',
+            'ui-density-',
+            'ui-corners-',
+            'ui-shadow-',
+            'sidebar-size-',
+            'topbar-style-'
+        ];
+        appearancePrefixes.forEach((prefix) => {
+            const freshClass = Array.from(freshDoc.body.classList).find(name => name.startsWith(prefix));
             Array.from(document.body.classList)
-                .filter(name => name.startsWith('sidebar-theme-'))
+                .filter(name => name.startsWith(prefix))
                 .forEach(name => document.body.classList.remove(name));
-            document.body.classList.add(freshBodyTheme);
-        }
+            if (freshClass) document.body.classList.add(freshClass);
+        });
 
         const currentNav = document.getElementById('sidebarNav');
         const freshNav = freshDoc.getElementById('sidebarNav');
@@ -142,7 +150,13 @@
 
         const freshIcon = freshDoc.querySelector('link[rel="icon"]');
         const currentIcon = document.querySelector('link[rel="icon"]');
-        if (freshIcon && currentIcon) currentIcon.href = freshIcon.href;
+        if (freshIcon && currentIcon) {
+            currentIcon.href = freshIcon.href;
+        } else if (freshIcon && !currentIcon) {
+            document.head.appendChild(freshIcon.cloneNode(true));
+        } else if (!freshIcon && currentIcon) {
+            currentIcon.remove();
+        }
     };
 
     const swapMain = (freshMain, freshDoc) => {

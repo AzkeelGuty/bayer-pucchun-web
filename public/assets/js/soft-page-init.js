@@ -16,6 +16,7 @@
     }
 
     function initBranding(root) {
+        if (window.BP_BRANDING_BOUND) return;
         const preview = root.querySelector('#brandingPreview');
         const loginPreview = root.querySelector('#brandingLoginPreview');
         if (!preview && !loginPreview) return;
