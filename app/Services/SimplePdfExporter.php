@@ -15,8 +15,9 @@ final class SimplePdfExporter
         if(!$keys && $rows) $keys=ExportPresentation::keys($rows);
 
         $images=$this->prepareImages($meta);
-        $perPage=12;
-        $chunks=$rows ? array_chunk($rows,$perPage) : [[]];
+        $tableWidth=self::PAGE_W-(2*self::MARGIN);
+        $widths=$keys ? $this->columnWidths($keys,$tableWidth) : [];
+        $chunks=$rows ? $this->paginateRows($rows,$keys,$widths,310.0) : [[]];
         $pageCount=count($chunks);
 
         $objects=[];
