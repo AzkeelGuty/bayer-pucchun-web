@@ -37,7 +37,7 @@ button,input,select,textarea{font:inherit}
 .sidebar-label{font-size:.68rem;font-weight:800;letter-spacing:.12em;color:#8fb7cf;padding:4px 10px 8px}
 .sidebar-link{display:flex;align-items:center;gap:12px;color:#d7e7f2;padding:11px 12px;border-radius:13px;font-weight:600;transition:background .18s,color .18s,transform .18s}
 .sidebar-link:hover{background:rgba(255,255,255,.08);color:#fff;transform:translateX(2px)}
-.sidebar-link.active{background:linear-gradient(90deg,rgba(10,120,183,.95),rgba(22,140,91,.80));color:#fff;box-shadow:0 7px 18px rgba(0,0,0,.14)}
+.sidebar-link.active{background:linear-gradient(90deg,var(--brand-primary,#075b9f),var(--brand-accent,#168c5b));color:#fff;box-shadow:0 7px 18px color-mix(in srgb,var(--brand-primary,#075b9f),transparent 72%)}
 .sidebar-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.10);font-size:.72rem;font-weight:800}
 .sidebar-link.active .sidebar-icon{background:#fff;color:var(--bp-blue)}
 .sidebar-footer{padding:18px 20px 22px;border-top:1px solid rgba(255,255,255,.10);color:#bcd8e8}
