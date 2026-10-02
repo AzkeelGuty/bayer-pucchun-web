@@ -291,4 +291,3 @@ $favicon = branding_logo_url('favicon');
     </div>
 </form>
 
-<script src="<?=asset_url('assets/js/branding.js')?>"></script>
