@@ -1,5 +1,26 @@
 <?php
 function base_path(string $path = ''): string { return dirname(__DIR__, 2) . ($path ? DIRECTORY_SEPARATOR . ltrim($path, '/\\') : ''); }
+function public_path(string $path = ''): string {
+    $configured = trim((string) env('BAYER_PUBLIC_ROOT', ''));
+    if ($configured !== '') {
+        $root = rtrim($configured, '/\\');
+    } else {
+        $projectPublic = base_path('public');
+        $script = trim((string) ($_SERVER['SCRIPT_FILENAME'] ?? ''));
+        $documentRoot = trim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''));
+        $scriptDir = $script !== '' ? realpath(dirname($script)) : false;
+        $docRoot = $documentRoot !== '' ? realpath($documentRoot) : false;
+
+        // En cPanel el front controller puede vivir físicamente en public_html
+        // mientras el backend está fuera del Document Root. Si index.php está
+        // directamente en el Document Root, esa es la carpeta pública real.
+        $root = ($scriptDir !== false && $docRoot !== false && $scriptDir === $docRoot)
+            ? $docRoot
+            : $projectPublic;
+    }
+
+    return $root . ($path ? DIRECTORY_SEPARATOR . ltrim($path, '/\\') : '');
+}
 function load_env(string $file): void {
     if (!is_file($file)) return;
     foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -51,7 +72,7 @@ function format_quantity(mixed $value): string {
 function url(string $path=''): string { $base=config('app.url',''); return $base . '/' . ltrim($path,'/'); }
 function asset_url(string $path): string {
     $relative=ltrim($path,'/');
-    $absolute=base_path('public/'.$relative);
+    $absolute=public_path($relative);
     $version=is_file($absolute) ? (string)@filemtime($absolute) : (string)time();
     return url('/'.$relative).'?v='.rawurlencode($version);
 }
@@ -171,7 +192,7 @@ function branding_logo_url(string $key): ?string
     $brand = branding();
     $relative = $brand[$key] ?? null;
     if (!is_string($relative) || $relative === '') return null;
-    $absolute = base_path('public/' . ltrim($relative, '/'));
+    $absolute = public_path(ltrim($relative, '/'));
     return is_file($absolute) ? url('/' . ltrim($relative, '/')) : null;
 }
 
