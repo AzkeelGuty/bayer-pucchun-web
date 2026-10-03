@@ -51,7 +51,15 @@ final class StockController
     {
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('stock.read');
         $filters=$this->filters();
-        \view('stock.index',['rows'=>$this->repository->all($filters),'filters'=>$filters,'almacenes'=>$this->masters()->almacenes()]);
+        \view('stock.index',[
+            'rows'=>$this->repository->all($filters),
+            'filters'=>$filters,
+            'almacenes'=>$this->masters()->almacenes(),
+            'bulkCounts'=>[
+                'BORRADOR'=>$this->repository->countByState('BORRADOR'),
+                'VALIDADO'=>$this->repository->countByState('VALIDADO'),
+            ],
+        ]);
     }
 
     public function show(): void
@@ -189,6 +197,20 @@ final class StockController
             $this->repository->deleteDraft($id,(int)\input('version',0),(int)\auth_user()['id']);
             \audit('stock','eliminar',$id); \flash('success','Stock en borrador eliminado.');
         }catch(\Throwable){ throw new HttpException(409,'No se pudo eliminar el stock.'); }
+        \redirect('/stock');
+    }
+
+    public function bulkStatus(): void
+    {
+        \require_role('ADMIN','SUPERVISOR');
+        $status=OperationalPermissionPolicy::workflow(\input('status',''));
+        if(!in_array($status,['VALIDADO','PUBLICADO'],true)){
+            throw new HttpException(422,'La acción masiva solo permite validar borradores o publicar validados.');
+        }
+        $result=(new WorkflowService())->bulkTransition($this->repository,$status,(int)\auth_user()['id']);
+        \audit('stock','estado_masivo_'.strtolower($status));
+        $label=$status==='VALIDADO'?'validados':'publicados';
+        \flash('success',$result['success'].' registros de stock '.$label.'.'.($result['failed']>0?' '.$result['failed'].' no pudieron procesarse.':''));
         \redirect('/stock');
     }
 
