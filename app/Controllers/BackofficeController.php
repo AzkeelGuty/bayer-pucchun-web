@@ -117,6 +117,8 @@ final class BackofficeController
             'q'=>$q,
             'catalogNotice'=>$catalogNotice,
             'masterMeta'=>(new MasterCatalogService())->definition($key),
+            'masterAdmin'=>\has_role('ADMIN'),
+            'masterManageIssue'=>$catalogNotice ?? (new MasterCatalogService())->availabilityIssue($key),
             'masterManageAvailable'=>\has_role('ADMIN') && $catalogNotice===null && (new MasterCatalogService())->availabilityIssue($key)===null,
         ]);
     }
