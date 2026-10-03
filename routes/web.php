@@ -31,10 +31,12 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
     $router->post('/'.$path.'/actualizar',[$controller,'update'],$capture);
     $router->post('/'.$path.'/eliminar',[$controller,'destroy'],$capture);
     $router->post('/'.$path.'/estado',[$controller,'changeStatus'],$review);
+    $router->post('/'.$path.'/estado-masivo',[$controller,'bulkStatus'],$review);
 }
 
 $router->get('/documentos/ver',[DocumentController::class,'show'],$internal);
 $router->get('/guias/ver',[GuideController::class,'show'],$internal);
+$router->post('/guias/cliente-ubicacion',[GuideController::class,'saveClientLocation'],$capture);
 $router->get('/stock/ver',[StockController::class,'show'],$internal);
 
 $router->get('/maestros',[BackofficeController::class,'masters'],$internal);
