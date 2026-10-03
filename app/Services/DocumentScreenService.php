@@ -26,15 +26,6 @@ final class DocumentScreenService
         ];
         $result=[];
         foreach($queries as $key=>$sql) $result[$key]=\db()->query($sql)->fetchAll();
-
-        if($withNextNumbers){
-            $numbering=new OperationalNumberingService();
-            foreach($result['tipo_documento_id'] as &$type){
-                $type['next_number']=$numbering->nextDocumentNumber((int)$type['id']);
-            }
-            unset($type);
-        }
-
         return $result;
     }
 
