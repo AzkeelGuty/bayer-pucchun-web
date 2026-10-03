@@ -1,11 +1,14 @@
-<?php require_once base_path('app/Views/components/workflow_control.php'); ?>
+<?php require_once base_path('app/Views/components/workflow_control.php'); require_once base_path('app/Views/components/bulk_workflow.php'); ?>
 <section class="module-header">
     <div>
         <div class="page-eyebrow">CAPTURA Y CONTROL</div>
         <h1 class="page-title">Stock</h1>
         <p class="page-subtitle">Consulta tus cargas de stock y continúa su revisión.</p>
     </div>
-    <?php if (has_role('ADMIN', 'DIGITADOR')): ?><a class="btn btn-primary" href="<?= url('/stock/nuevo') ?>">+ Nuevo stock</a><?php endif; ?>
+    <div class="module-header-actions">
+        <?php bulk_workflow_controls('stock',$bulkCounts??[]); ?>
+        <?php if (has_role('ADMIN', 'DIGITADOR')): ?><a class="btn btn-primary" href="<?= url('/stock/nuevo') ?>">+ Nuevo stock</a><?php endif; ?>
+    </div>
 </section>
 
 <form method="get" action="<?= url('/stock') ?>" class="card card-body mb-3">
