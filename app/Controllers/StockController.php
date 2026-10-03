@@ -55,10 +55,10 @@ final class StockController
             'rows'=>$this->repository->all($filters),
             'filters'=>$filters,
             'almacenes'=>$this->masters()->almacenes(),
-            'bulkCounts'=>[
+            'bulkCounts'=>\has_role('ADMIN','SUPERVISOR') ? [
                 'BORRADOR'=>$this->repository->countByState('BORRADOR'),
                 'VALIDADO'=>$this->repository->countByState('VALIDADO'),
-            ],
+            ] : ['BORRADOR'=>0,'VALIDADO'=>0],
         ]);
     }
 
