@@ -574,3 +574,15 @@ document.addEventListener('submit', function (event) {
         event.stopImmediatePropagation();
     }
 }, true);
+
+
+// Confirmación para borrado de catálogos maestros.
+document.addEventListener('submit', function (event) {
+    const form = event.target.closest?.('[data-master-delete]');
+    if (!form) return;
+    const label = form.dataset.masterLabel || 'este registro';
+    if (!window.confirm('¿Eliminar "' + label + '"? Esta acción no se puede deshacer. Si el registro está en uso, el sistema impedirá eliminarlo.')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+}, true);
