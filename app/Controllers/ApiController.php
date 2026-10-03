@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Services\BayerDataService;
+use App\Exceptions\HttpException;
+use App\Services\{ApiTokenService,BayerDataService};
+use App\Validators\LoginValidator;
 use DateTimeImmutable;
 use Throwable;
 
@@ -12,6 +14,8 @@ final class ApiController
     private const VERSION = 'v1';
 
     private string $requestId;
+    private ?array $apiUser=null;
+    private ?string $activeToken=null;
 
     public function __construct()
     {
@@ -19,6 +23,67 @@ final class ApiController
         $this->requestId=preg_match('/^[A-Za-z0-9._:-]{1,64}$/',$incoming)
             ? $incoming
             : bin2hex(random_bytes(12));
+    }
+
+    /**
+     * Login de API: valida una cuenta real del sistema y devuelve un Bearer token temporal.
+     * No crea sesión web ni usa cookies.
+     */
+    public function login(): void
+    {
+        if(!\config('app.api_enabled')){
+            $this->error('API_DISABLED','API deshabilitada.',503);
+        }
+
+        try{
+            [$email,$password]=$this->credentials();
+            if(!(new LoginValidator())->valid($email,$password)){
+                $this->error('INVALID_CREDENTIALS','Ingrese un correo y una contraseña válidos.',422);
+            }
+
+            $auth=(new ApiTokenService())->issue(trim($email),$password);
+            $this->respond([
+                'meta'=>[
+                    'apiVersion'=>self::VERSION,
+                    'requestId'=>$this->requestId,
+                    'generatedAt'=>date(DATE_ATOM),
+                ],
+                'auth'=>$auth,
+            ]);
+        }catch(HttpException $error){
+            $code=match($error->status){
+                401=>'INVALID_CREDENTIALS',
+                403=>'FORBIDDEN',
+                429=>'TOO_MANY_ATTEMPTS',
+                503=>'API_MISCONFIGURED',
+                default=>'AUTH_ERROR',
+            };
+            $this->error($code,$error->getMessage(),$error->status);
+        }catch(Throwable $error){
+            \log_event('api_login_error',['request_id'=>$this->requestId,'type'=>get_class($error)]);
+            $this->error('INTERNAL_ERROR','No se pudo completar el inicio de sesión de la API.',500);
+        }
+    }
+
+    public function logout(): void
+    {
+        $this->guard();
+        try{
+            if($this->activeToken!==null){
+                (new ApiTokenService())->revoke($this->activeToken);
+            }
+            $this->recordAccess('api_logout');
+            $this->respond([
+                'meta'=>[
+                    'apiVersion'=>self::VERSION,
+                    'requestId'=>$this->requestId,
+                    'generatedAt'=>date(DATE_ATOM),
+                ],
+                'data'=>['revoked'=>true],
+            ]);
+        }catch(HttpException $error){
+            $this->error('AUTH_ERROR',$error->getMessage(),$error->status);
+        }
     }
 
     public function info(): void
@@ -134,6 +199,27 @@ final class ApiController
         }
     }
 
+    private function credentials(): array
+    {
+        $contentType=strtolower((string)($_SERVER['CONTENT_TYPE']??''));
+        if(str_contains($contentType,'application/json')){
+            $raw=file_get_contents('php://input');
+            $payload=is_string($raw) && trim($raw)!=='' ? json_decode($raw,true) : null;
+            if(!is_array($payload)){
+                throw new HttpException(422,'JSON de autenticación inválido.');
+            }
+        }else{
+            $payload=$_POST;
+        }
+
+        $email=$payload['email']??null;
+        $password=$payload['password']??null;
+        if(!is_string($email) || !is_string($password)){
+            throw new HttpException(422,'Email y password son obligatorios.');
+        }
+        return [$email,$password];
+    }
+
     private function filters(): array
     {
         $filters=[];
@@ -174,13 +260,6 @@ final class ApiController
             $this->error('API_DISABLED','API deshabilitada.',503);
         }
 
-        $configured=trim((string)\config('app.api_token'));
-        if($configured===''){
-            \log_event('api_token_missing',['request_id'=>$this->requestId]);
-            $this->recordAccess('api_misconfigured');
-            $this->error('API_MISCONFIGURED','API no configurada correctamente.',503);
-        }
-
         $authorization=(string)(
             $_SERVER['HTTP_AUTHORIZATION']
             ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
@@ -190,15 +269,21 @@ final class ApiController
         if(!preg_match('/^Bearer\s+(.+)$/i',trim($authorization),$match)){
             $this->recordAccess('api_unauthorized');
             header('WWW-Authenticate: Bearer realm="Bayer Pucchun API"');
-            $this->error('UNAUTHORIZED','Token Bearer requerido.',401);
+            $this->error('UNAUTHORIZED','Primero inicie sesión en /api/v1/auth/login y envíe el token Bearer obtenido.',401);
         }
 
         $token=trim($match[1]);
-        if($token==='' || !hash_equals($configured,$token)){
-            $this->recordAccess('api_unauthorized');
-            header('WWW-Authenticate: Bearer realm="Bayer Pucchun API"');
-            $this->error('UNAUTHORIZED','Credencial inválida.',401);
+        try{
+            $user=(new ApiTokenService())->authenticate($token);
+        }catch(HttpException $error){
+            $this->recordAccess($error->status===403?'api_forbidden':'api_unauthorized');
+            if($error->status===401) header('WWW-Authenticate: Bearer realm="Bayer Pucchun API"');
+            $code=$error->status===403?'FORBIDDEN':($error->status===503?'API_MISCONFIGURED':'UNAUTHORIZED');
+            $this->error($code,$error->getMessage(),$error->status);
         }
+
+        $this->apiUser=$user;
+        $this->activeToken=$token;
     }
 
     private function meta(string $dataset,int $count,array $filters): array
@@ -270,14 +355,15 @@ final class ApiController
         exit;
     }
 
-    /** API calls have no web session user, so access is traced without storing credentials. */
+    /** Traza el consumo sin guardar el Bearer token ni las credenciales. */
     private function recordAccess(string $action): void
     {
         try {
             $ip=substr((string)($_SERVER['REMOTE_ADDR']??''),0,45);
             $agent=substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,255);
-            $st=\db()->prepare('INSERT INTO bitacora_acceso(usuario_id,ip,user_agent,accion,fecha_hora) VALUES(NULL,?,?,?,NOW())');
-            $st->execute([$ip!==''?$ip:null,$agent!==''?$agent:null,substr($action,0,30)]);
+            $userId=is_array($this->apiUser) ? (int)($this->apiUser['id']??0) : 0;
+            $st=\db()->prepare('INSERT INTO bitacora_acceso(usuario_id,ip,user_agent,accion,fecha_hora) VALUES(?,?,?,?,NOW())');
+            $st->execute([$userId>0?$userId:null,$ip!==''?$ip:null,$agent!==''?$agent:null,substr($action,0,30)]);
         } catch (Throwable $error) {
             \log_event('api_access_log_error',['request_id'=>$this->requestId]);
         }
