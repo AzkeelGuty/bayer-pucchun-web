@@ -185,6 +185,24 @@ final class MasterCatalogService
         ];
     }
 
+    public function availabilityIssue(string $tab): ?string
+    {
+        $this->definition($tab);
+        if($tab==='proveedores' && !$this->tableExists('proveedores')){
+            return 'El catálogo Proveedores requiere la migración 004_catalogos_masivos_busqueda.sql.';
+        }
+        if($tab==='productos' && !$this->columnExists('productos','tipo_art')){
+            return 'El catálogo Productos requiere la migración 004_catalogos_masivos_busqueda.sql para el campo tipo_art.';
+        }
+        return null;
+    }
+
+    public function assertReady(string $tab): void
+    {
+        $issue=$this->availabilityIssue($tab);
+        if($issue!==null) throw new HttpException(409,$issue);
+    }
+
     public function definition(string $tab): array
     {
         $definitions=self::definitions();
@@ -556,6 +574,20 @@ final class MasterCatalogService
         if($text==='') throw new HttpException(422,$label.' es obligatorio.');
         if(mb_strlen($text)>$max) throw new HttpException(422,$label.' supera el máximo de '.$max.' caracteres.');
         return $text;
+    }
+
+    private function tableExists(string $table): bool
+    {
+        $st=$this->pdo->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
+        $st->execute([$table]);
+        return (int)$st->fetchColumn()>0;
+    }
+
+    private function columnExists(string $table,string $column): bool
+    {
+        $st=$this->pdo->prepare('SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?');
+        $st->execute([$table,$column]);
+        return (int)$st->fetchColumn()>0;
     }
 
     private function rows(string $sql): array
