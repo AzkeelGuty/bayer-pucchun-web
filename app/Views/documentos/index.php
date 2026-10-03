@@ -1,5 +1,6 @@
 <?php
 require_once base_path('app/Views/components/workflow_control.php');
+require_once base_path('app/Views/components/bulk_workflow.php');
 $link=function(int $n)use($q,$state):string{
     return url('/documentos?'.http_build_query(['q'=>$q,'state'=>$state,'page'=>$n]));
 };
@@ -10,9 +11,12 @@ $link=function(int $n)use($q,$state):string{
         <h1 class="page-title">Documentos</h1>
         <p class="page-subtitle">Consulta tus registros y continúa su revisión.</p>
     </div>
-    <?php if(has_role('ADMIN','DIGITADOR')): ?>
-        <a class="btn btn-primary" href="<?=url('/documentos/nuevo')?>">+ Nuevo documento</a>
-    <?php endif; ?>
+    <div class="module-header-actions">
+        <?php bulk_workflow_controls('documentos',$bulkCounts??[]); ?>
+        <?php if(has_role('ADMIN','DIGITADOR')): ?>
+            <a class="btn btn-primary" href="<?=url('/documentos/nuevo')?>">+ Nuevo documento</a>
+        <?php endif; ?>
+    </div>
 </section>
 
 <form method="get" action="<?=url('/documentos')?>" class="card card-body mb-3">
