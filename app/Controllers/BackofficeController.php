@@ -6,6 +6,7 @@ namespace App\Controllers;
 use App\Exceptions\HttpException;
 use App\Policies\AccessPolicy;
 use App\Repositories\{DocumentRepository,GuideRepository,StockRepository};
+use App\Services\MasterCatalogService;
 
 final class BackofficeController
 {
@@ -115,6 +116,8 @@ final class BackofficeController
             'base'=>'/maestros',
             'q'=>$q,
             'catalogNotice'=>$catalogNotice,
+            'masterMeta'=>(new MasterCatalogService())->definition($key),
+            'masterManageAvailable'=>$catalogNotice===null,
         ]);
     }
 
