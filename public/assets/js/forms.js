@@ -97,6 +97,8 @@
         const toggle = scope.querySelector('[data-destination-toggle]');
         const summary = scope.querySelector('[data-destination-summary]');
         const note = scope.querySelector('[data-destination-note]');
+        const saveClient = scope.querySelector('[data-destination-save-client]');
+        const endpoint = scope.dataset.clientLocationUrl || '';
         if (!clienteSelect || !depSelect || !provSelect || !distSelect || !fields || !toggle || !summary) return;
 
         let manual = false;
@@ -124,6 +126,7 @@
                 toggle.hidden = true;
                 summary.textContent = 'Selecciona un cliente para completar el destino.';
                 if (note) note.textContent = 'La ubicación se completa automáticamente cuando existe en la ficha del cliente.';
+                if (saveClient) saveClient.hidden = true;
                 return;
             }
 
@@ -144,6 +147,17 @@
                 if (hasAutomatic) {
                     toggle.textContent = manual ? 'Restaurar destino del cliente' : 'Cambiar destino';
                 }
+
+                if (saveClient) {
+                    const differs = !hasAutomatic
+                        || String(client.departamento_id) !== String(depSelect.value)
+                        || String(client.provincia_id) !== String(provSelect.value)
+                        || String(client.distrito_id) !== String(distSelect.value);
+                    saveClient.hidden = !differs;
+                    saveClient.innerHTML = hasAutomatic
+                        ? '<i class="bi bi-link-45deg"></i> Actualizar ubicación del cliente'
+                        : '<i class="bi bi-link-45deg"></i> Guardar ubicación en cliente';
+                }
                 return;
             }
 
@@ -151,6 +165,7 @@
             fields.hidden = false;
             toggle.hidden = true;
             summary.textContent = 'Completa el destino de entrega.';
+            if (saveClient) saveClient.hidden = true;
             if (note) note.textContent = hasAutomatic
                 ? 'Puedes completar el destino o restaurar la ubicación registrada del cliente.'
                 : 'Este cliente no tiene una ubicación completa registrada.';
@@ -175,6 +190,52 @@
             restoringAutomatic = false;
             refresh();
             return true;
+        }
+
+        if (saveClient) {
+            saveClient.addEventListener('click', async function () {
+                if (!endpoint || !clienteSelect.value || !depSelect.value || !provSelect.value || !distSelect.value) return;
+
+                const csrf = form.querySelector('input[name="_csrf"]')?.value || '';
+                const data = new FormData();
+                data.append('_csrf', csrf);
+                data.append('cliente_id', clienteSelect.value);
+                data.append('departamento_id', depSelect.value);
+                data.append('provincia_id', provSelect.value);
+                data.append('distrito_id', distSelect.value);
+
+                const original = saveClient.innerHTML;
+                saveClient.disabled = true;
+                saveClient.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Guardando…';
+
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        body: data,
+                        credentials: 'same-origin',
+                        headers: {'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok || !payload.success) {
+                        throw new Error(payload.message || 'No se pudo vincular la ubicación.');
+                    }
+
+                    const client = getClient();
+                    if (client) {
+                        client.departamento_id = String(depSelect.value);
+                        client.provincia_id = String(provSelect.value);
+                        client.distrito_id = String(distSelect.value);
+                    }
+                    manual = false;
+                    if (note) note.textContent = payload.message || 'Ubicación guardada en la ficha del cliente.';
+                    refresh();
+                } catch (error) {
+                    if (note) note.textContent = error?.message || 'No se pudo guardar la ubicación del cliente.';
+                    saveClient.innerHTML = original;
+                } finally {
+                    saveClient.disabled = false;
+                }
+            });
         }
 
         toggle.addEventListener('click', function () {
@@ -229,33 +290,6 @@
 
         productSelect.addEventListener('change', function () { refresh(true); });
         refresh(false);
-    }
-
-    function wireAutoNumber(form) {
-        const input = form.querySelector('[data-number-input]');
-        const mode = form.querySelector('[data-number-mode]');
-        const manual = form.querySelector('[data-number-manual]');
-        const help = form.querySelector('[data-number-help]');
-        if (!input || !mode || !manual) return;
-
-        function refresh() {
-            const isManual = manual.checked;
-            mode.value = isManual ? 'manual' : 'auto';
-            input.readOnly = !isManual;
-            if (!isManual) input.value = input.dataset.autoNumber || '';
-            if (help) {
-                help.textContent = isManual
-                    ? 'Modo manual para una guía que ya existe fuera del sistema.'
-                    : 'El correlativo se genera automáticamente al guardar.';
-            }
-            if (isManual) {
-                input.focus();
-                input.select();
-            }
-        }
-
-        manual.addEventListener('change', refresh);
-        refresh();
     }
 
     function wireLoteCascade(row) {
@@ -369,7 +403,6 @@
         document.querySelectorAll('[data-ubigeo-scope]').forEach(wireUbigeo);
         document.querySelectorAll('[data-role="cliente"]').forEach(wireClienteSuggestions);
         document.querySelectorAll('[data-destination-shell]').forEach(wireDestinationEditor);
-        document.querySelectorAll('form').forEach(wireAutoNumber);
         if (window.BP_DETAIL_REPEATER) initDetailRepeater(window.BP_DETAIL_REPEATER);
     }
 
