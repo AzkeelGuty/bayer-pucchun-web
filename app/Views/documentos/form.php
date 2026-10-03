@@ -12,7 +12,6 @@ $field=function(string $name,string $label,string $key,mixed $value,string $cata
         foreach($catalogs[$catalog] as $item){
             $meta='';
             if($catalog==='producto_id') $meta.=' data-unit-id="'.e((string)($item['unidad_base_id']??'')).'"';
-            if($catalog==='tipo_documento_id') $meta.=' data-next-number="'.e((string)($item['next_number']??'')).'"';
             if($catalog==='cliente_id'){
                 $meta.=' data-seller-id="'.e((string)($item['vendedor_sugerido_id']??'')).'"';
                 $meta.=' data-branch-id="'.e((string)($item['sucursal_sugerida_id']??'')).'"';
@@ -24,7 +23,6 @@ $field=function(string $name,string $label,string $key,mixed $value,string $cata
     else echo '<input class="form-control'.($error?' is-invalid':'').'" type="'.e($type).'" value="'.e(is_scalar($value)?$value:'').'"'.$attrs.' '.$extra.'>';
     if($error) echo '<div id="'.e($id).'-error" class="invalid-feedback">'.e($error).'</div>';
 };
-$numberMode=$editing?'manual':(((string)($_POST['number_mode']??'auto'))==='manual'?'manual':'auto');
 $correcting=$editing && (($header['estado_registro']??'')==='OBSERVADO');
 ?>
 <link rel="stylesheet" href="<?=asset_url('assets/css/documentos-captura.css')?>">
@@ -35,19 +33,8 @@ $correcting=$editing && (($header['estado_registro']??'')==='OBSERVADO');
 <div class="card-body p-4"><h2 class="h5 mb-3">Datos generales</h2><div class="row g-3">
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[tipo_documento_id]','Tipo de documento','header.tipo_documento_id',$header['tipo_documento_id']??'','tipo_documento_id'); ?></div>
 <div class="col-12 col-md-6 col-xl-4">
-    <?php if($editing): ?>
-        <?php $field('header[numero]','Número','header.numero',$header['numero']??'','','text','maxlength="25"'); ?>
-    <?php else: ?>
-        <label class="form-label" for="doc-header-numero">Número</label>
-        <input type="hidden" name="number_mode" value="<?=e($numberMode)?>" data-number-mode>
-        <input class="form-control<?=isset($errors['header.numero'])?' is-invalid':''?>" id="doc-header-numero" name="header[numero]" maxlength="25" value="<?=e((string)($header['numero']??''))?>" <?= $numberMode==='auto'?'readonly':'' ?> required data-number-input>
-        <?php if(isset($errors['header.numero'])): ?><div class="invalid-feedback"><?=e($errors['header.numero'])?></div><?php endif;?>
-        <div class="form-check mt-2">
-            <input class="form-check-input" type="checkbox" id="doc-number-manual" data-number-manual <?= $numberMode==='manual'?'checked':'' ?>>
-            <label class="form-check-label small" for="doc-number-manual">Ingresar número externo/manual</label>
-        </div>
-        <div class="form-text" data-number-help><?= $numberMode==='auto'?'Se genera automáticamente según el tipo seleccionado.':'Modo manual para un documento que ya existe fuera del sistema.' ?></div>
-    <?php endif; ?>
+    <?php $field('header[numero]','Número','header.numero',$header['numero']??'','','text','maxlength="25" autocomplete="off"'); ?>
+    <div class="form-text">Ingrese el número real del documento. El sistema no genera correlativos.</div>
 </div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[fecha]','Fecha','header.fecha',$header['fecha']??'','','date'); ?></div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[cliente_id]','Cliente','header.cliente_id',$header['cliente_id']??'','cliente_id'); ?></div>
