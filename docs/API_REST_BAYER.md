@@ -28,27 +28,88 @@ La API permanece deshabilitada por defecto. En el archivo `.env` del servidor:
 
 ```env
 API_ENABLED=true
-API_TOKEN=REEMPLAZAR_POR_UN_TOKEN_LARGO_ALEATORIO
+API_TOKEN_TTL=28800
 ```
 
-Recomendaciones:
+`API_TOKEN_TTL` define cuántos segundos dura el token emitido después de iniciar sesión. El valor recomendado por defecto es 28800 segundos (8 horas).
 
-- usar HTTPS en producción;
-- usar un token largo, aleatorio y exclusivo para la integración;
-- no guardar el token en Git;
-- rotar el token si se sospecha exposición;
-- enviar el token únicamente en el encabezado `Authorization`.
+Para una instalación existente se debe ejecutar una vez:
+
+```text
+database/migrations/005_api_tokens.sql
+```
+
+La API ya no utiliza un token fijo compartido en `.env`. Cada token se genera después de validar un usuario real del sistema, se almacena únicamente como hash SHA-256, tiene vencimiento y puede revocarse.
 
 ## Autenticación
 
-Todas las rutas requieren:
+El flujo obligatorio es:
+
+```text
+1. Usuario habilitado
+       |
+       | email + password
+       v
+POST /api/v1/auth/login
+       |
+       | devuelve Bearer token temporal
+       v
+GET /api/v1/bayer/*
+       |
+       | Authorization: Bearer <token>
+       v
+Solo información PUBLICADA
+```
+
+Solo pueden obtener token las cuentas activas con acceso a información publicada: **ADMIN, SUPERVISOR, GERENCIA o BAYER**. Un DIGITADOR no puede consumir la API.
+
+### 1. Iniciar sesión y obtener token
 
 ```http
-Authorization: Bearer <API_TOKEN>
+POST /api/v1/auth/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "email": "usuario@empresa.com",
+  "password": "SU_CONTRASEÑA"
+}
+```
+
+Respuesta simplificada:
+
+```json
+{
+  "auth": {
+    "access_token": "puc_...",
+    "token_type": "Bearer",
+    "expires_in": 28800,
+    "expires_at": "2026-10-03 22:00:00"
+  }
+}
+```
+
+El token real se entrega solamente en esa respuesta. En la base de datos se guarda su hash, no el token en texto plano.
+
+### 2. Consultar la API
+
+```http
+GET /api/v1/bayer/all
+Authorization: Bearer puc_...
 Accept: application/json
 ```
 
-Si la credencial no es válida, la API responde `401 Unauthorized`.
+Si falta el token, está vencido, fue revocado o pertenece a una cuenta que perdió permisos, la API responde `401` o `403`.
+
+### 3. Cerrar sesión de API / revocar token
+
+```http
+POST /api/v1/auth/logout
+Authorization: Bearer puc_...
+Accept: application/json
+```
+
+Un nuevo login de la misma cuenta revoca automáticamente sus tokens anteriores.
 
 ## Endpoints
 
