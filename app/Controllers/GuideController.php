@@ -257,7 +257,13 @@ final class GuideController
             throw new HttpException(422,'Seleccione cliente, departamento, provincia y distrito.');
         }
 
-        $this->masters()->updateClientLocation($clientId,$departmentId,$provinceId,$districtId);
+        try{
+            $this->masters()->updateClientLocation($clientId,$departmentId,$provinceId,$districtId);
+        }catch(\InvalidArgumentException $error){
+            throw new HttpException(422,$error->getMessage());
+        }catch(\RuntimeException $error){
+            throw new HttpException(404,$error->getMessage());
+        }
         \audit('clientes','actualizar_ubicacion',$clientId);
 
         header('Content-Type: application/json; charset=utf-8');
