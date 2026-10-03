@@ -1254,3 +1254,20 @@ body.bp-soft-navigating .app-main{cursor:progress}
     .module-header-actions,.bulk-workflow-actions{width:100%;justify-content:stretch}
     .module-header-actions>.btn,.bulk-workflow-actions form,.bulk-workflow-actions .btn{flex:1 1 auto}
 }
+
+/* Administración de catálogos maestros */
+.master-toolbar{border:1px solid color-mix(in srgb,var(--brand-primary,#075b9f),transparent 82%)}
+.master-toolbar-actions{justify-content:flex-end}
+.master-row-actions{display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:wrap;min-width:190px}
+.master-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.master-field{min-width:0}
+.import-step{display:flex;gap:13px;align-items:flex-start;margin-bottom:18px}
+.import-step>span{width:34px;height:34px;flex:0 0 34px;border-radius:11px;display:grid;place-items:center;background:var(--bp-blue-soft);color:var(--brand-primary,#075b9f);font-weight:900}
+.import-step strong{display:block;color:var(--bp-navy)}
+.import-step p{margin:.15rem 0 0;color:var(--bp-muted);font-size:.9rem}
+@media (max-width:767.98px){
+    .master-form-grid{grid-template-columns:1fr}
+    .master-toolbar-actions{width:100%}
+    .master-toolbar-actions .btn{flex:1 1 160px}
+    .master-row-actions{min-width:0;justify-content:flex-start}
+}
