@@ -24,6 +24,7 @@ try {
     $before = $upgrade->pdo->query('SELECT * FROM documentos_cabecera')->fetch();
     $upgrade->load('database/migrations/002_schema_v2.sql');
     $upgrade->load('database/migrations/004_catalogos_masivos_busqueda.sql');
+    $upgrade->load('database/migrations/005_api_tokens.sql');
     $after = $upgrade->pdo->query('SELECT * FROM documentos_cabecera')->fetch();
     ensure(array_intersect_key($after, $before) === $before, 'Upgrade preserves original header values');
     ensure($after['updated_at'] === null && $after['validated_by'] === null && (int) $after['version'] === 1, 'Do not invent historical audit data');
