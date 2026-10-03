@@ -67,6 +67,8 @@ $router->get('/bayer/datos',[BayerController::class,'data'],$published);
 $router->get('/bayer/exportaciones',[BayerController::class,'exports'],$published);
 $router->get('/bayer/descargas',[BayerController::class,'downloads'],$published);
 $router->get('/export',[ExportController::class,'export'],$published);
+$router->postApi('/api/v1/auth/login',[ApiController::class,'login']);
+$router->postApi('/api/v1/auth/logout',[ApiController::class,'logout']);
 $router->get('/api/v1/bayer',[ApiController::class,'info']);
 $router->get('/api/v1/bayer/all',[ApiController::class,'all']);
 $router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
