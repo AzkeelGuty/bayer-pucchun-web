@@ -24,6 +24,22 @@ CREATE TABLE usuarios (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+
+CREATE TABLE api_tokens (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id BIGINT NOT NULL,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL,
+    last_used_at DATETIME NULL,
+    revoked_at DATETIME NULL,
+    ip_created VARCHAR(45) NULL,
+    user_agent_created VARCHAR(255) NULL,
+    CONSTRAINT fk_api_tokens_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    INDEX ix_api_tokens_user_active (usuario_id,revoked_at,expires_at),
+    INDEX ix_api_tokens_expires (expires_at)
+) ENGINE=InnoDB;
+
 CREATE TABLE usuario_rol (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     usuario_id BIGINT NOT NULL,
