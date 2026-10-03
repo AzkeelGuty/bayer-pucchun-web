@@ -110,6 +110,30 @@ if($activeTab==='' && !empty($tabs)){
 <?php endif; ?>
 
 <?php if($base==='/maestros'): ?>
+<div class="master-toolbar card mb-3">
+    <div class="card-body py-3 d-flex align-items-center justify-content-between gap-3 flex-wrap">
+        <div>
+            <strong>Administrar <?=e(mb_strtolower((string)($masterMeta['title']??$title)))?></strong>
+            <div class="form-text mt-0">Agrega, edita, elimina o carga varios registros desde Excel.</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap master-toolbar-actions">
+            <?php if(!empty($masterManageAvailable)): ?>
+                <a class="btn btn-primary btn-with-icon" href="<?=url('/maestros/nuevo?tab='.urlencode($activeTab))?>">
+                    <i class="bi bi-plus-lg"></i><span>Agregar uno</span>
+                </a>
+                <a class="btn btn-success btn-with-icon" href="<?=url('/maestros/importar?tab='.urlencode($activeTab))?>">
+                    <i class="bi bi-file-earmark-spreadsheet"></i><span>Importar Excel</span>
+                </a>
+                <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/maestros/plantilla?tab='.urlencode($activeTab))?>" data-native-navigation>
+                    <i class="bi bi-download"></i><span>Plantilla XLSX</span>
+                </a>
+            <?php else: ?>
+                <span class="text-muted small">Ejecute la migración requerida para habilitar la administración de este catálogo.</span>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
 <form class="card mb-3" method="get" action="<?=url($base)?>" role="search" data-master-search-form>
     <div class="card-body py-3">
         <input type="hidden" name="tab" value="<?=e($activeTab)?>">
@@ -140,7 +164,10 @@ if($activeTab==='' && !empty($tabs)){
             <div class="table-responsive">
                 <table class="table app-table mb-0 enhanced-data-table">
                     <thead>
-                        <tr><?php foreach(array_keys($rows[0]) as $h): ?><th><?=e($headerLabel((string)$h))?></th><?php endforeach;?></tr>
+                        <tr>
+                            <?php foreach(array_keys($rows[0]) as $h): ?><th><?=e($headerLabel((string)$h))?></th><?php endforeach;?>
+                            <?php if($base==='/maestros' && !empty($masterManageAvailable)): ?><th class="text-end">Acciones</th><?php endif; ?>
+                        </tr>
                     </thead>
                     <tbody>
                     <?php foreach($rows as $row): ?>
@@ -169,6 +196,23 @@ if($activeTab==='' && !empty($tabs)){
                                 <?php endif; ?>
                             </td>
                         <?php endforeach;?>
+                        <?php if($base==='/maestros' && !empty($masterManageAvailable)): ?>
+                            <td class="text-end">
+                                <div class="master-row-actions">
+                                    <a class="btn btn-sm btn-outline-primary btn-with-icon" href="<?=url('/maestros/editar?tab='.urlencode($activeTab).'&id='.(int)$row['id'])?>">
+                                        <i class="bi bi-pencil-square"></i><span>Editar</span>
+                                    </a>
+                                    <form method="post" action="<?=url('/maestros/eliminar')?>" class="d-inline" data-master-delete data-master-label="<?=e((string)($row['nombre']??$row['razon_social']??$row['vendedor']??$row['codigo']??$row['id']))?>">
+                                        <?=csrf_field()?>
+                                        <input type="hidden" name="tab" value="<?=e($activeTab)?>">
+                                        <input type="hidden" name="id" value="<?=e((int)$row['id'])?>">
+                                        <button class="btn btn-sm btn-outline-danger btn-with-icon" type="submit">
+                                            <i class="bi bi-trash3"></i><span>Eliminar</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        <?php endif; ?>
                         </tr>
                     <?php endforeach;?>
                     </tbody>
