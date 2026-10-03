@@ -67,6 +67,7 @@ jobs:
           php tests/unit/pdf_layout_test.php
           php tests/unit/workflow_dialog_test.php
           php tests/unit/branding_configuration_test.php
+          php tests/unit/export_branding_path_test.php
           php tests/unit/new_requirements_test.php
           php tests/unit/workflow_test.php
           php tests/unit/guide_workflow_test.php
