@@ -22,6 +22,9 @@ $formsJs=$read('public/assets/js/forms.js');
 $routes=$read('routes/web.php');
 $masterTable=$read('app/Views/backoffice/table.php');
 $bulk=$read('app/Views/components/bulk_workflow.php');
+$exportPresentation=$read('app/Services/ExportPresentation.php');
+$apiController=$read('app/Controllers/ApiController.php');
+$appConfig=$read('config/app.php');
 req(!is_file($root.'/app/Services/OperationalNumberingService.php'),'El generador automático de correlativos debe estar eliminado.');
 
 foreach([$docController,$guideController,$docForm,$guideForm,$docJs,$formsJs] as $content){
@@ -48,5 +51,13 @@ foreach(['/maestros/nuevo','/maestros/guardar','/maestros/editar','/maestros/act
 foreach(['Agregar uno','Importar Excel','Plantilla XLSX','data-master-delete'] as $needle){
     req(str_contains($masterTable,$needle),'Falta acción de catálogo: '.$needle);
 }
+
+req(str_contains($exportPresentation,"\\public_path(ltrim(\$relative, '/'))"),'PDF/XLSX deben resolver logos desde la raíz pública real de cPanel.');
+req(!str_contains($exportPresentation,"base_path('public/'"),'Exportaciones no deben asumir que el Document Root es /public.');
+
+req(str_contains($routes,"/api/v1/auth/login") && str_contains($routes,"/api/v1/auth/logout"),'Faltan endpoints de login/logout API.');
+req(str_contains($routes,"postApi('/api/v1/auth/login"),'El login API debe aceptar POST sin CSRF de sesión web.');
+req(str_contains($apiController,'ApiTokenService') && str_contains($apiController,'Primero inicie sesión'),'La API debe exigir token emitido tras login.');
+req(!str_contains($appConfig,"'api_token' =>"),'No debe quedar token API fijo compartido en configuración.');
 
 echo "Nuevos requisitos UI/rutas: OK\n";
