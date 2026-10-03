@@ -1244,3 +1244,13 @@ body.bp-soft-navigating .app-main{cursor:progress}
     .workflow-dialog-actions .btn{flex:1}
     .quick-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* Acciones masivas y cabeceras operativas */
+.module-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.bulk-workflow-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bulk-workflow-actions form{margin:0}
+.bulk-workflow-actions .btn:disabled{opacity:.5;cursor:not-allowed}
+@media (max-width:767.98px){
+    .module-header-actions,.bulk-workflow-actions{width:100%;justify-content:stretch}
+    .module-header-actions>.btn,.bulk-workflow-actions form,.bulk-workflow-actions .btn{flex:1 1 auto}
+}
