@@ -7,7 +7,7 @@ use App\Exceptions\HttpException;
 use App\Policies\OperationalPermissionPolicy;
 use App\Policies\OperationalOwnershipPolicy;
 use App\Repositories\{GuideRepository,MasterDataRepository};
-use App\Services\{OperationalNumberingService,WorkflowService};
+use App\Services\WorkflowService;
 use App\Validators\WorkflowValidator;
 
 final class GuideController
@@ -64,6 +64,10 @@ final class GuideController
             'rows'=>$this->repository->all($filters),
             'filters'=>$filters,
             'sucursales'=>$this->masters()->sucursales(),
+            'bulkCounts'=>[
+                'BORRADOR'=>$this->repository->countByState('BORRADOR'),
+                'VALIDADO'=>$this->repository->countByState('VALIDADO'),
+            ],
         ]);
     }
 
@@ -90,7 +94,6 @@ final class GuideController
     {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         \view('guias.form',$this->viewData()+[
-            'autoNumber'=>(new OperationalNumberingService())->nextGuideNumber(),
             'defaultDate'=>date('Y-m-d'),
         ]);
     }
@@ -188,7 +191,6 @@ final class GuideController
     {
         if ($editing) $this->record((int)\input('id',0));
         $details=$this->normalizeDetails(is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[]);
-        $numberMode=(!$editing && (string)\input('number_mode','auto')==='manual')?'manual':'auto';
         $header=[
             'numero'=>trim((string)\input('numero','')),
             'fecha'=>(string)\input('fecha',''),
@@ -199,9 +201,6 @@ final class GuideController
             'provincia_id'=>\input('provincia_id','')!==''?(int)\input('provincia_id'):null,
             'distrito_id'=>\input('distrito_id','')!==''?(int)\input('distrito_id'):null,
         ];
-        if(!$editing && $numberMode==='auto'){
-            $header['numero']=(new OperationalNumberingService())->nextGuideNumber();
-        }
         $header=$this->applyClientDefaults($header);
         $errors=[];
         foreach(['numero','fecha'] as $k) if(trim((string)$header[$k])==='') $errors[$k]='Campo obligatorio';
@@ -243,6 +242,49 @@ final class GuideController
             throw new HttpException(422,'No se pudo guardar la guía. Revise los datos.');
         }
         \redirect('/guias/ver?id='.$id);
+    }
+
+    public function saveClientLocation(): void
+    {
+        \require_role('ADMIN','DIGITADOR');
+        OperationalPermissionPolicy::require('guides.create');
+
+        $clientId=(int)\input('cliente_id',0);
+        $departmentId=(int)\input('departamento_id',0);
+        $provinceId=(int)\input('provincia_id',0);
+        $districtId=(int)\input('distrito_id',0);
+        if($clientId<1 || $departmentId<1 || $provinceId<1 || $districtId<1){
+            throw new HttpException(422,'Seleccione cliente, departamento, provincia y distrito.');
+        }
+
+        $this->masters()->updateClientLocation($clientId,$departmentId,$provinceId,$districtId);
+        \audit('clientes','actualizar_ubicacion',$clientId);
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success'=>true,
+            'message'=>'Ubicación vinculada al cliente. Se autocompletará en futuras guías.',
+            'client'=>[
+                'id'=>$clientId,
+                'departamento_id'=>$departmentId,
+                'provincia_id'=>$provinceId,
+                'distrito_id'=>$districtId,
+            ],
+        ],JSON_UNESCAPED_UNICODE);
+    }
+
+    public function bulkStatus(): void
+    {
+        \require_role('ADMIN','SUPERVISOR');
+        $status=OperationalPermissionPolicy::workflow(\input('status',''));
+        if(!in_array($status,['VALIDADO','PUBLICADO'],true)){
+            throw new HttpException(422,'La acción masiva solo permite validar borradores o publicar validados.');
+        }
+        $result=(new WorkflowService())->bulkTransition($this->repository,$status,(int)\auth_user()['id']);
+        \audit('guias','estado_masivo_'.strtolower($status));
+        $label=$status==='VALIDADO'?'validadas':'publicadas';
+        \flash('success',$result['success'].' guías '.$label.'.'.($result['failed']>0?' '.$result['failed'].' no pudieron procesarse.':''));
+        \redirect('/guias');
     }
 
     public function destroy(): void
