@@ -1,5 +1,5 @@
 <?php
-use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController};
+use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController,MasterDataController};
 use App\Middleware\{AuthMiddleware,RoleMiddleware};
 use App\Policies\AccessPolicy;
 
@@ -40,6 +40,14 @@ $router->post('/guias/cliente-ubicacion',[GuideController::class,'saveClientLoca
 $router->get('/stock/ver',[StockController::class,'show'],$internal);
 
 $router->get('/maestros',[BackofficeController::class,'masters'],$internal);
+$router->get('/maestros/nuevo',[MasterDataController::class,'create'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/guardar',[MasterDataController::class,'store'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/maestros/editar',[MasterDataController::class,'edit'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/actualizar',[MasterDataController::class,'update'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/eliminar',[MasterDataController::class,'destroy'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/maestros/importar',[MasterDataController::class,'importPage'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/importar',[MasterDataController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/maestros/plantilla',[MasterDataController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/homologaciones',[BackofficeController::class,'homologations'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/validacion',[BackofficeController::class,'validation'],[new RoleMiddleware(['ADMIN','SUPERVISOR'])]);
 $router->get('/publicaciones',[BackofficeController::class,'publications'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
