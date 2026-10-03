@@ -25,6 +25,7 @@ final class MasterDataController
         \require_role('ADMIN');
         $tab=$this->tab();
         $meta=$this->service->definition($tab);
+        $this->service->assertReady($tab);
         $record=is_array($_SESSION['_master_old']??null)?$_SESSION['_master_old']:[];
         $error=(string)($_SESSION['_master_error']??'');
         unset($_SESSION['_master_old'],$_SESSION['_master_error']);
@@ -40,6 +41,7 @@ final class MasterDataController
         $tab=$this->tab();
         $id=(int)\input('id',0);
         $meta=$this->service->definition($tab);
+        $this->service->assertReady($tab);
         $record=$this->service->find($tab,$id);
         if(is_array($_SESSION['_master_old']??null)) $record=$_SESSION['_master_old'];
         $error=(string)($_SESSION['_master_error']??'');
@@ -65,6 +67,7 @@ final class MasterDataController
     private function save(bool $editing): void
     {
         $tab=$this->tab();
+        $this->service->assertReady($tab);
         $id=$editing?(int)\input('id',0):null;
         $record=is_array($_POST['record']??null)?$_POST['record']:[];
         try{
@@ -84,6 +87,7 @@ final class MasterDataController
     {
         \require_role('ADMIN');
         $tab=$this->tab();
+        $this->service->assertReady($tab);
         $id=(int)\input('id',0);
         try{
             $this->service->delete($tab,$id);
@@ -100,6 +104,7 @@ final class MasterDataController
         \require_role('ADMIN');
         $tab=$this->tab();
         $meta=$this->service->definition($tab);
+        $this->service->assertReady($tab);
         \view('backoffice.master_import',['tab'=>$tab,'meta'=>$meta]);
     }
 
@@ -107,6 +112,7 @@ final class MasterDataController
     {
         \require_role('ADMIN');
         $tab=$this->tab();
+        $this->service->assertReady($tab);
         try{
             $rows=(new SimpleXlsxTable())->readUpload($_FILES['excel']??[]);
             $result=$this->service->importRows($tab,$rows);
