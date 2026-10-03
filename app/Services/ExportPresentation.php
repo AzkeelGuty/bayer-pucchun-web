@@ -21,7 +21,7 @@ final class ExportPresentation
         'materialId' => 'Cód. producto',
         'materialName' => 'Producto',
         'measureUnit' => 'Unidad',
-        'quantity' => 'Cantidad',
+        'quantity' => 'Cantidad de productos',
         'unitValue' => 'Valor unitario',
         'province' => 'Provincia',
         'department' => 'Departamento',
@@ -63,7 +63,7 @@ final class ExportPresentation
     {
         if ($value === null || $value === '') return '—';
         if ($key === 'quantity') {
-            return number_format((float)$value, 3, '.', ',');
+            return \format_quantity($value);
         }
         if ($key === 'unitValue') {
             return number_format((float)$value, 2, '.', ',');
@@ -105,7 +105,9 @@ final class ExportPresentation
         $brand = \branding();
         $logoPath = static function (mixed $relative): ?string {
             if (!is_string($relative) || trim($relative) === '') return null;
-            $absolute = \base_path('public/' . ltrim($relative, '/'));
+            // Los logos se guardan en la raíz pública real. En cPanel puede ser
+            // public_html (BAYER_PUBLIC_ROOT), no necesariamente <proyecto>/public.
+            $absolute = \public_path(ltrim($relative, '/'));
             return is_file($absolute) ? $absolute : null;
         };
 

@@ -15,9 +15,19 @@ class MasterDataRepository
         $this->pdo = $pdo ?? \db();
     }
 
+    /** Includes ubigeo and last known operational seller/branch for assisted capture. */
     public function clientes(): array
     {
-        return $this->all('SELECT id, nro_doc, razon_social FROM clientes ORDER BY razon_social');
+        return $this->all('SELECT c.id,c.codigo,c.nro_doc,c.razon_social,CONCAT(c.nro_doc," · ",c.razon_social) label,c.departamento_id,c.provincia_id,c.distrito_id,
+            COALESCE(
+                (SELECT g.vendedor_id FROM guias_cabecera g WHERE g.cliente_id=c.id ORDER BY g.fecha DESC,g.id DESC LIMIT 1),
+                (SELECT d.vendedor_id FROM documentos_cabecera d WHERE d.cliente_id=c.id ORDER BY d.fecha DESC,d.id DESC LIMIT 1)
+            ) vendedor_sugerido_id,
+            COALESCE(
+                (SELECT g.sucursal_id FROM guias_cabecera g WHERE g.cliente_id=c.id ORDER BY g.fecha DESC,g.id DESC LIMIT 1),
+                (SELECT d.sucursal_id FROM documentos_cabecera d WHERE d.cliente_id=c.id ORDER BY d.fecha DESC,d.id DESC LIMIT 1)
+            ) sucursal_sugerida_id
+            FROM clientes c ORDER BY c.razon_social');
     }
 
     public function vendedores(): array
@@ -37,7 +47,7 @@ class MasterDataRepository
 
     public function productos(): array
     {
-        return $this->all('SELECT id, codigo, nombre, unidad_base_id FROM productos WHERE estado = 1 ORDER BY nombre');
+        return $this->all('SELECT id, codigo, nombre, CONCAT(codigo," · ",nombre) label, unidad_base_id FROM productos WHERE estado = 1 ORDER BY nombre');
     }
 
     public function unidades(): array
@@ -66,6 +76,33 @@ class MasterDataRepository
     public function distritos(): array
     {
         return $this->all('SELECT id, provincia_id, nombre FROM distritos ORDER BY nombre');
+    }
+
+    public function updateClientLocation(int $clientId,int $departmentId,int $provinceId,int $districtId): void
+    {
+        foreach([$clientId,$departmentId,$provinceId,$districtId] as $id){
+            if($id<1) throw new \InvalidArgumentException('Identificador de ubicación inválido.');
+        }
+
+        $st=$this->pdo->prepare(
+            'SELECT d.id FROM distritos d
+             JOIN provincias p ON p.id=d.provincia_id
+             WHERE d.id=? AND p.id=? AND p.departamento_id=?'
+        );
+        $st->execute([$districtId,$provinceId,$departmentId]);
+        if($st->fetchColumn()===false){
+            throw new \InvalidArgumentException('Departamento, provincia y distrito no corresponden entre sí.');
+        }
+
+        $st=$this->pdo->prepare(
+            'UPDATE clientes SET departamento_id=?,provincia_id=?,distrito_id=? WHERE id=?'
+        );
+        $st->execute([$departmentId,$provinceId,$districtId,$clientId]);
+        if($st->rowCount()===0){
+            $check=$this->pdo->prepare('SELECT id FROM clientes WHERE id=?');
+            $check->execute([$clientId]);
+            if($check->fetchColumn()===false) throw new \RuntimeException('Cliente no encontrado.');
+        }
     }
 
     private function all(string $sql): array

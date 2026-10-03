@@ -8,24 +8,56 @@
 </section>
 
 <div class="workflow-summary">
-    <div><span><i class="bi bi-file-earmark"></i> Borrador</span><strong><?=count(array_filter($rows,fn($r)=>$r['estado_registro']==='BORRADOR'))?></strong></div>
+    <div>
+        <span><i class="bi bi-file-earmark"></i> Borrador</span>
+        <strong><?=count(array_filter($rows,fn($r)=>$r['estado_registro']==='BORRADOR'))?></strong>
+    </div>
     <i>→</i>
-    <div><span><i class="bi bi-check2-circle"></i> Validado</span><strong><?=count(array_filter($rows,fn($r)=>$r['estado_registro']==='VALIDADO'))?></strong></div>
+    <div>
+        <span><i class="bi bi-check2-circle"></i> Validado</span>
+        <strong><?=count(array_filter($rows,fn($r)=>$r['estado_registro']==='VALIDADO'))?></strong>
+    </div>
     <i>→</i>
-    <div><span><i class="bi bi-cloud-check"></i> Publicado</span><strong>Disponible</strong></div>
+    <div>
+        <span><i class="bi bi-cloud-check"></i> Publicado</span>
+        <strong>Disponible</strong>
+    </div>
 </div>
 
 <div class="card">
-<div class="card-body p-0">
-<?php if(!$rows): ?><div class="empty-state"><strong>Sin pendientes.</strong><span>No hay registros esperando revisión.</span></div>
-<?php else: ?><div class="table-responsive"><table class="table app-table mb-0"><thead><tr><th>Dataset</th><th>Registro</th><th>Fecha</th><th>Referencia</th><th>Estado</th><th>Acción supervisada</th></tr></thead><tbody>
-<?php foreach($rows as $r): ?><tr>
-<td><strong><?=e($r['dataset'])?></strong></td>
-<td>#<?=e($r['id'])?></td>
-<td><?=e($r['fecha'] ?? $r['fecha_stock'] ?? '—')?></td>
-<td><?=e($r['numero'] ?? $r['almacen'] ?? '—')?></td>
-<td><span class="badge-status status-<?=e(strtolower($r['estado_registro']))?>"><?=e($r['estado_registro'])?></span></td>
-<td><?php workflow_control($r['module'],$r); ?></td>
-</tr><?php endforeach;?>
-</tbody></table></div><?php endif;?>
-</div></div>
+    <div class="card-body p-0">
+        <?php if(!$rows): ?>
+            <div class="empty-state">
+                <strong>Sin pendientes.</strong>
+                <span>No hay registros esperando revisión.</span>
+            </div>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="table app-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Conjunto de datos</th>
+                            <th>Registro</th>
+                            <th>Fecha</th>
+                            <th>Referencia</th>
+                            <th>Estado</th>
+                            <th>Acción supervisada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach($rows as $r): ?>
+                        <tr>
+                            <td><strong><?=e($r['dataset'])?></strong></td>
+                            <td>#<?=e($r['id'])?></td>
+                            <td><?=e($r['fecha'] ?? $r['fecha_stock'] ?? '—')?></td>
+                            <td><?=e($r['numero'] ?? $r['almacen'] ?? '—')?></td>
+                            <td><span class="badge-status status-<?=e(strtolower($r['estado_registro']))?>"><?=e($r['estado_registro'])?></span></td>
+                            <td><?php workflow_control($r['module'],$r,'/validacion','supervised'); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>

@@ -5,8 +5,8 @@
 </div>
 <p class="d-flex gap-2">
     <a class="btn btn-sm btn-outline-secondary" href="<?= url('/guias') ?>">&larr; Volver al listado</a>
-    <?php if (has_role('ADMIN', 'DIGITADOR', 'SUPERVISOR') && $h['estado_registro'] === 'BORRADOR'): ?>
-        <a class="btn btn-sm btn-outline-primary" href="<?= url('/guias/editar?id=' . $h['id']) ?>">Editar</a>
+    <?php if (has_role('ADMIN', 'DIGITADOR') && in_array($h['estado_registro'], ['BORRADOR','OBSERVADO'], true)): ?>
+        <a class="btn btn-sm btn-outline-primary" href="<?= url('/guias/editar?id=' . $h['id']) ?>"><?= $h['estado_registro']==='OBSERVADO' ? 'Corregir' : 'Editar' ?></a>
     <?php endif; ?>
 </p>
 
@@ -19,9 +19,14 @@
         <div class="col-md-3"><strong>Sucursal</strong><div><?= e($sucursales[$h['sucursal_id']]['nombre'] ?? $h['sucursal_id']) ?></div></div>
     </div>
     <div class="row mt-3">
-        <div class="col-md-3"><strong>Departamento</strong><div><?= e($departamentos[$h['departamento_id']]['nombre'] ?? '—') ?></div></div>
-        <div class="col-md-3"><strong>Provincia</strong><div><?= e($provincias[$h['provincia_id']]['nombre'] ?? '—') ?></div></div>
-        <div class="col-md-3"><strong>Distrito</strong><div><?= e($distritos[$h['distrito_id']]['nombre'] ?? '—') ?></div></div>
+        <div class="col-md-9">
+            <strong>Destino de entrega</strong>
+            <div><?= e(implode(' · ', array_filter([
+                $distritos[$h['distrito_id']]['nombre'] ?? null,
+                $provincias[$h['provincia_id']]['nombre'] ?? null,
+                $departamentos[$h['departamento_id']]['nombre'] ?? null,
+            ])) ?: 'Sin destino registrado') ?></div>
+        </div>
         <div class="col-md-3"><strong>Versión</strong><div><?= e($h['version']) ?></div></div>
     </div>
     <?php if ($h['estado_registro'] === 'OBSERVADO' && $h['observation_reason']): ?>
@@ -42,7 +47,7 @@
                 <tr>
                     <td><?= e($productos[$line['producto_id']]['nombre'] ?? $line['producto_id']) ?></td>
                     <td><?= e($unidades[$line['unidad_id']]['nombre'] ?? $line['unidad_id']) ?></td>
-                    <td><?= e($line['cantidad']) ?></td>
+                    <td><?= e(format_quantity($line['cantidad'])) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -52,18 +57,15 @@
 
 <?php if (has_role('ADMIN', 'SUPERVISOR')): ?>
 <div class="card"><div class="card-body">
-    <h6 class="card-title">Workflow</h6>
-    <p class="text-muted small">Estas acciones dependen del Service de estados (en preparación); hasta entonces el backend responderá con un aviso temporal.</p>
+    <h6 class="card-title">Flujo de aprobación</h6>
+    <p class="text-muted small">Las acciones disponibles dependen del estado actual de la guía y de los permisos del usuario.</p>
     <div class="d-flex gap-2 flex-wrap">
         <?php if ($h['estado_registro'] === 'BORRADOR'): ?>
-            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-sm btn-info">Validar</button></form>
+            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-sm btn-info">Validar</button></form>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'VALIDADO'): ?>
-            <form method="post" action="<?= url('/guias/estado') ?>" onsubmit="return confirm('¿Publicar esta guía? Bayer podrá verla de inmediato.');"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-sm btn-success">Publicar</button></form>
+            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-sm btn-success">Publicar</button></form>
             <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#observarModal">Observar</button>
-        <?php endif; ?>
-        <?php if ($h['estado_registro'] === 'OBSERVADO'): ?>
-            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="status" value="BORRADOR"><button class="btn btn-sm btn-secondary">Devolver a borrador</button></form>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'PUBLICADO'): ?>
             <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#anularModal">Anular</button>
@@ -75,7 +77,7 @@
     <div class="modal-dialog">
         <form method="post" action="<?= url('/guias/estado') ?>" class="modal-content">
             <?= csrf_field() ?>
-            <input type="hidden" name="id" value="<?= $h['id'] ?>">
+            <input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>">
             <input type="hidden" name="status" value="OBSERVADO">
             <div class="modal-header"><h5 class="modal-title">Observar guía</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
@@ -94,7 +96,7 @@
     <div class="modal-dialog">
         <form method="post" action="<?= url('/guias/estado') ?>" class="modal-content">
             <?= csrf_field() ?>
-            <input type="hidden" name="id" value="<?= $h['id'] ?>">
+            <input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>">
             <input type="hidden" name="status" value="ANULADO">
             <div class="modal-header"><h5 class="modal-title">Anular guía</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">

@@ -74,6 +74,10 @@ try {
     ensure($permissions->forUser(10) === [], 'Inactive role has no grants');
     $pdo->exec('UPDATE roles SET estado=1 WHERE id=10');
 
+    // Explicit grants for the existing legitimate HTTP scenarios; no implicit role bypass.
+    $pdo->exec("INSERT INTO permisos(id,codigo,nombre) VALUES(3,'documents.read','Fixture'),(4,'guides.read','Fixture'),(5,'stock.read','Fixture')");
+    $pdo->exec('INSERT INTO rol_permiso(rol_id,permiso_id) VALUES(10,3),(11,3),(11,1),(12,4),(13,5)');
+
     $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);
     if (!$socket) throw new RuntimeException('No local port');
     $address=stream_socket_get_name($socket,false);fclose($socket);
@@ -87,7 +91,8 @@ try {
     $env['APP_URL']=$base;
     $env['APP_DEBUG']='true'; // Even with debug requested, HTTP errors must be sanitized.
     $env['SESSION_NAME']=$sessionName;
-    $env['API_ENABLED']='false';
+    $env['API_ENABLED']='true';
+    $env['API_TOKEN_TTL']='900';
     $env['SESSION_TIMEOUT']='60';
     $env['LOGIN_MAX_ATTEMPTS']='5';
     $env['LOGIN_WINDOW']='900';
@@ -96,6 +101,26 @@ try {
     if (!is_resource($server)) throw new RuntimeException('HTTP server unavailable');
     fclose($pipes[0]);
     for($i=0;$i<50;++$i){$probe=@stream_socket_client('tcp://'.$address,$e,$m,0.1);if($probe){fclose($probe);break;}usleep(100000);}
+
+    // API: primero login de usuario, luego Bearer token temporal; no usa CSRF de sesión web.
+    $apiClient=[];
+    ensure(request('/api/v1/bayer/all',$apiClient)['status']===401,'API data requires Bearer token');
+    $apiLogin=request('/api/v1/auth/login',$apiClient,[
+        'email'=>'bayer@example.invalid',
+        'password'=>$password,
+    ]);
+    ensure($apiLogin['status']===200,'API login accepts valid published-data account without web CSRF');
+    $apiPayload=json_decode($apiLogin['body'],true,512,JSON_THROW_ON_ERROR);
+    $apiToken=(string)($apiPayload['auth']['access_token']??'');
+    ensure(str_starts_with($apiToken,'puc_'),'API login returns temporary token');
+    $apiData=request('/api/v1/bayer/all',$apiClient,null,['Authorization: Bearer '.$apiToken,'Accept: application/json']);
+    ensure($apiData['status']===200 && str_contains($apiData['body'],'PUBLICADO-ONLY'),'Bearer token unlocks published API data');
+    foreach(['BORRADOR','VALIDADO','OBSERVADO','ANULADO'] as $state){
+        ensure(!str_contains($apiData['body'],$state.'-ONLY'),'API hides non-published state '.$state);
+    }
+    $apiLogout=request('/api/v1/auth/logout',$apiClient,[],['Authorization: Bearer '.$apiToken,'Accept: application/json']);
+    ensure($apiLogout['status']===200,'API logout revokes token without CSRF');
+    ensure(request('/api/v1/bayer/all',$apiClient,null,['Authorization: Bearer '.$apiToken])['status']===401,'Revoked API token cannot be reused');
 
     $guest=[];
     ensure(request('/dashboard',$guest)['status']===302,'Guest redirects to login');
@@ -167,6 +192,18 @@ try {
     $gerencia=[];loginAs('GERENCIA',$gerencia);
     ensure(request('/stock',$gerencia)['status']===200,'Gerencia query');
     ensure(request('/stock/nuevo',$gerencia)['status']===403,'Gerencia does not capture');
+
+    // Revoke and restore the persisted grant while keeping the same authenticated cookie.
+    foreach ([['/documentos',$digitador,11,3],['/guias',$supervisor,12,4],['/stock',$gerencia,13,5]] as [$path,$cookies,$roleId,$permissionId]) {
+        $sessionBefore=$cookies[$sessionName];
+        $st=$pdo->prepare('DELETE FROM rol_permiso WHERE rol_id=? AND permiso_id=?');
+        $st->execute([$roleId,$permissionId]);
+        ensure(request($path,$cookies)['status']===403,'Revoked persisted grant denied '.$path);
+        ensure($cookies[$sessionName]===$sessionBefore,'Permission denial preserves session '.$path);
+        $st=$pdo->prepare('INSERT INTO rol_permiso(rol_id,permiso_id) VALUES(?,?)');
+        $st->execute([$roleId,$permissionId]);
+        ensure(request($path,$cookies)['status']===200,'Restored grant works without login '.$path);
+    }
 
     $admin=[];loginAs('ADMIN',$admin);
     $pdo->exec('RENAME TABLE documentos_detalle TO documentos_detalle_unavailable');

@@ -1,8 +1,7 @@
 /**
- * Shared behaviour for capture forms (Guías/Stock): repeatable detail lines
- * and dependent selects (departamento->provincia->distrito, producto->lote).
- * Data is read from window.BP_* globals set by the view (see guias/form.php,
- * stock/form.php) so this file stays generic across both forms.
+ * Comportamiento compartido de formularios de captura (Guías/Stock).
+ * Prioriza automatización: cliente -> vendedor/sucursal/destino,
+ * producto -> unidad, y evita líneas duplicadas.
  */
 (function () {
     'use strict';
@@ -14,14 +13,17 @@
         empty.value = '';
         empty.textContent = placeholder;
         select.appendChild(empty);
-        rows.filter(function (row) { return !parentValue || String(row[parentKey]) === String(parentValue); })
-            .forEach(function (row) {
-                const option = document.createElement('option');
-                option.value = row[valueKey];
-                option.textContent = row[labelKey];
-                select.appendChild(option);
-            });
-        if ([...select.options].some(function (o) { return o.value === current; })) {
+
+        rows.filter(function (row) {
+            return !parentValue || String(row[parentKey]) === String(parentValue);
+        }).forEach(function (row) {
+            const option = document.createElement('option');
+            option.value = row[valueKey];
+            option.textContent = row[labelKey];
+            select.appendChild(option);
+        });
+
+        if ([...select.options].some(function (option) { return option.value === current; })) {
             select.value = current;
         }
     }
@@ -33,17 +35,18 @@
         const distSelect = scope.querySelector('[data-role="distrito"]');
         if (!geo || !depSelect || !provSelect || !distSelect) return;
 
+        function refreshDistritos() {
+            rebuildOptions(distSelect, geo.distritos, 'id', 'nombre', 'provincia_id', provSelect.value, 'Seleccione…');
+        }
+
         function refreshProvincias() {
             rebuildOptions(provSelect, geo.provincias, 'id', 'nombre', 'departamento_id', depSelect.value, 'Seleccione…');
             refreshDistritos();
         }
-        function refreshDistritos() {
-            rebuildOptions(distSelect, geo.distritos, 'id', 'nombre', 'provincia_id', provSelect.value, 'Seleccione…');
-        }
+
         depSelect.addEventListener('change', refreshProvincias);
         provSelect.addEventListener('change', refreshDistritos);
-        refreshProvincias();
-        // Preserve values from a failed submit (old()), applied after options are rebuilt.
+
         if (depSelect.dataset.old) depSelect.value = depSelect.dataset.old;
         refreshProvincias();
         if (provSelect.dataset.old) provSelect.value = provSelect.dataset.old;
@@ -51,16 +54,294 @@
         if (distSelect.dataset.old) distSelect.value = distSelect.dataset.old;
     }
 
+    function wireClienteSuggestions(clienteSelect) {
+        const clientes = window.BP_CLIENTES;
+        const form = clienteSelect.closest('form');
+        if (!clientes || !form) return;
+
+        const depSelect = form.querySelector('[data-role="departamento"]');
+        const provSelect = form.querySelector('[data-role="provincia"]');
+        const distSelect = form.querySelector('[data-role="distrito"]');
+        const sellerSelect = form.querySelector('[name="vendedor_id"]');
+        const branchSelect = form.querySelector('[name="sucursal_id"]');
+
+        function apply(force) {
+            const cliente = clientes[clienteSelect.value];
+            if (!cliente) return;
+
+            if (sellerSelect && (force || !sellerSelect.value)) sellerSelect.value = cliente.vendedor_sugerido_id || '';
+            if (branchSelect && (force || !branchSelect.value)) branchSelect.value = cliente.sucursal_sugerida_id || '';
+
+            const geoEmpty = !depSelect?.value && !provSelect?.value && !distSelect?.value;
+            if (depSelect && provSelect && distSelect && (force || geoEmpty)) {
+                depSelect.value = cliente.departamento_id || '';
+                depSelect.dispatchEvent(new Event('change', {bubbles: true}));
+                provSelect.value = cliente.provincia_id || '';
+                provSelect.dispatchEvent(new Event('change', {bubbles: true}));
+                distSelect.value = cliente.distrito_id || '';
+                distSelect.dispatchEvent(new Event('change', {bubbles: true}));
+            }
+        }
+
+        clienteSelect.addEventListener('change', function () { apply(true); });
+        if (clienteSelect.value) apply(false);
+    }
+
+    function wireDestinationEditor(scope) {
+        const form = scope.closest('form');
+        const clienteSelect = form?.querySelector('[data-role="cliente"]');
+        const depSelect = scope.querySelector('[data-role="departamento"]');
+        const provSelect = scope.querySelector('[data-role="provincia"]');
+        const distSelect = scope.querySelector('[data-role="distrito"]');
+        const fields = scope.querySelector('[data-destination-fields]');
+        const toggle = scope.querySelector('[data-destination-toggle]');
+        const summary = scope.querySelector('[data-destination-summary]');
+        const note = scope.querySelector('[data-destination-note]');
+        const saveClient = scope.querySelector('[data-destination-save-client]');
+        const endpoint = scope.dataset.clientLocationUrl || '';
+        if (!clienteSelect || !depSelect || !provSelect || !distSelect || !fields || !toggle || !summary) return;
+
+        let manual = false;
+        let restoringAutomatic = false;
+
+        const getClient = () => (window.BP_CLIENTES || {})[clienteSelect.value] || null;
+        const clientHasDestination = (client) => Boolean(
+            client?.departamento_id && client?.provincia_id && client?.distrito_id
+        );
+
+        const selectedText = (select) => {
+            const option = select.selectedOptions?.[0];
+            return option && option.value ? option.textContent.trim() : '';
+        };
+
+        function refresh() {
+            const hasClient = Boolean(clienteSelect.value);
+            const client = getClient();
+            const hasAutomatic = clientHasDestination(client);
+            const complete = Boolean(depSelect.value && provSelect.value && distSelect.value);
+
+            if (!hasClient) {
+                manual = false;
+                fields.hidden = true;
+                toggle.hidden = true;
+                summary.textContent = 'Selecciona un cliente para completar el destino.';
+                if (note) note.textContent = 'La ubicación se completa automáticamente cuando existe en la ficha del cliente.';
+                if (saveClient) saveClient.hidden = true;
+                return;
+            }
+
+            if (complete) {
+                summary.textContent = [selectedText(distSelect), selectedText(provSelect), selectedText(depSelect)]
+                    .filter(Boolean).join(' · ');
+
+                if (note) {
+                    note.textContent = manual
+                        ? 'Destino ajustado para esta guía.'
+                        : (hasAutomatic
+                            ? 'Destino completado desde la ficha del cliente.'
+                            : 'Destino definido para esta guía.');
+                }
+
+                fields.hidden = !manual;
+                toggle.hidden = !hasAutomatic;
+                if (hasAutomatic) {
+                    toggle.textContent = manual ? 'Restaurar destino del cliente' : 'Cambiar destino';
+                }
+
+                if (saveClient) {
+                    const differs = !hasAutomatic
+                        || String(client.departamento_id) !== String(depSelect.value)
+                        || String(client.provincia_id) !== String(provSelect.value)
+                        || String(client.distrito_id) !== String(distSelect.value);
+                    saveClient.hidden = !differs;
+                    saveClient.innerHTML = hasAutomatic
+                        ? '<i class="bi bi-link-45deg"></i> Actualizar ubicación del cliente'
+                        : '<i class="bi bi-link-45deg"></i> Guardar ubicación en cliente';
+                }
+                return;
+            }
+
+            manual = true;
+            fields.hidden = false;
+            toggle.hidden = true;
+            summary.textContent = 'Completa el destino de entrega.';
+            if (saveClient) saveClient.hidden = true;
+            if (note) note.textContent = hasAutomatic
+                ? 'Puedes completar el destino o restaurar la ubicación registrada del cliente.'
+                : 'Este cliente no tiene una ubicación completa registrada.';
+        }
+
+        function restoreAutomaticDestination() {
+            const client = getClient();
+            if (!clientHasDestination(client)) return false;
+
+            restoringAutomatic = true;
+            manual = false;
+
+            depSelect.value = String(client.departamento_id);
+            depSelect.dispatchEvent(new Event('change', {bubbles: true}));
+
+            provSelect.value = String(client.provincia_id);
+            provSelect.dispatchEvent(new Event('change', {bubbles: true}));
+
+            distSelect.value = String(client.distrito_id);
+            distSelect.dispatchEvent(new Event('change', {bubbles: true}));
+
+            restoringAutomatic = false;
+            refresh();
+            return true;
+        }
+
+        if (saveClient) {
+            saveClient.addEventListener('click', async function () {
+                if (!endpoint || !clienteSelect.value || !depSelect.value || !provSelect.value || !distSelect.value) return;
+
+                const csrf = form.querySelector('input[name="_csrf"]')?.value || '';
+                const data = new FormData();
+                data.append('_csrf', csrf);
+                data.append('cliente_id', clienteSelect.value);
+                data.append('departamento_id', depSelect.value);
+                data.append('provincia_id', provSelect.value);
+                data.append('distrito_id', distSelect.value);
+
+                const original = saveClient.innerHTML;
+                saveClient.disabled = true;
+                saveClient.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Guardando…';
+
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        body: data,
+                        credentials: 'same-origin',
+                        headers: {'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok || !payload.success) {
+                        throw new Error(payload.message || 'No se pudo vincular la ubicación.');
+                    }
+
+                    const client = getClient();
+                    if (client) {
+                        client.departamento_id = String(depSelect.value);
+                        client.provincia_id = String(provSelect.value);
+                        client.distrito_id = String(distSelect.value);
+                    }
+                    manual = false;
+                    if (note) note.textContent = payload.message || 'Ubicación guardada en la ficha del cliente.';
+                    refresh();
+                } catch (error) {
+                    if (note) note.textContent = error?.message || 'No se pudo guardar la ubicación del cliente.';
+                    saveClient.innerHTML = original;
+                } finally {
+                    saveClient.disabled = false;
+                }
+            });
+        }
+
+        toggle.addEventListener('click', function () {
+            if (manual) {
+                restoreAutomaticDestination();
+                return;
+            }
+
+            manual = true;
+            refresh();
+            depSelect.focus({preventScroll: true});
+        });
+
+        clienteSelect.addEventListener('change', function () {
+            manual = false;
+            window.setTimeout(() => {
+                const client = getClient();
+                const complete = Boolean(depSelect.value && provSelect.value && distSelect.value);
+                if (clientHasDestination(client) && !complete) {
+                    restoreAutomaticDestination();
+                } else {
+                    refresh();
+                }
+            }, 0);
+        });
+
+        [depSelect, provSelect, distSelect].forEach(function (select) {
+            select.addEventListener('change', function () {
+                if (restoringAutomatic) return;
+                refresh();
+            });
+        });
+
+        refresh();
+    }
+
+    function wireProductUnit(row) {
+        const productos = window.BP_PRODUCTS || {};
+        const productSelect = row.querySelector('[data-role="producto"]');
+        const unitSelect = row.querySelector('select[name$="[unidad_id]"]');
+        if (!productSelect || !unitSelect) return;
+
+        unitSelect.classList.add('auto-unit-select');
+        unitSelect.setAttribute('aria-readonly', 'true');
+        unitSelect.tabIndex = -1;
+
+        function refresh(force) {
+            const product = productos[productSelect.value];
+            if (!product || !product.unidad_base_id || (!force && unitSelect.value)) return;
+            unitSelect.value = String(product.unidad_base_id);
+        }
+
+        productSelect.addEventListener('change', function () { refresh(true); });
+        refresh(false);
+    }
+
     function wireLoteCascade(row) {
         const lotes = window.BP_LOTES || [];
         const productoSelect = row.querySelector('[data-role="producto"]');
         const loteSelect = row.querySelector('[data-role="lote"]');
         if (!productoSelect || !loteSelect) return;
+
         function refresh() {
             rebuildOptions(loteSelect, lotes, 'id', 'codigo_lote', 'producto_id', productoSelect.value, 'Sin lote');
         }
+
         productoSelect.addEventListener('change', refresh);
         refresh();
+    }
+
+    function numericQuantity(row) {
+        const input = row.querySelector('input[name$="[cantidad]"]');
+        if (!input) return 1;
+        const value = Number.parseInt(input.value || '1', 10);
+        return Number.isFinite(value) && value >= 0 ? value : 1;
+    }
+
+    function setQuantity(row, value) {
+        const input = row.querySelector('input[name$="[cantidad]"]');
+        if (input) input.value = String(value);
+    }
+
+    function mergeDuplicateRows(body, config, forceBlankLot) {
+        const seen = new Map();
+        Array.from(body.rows).forEach(function (row) {
+            if (!row.isConnected) return;
+            const product = row.querySelector('[data-role="producto"]')?.value || '';
+            if (!product) return;
+
+            let key = product;
+            if (config.hasLote) {
+                const lote = row.querySelector('[data-role="lote"]')?.value || '';
+                if (!lote && !forceBlankLot) return;
+                key += ':' + (lote || 'SIN_LOTE');
+            }
+
+            if (!seen.has(key)) {
+                seen.set(key, row);
+                return;
+            }
+
+            const first = seen.get(key);
+            setQuantity(first, numericQuantity(first) + numericQuantity(row));
+            row.remove();
+            first.querySelector('input[name$="[cantidad]"]')?.focus({preventScroll: true});
+        });
     }
 
     function initDetailRepeater(config) {
@@ -68,11 +349,28 @@
         const template = document.getElementById(config.templateId);
         const addButton = document.getElementById(config.addButtonId);
         if (!table || !template || !addButton) return;
+
         const body = table.tBodies[0];
+        const form = table.closest('form');
         let index = body.rows.length;
 
         function attachRow(row) {
             if (config.hasLote) wireLoteCascade(row);
+            wireProductUnit(row);
+
+            const product = row.querySelector('[data-role="producto"]');
+            const lote = row.querySelector('[data-role="lote"]');
+            if (product && !config.hasLote) {
+                product.addEventListener('change', function () {
+                    mergeDuplicateRows(body, config, false);
+                });
+            }
+            if (lote && config.hasLote) {
+                lote.addEventListener('change', function () {
+                    mergeDuplicateRows(body, config, false);
+                });
+            }
+
             const removeBtn = row.querySelector('.remove-line-btn');
             if (removeBtn) {
                 removeBtn.addEventListener('click', function () {
@@ -90,11 +388,27 @@
             const row = holder.firstElementChild;
             body.appendChild(row);
             attachRow(row);
+            window.BP_SearchableSelects?.enhanceAll(row);
+            row.querySelector('[data-role="producto"]')?.closest('.incremental-select')?.querySelector('input')?.focus();
         });
+
+        if (form) {
+            form.addEventListener('submit', function () {
+                mergeDuplicateRows(body, config, true);
+            }, {capture: true});
+        }
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    function init() {
         document.querySelectorAll('[data-ubigeo-scope]').forEach(wireUbigeo);
+        document.querySelectorAll('[data-role="cliente"]').forEach(wireClienteSuggestions);
+        document.querySelectorAll('[data-destination-shell]').forEach(wireDestinationEditor);
         if (window.BP_DETAIL_REPEATER) initDetailRepeater(window.BP_DETAIL_REPEATER);
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init, {once: true});
+    } else {
+        init();
+    }
 })();

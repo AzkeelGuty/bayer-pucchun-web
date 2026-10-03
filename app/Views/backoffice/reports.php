@@ -94,7 +94,7 @@ $datasetLabel=static fn(string $type): string => $datasets[$type]['label'] ?? uc
                         <tr>
                             <th>ID</th>
                             <th>Archivo</th>
-                            <th>Dataset</th>
+                            <th>Conjunto de datos</th>
                             <th>Formato</th>
                             <th>Registros</th>
                             <th>Resultado</th>

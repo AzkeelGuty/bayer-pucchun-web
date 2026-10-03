@@ -1,0 +1,94 @@
+name: Quality checks
+
+on:
+  push:
+    branches:
+      - integration/frontend-equipo
+      - 'ux/**'
+  pull_request:
+    branches:
+      - integration/frontend-equipo
+
+jobs:
+  full-quality:
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    env:
+      TEST_DB_HOST: 127.0.0.1
+      TEST_DB_PORT: 3306
+      TEST_DB_USER: root
+      TEST_DB_PASS: root
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PHP 8.1
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: pdo_mysql, mbstring, json, zip
+          coverage: none
+
+      - name: PHP syntax
+        shell: bash
+        run: |
+          find app config routes public scripts tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: JavaScript syntax
+        shell: bash
+        run: |
+          find public/assets/js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Unit tests
+        shell: bash
+        run: |
+          php -d zend.assertions=1 -d assert.exception=1 tests/unit/validator_test.php
+          php -d zend.assertions=1 -d assert.exception=1 tests/unit/core_security_test.php
+          php -d zend.assertions=1 -d assert.exception=1 tests/unit/csrf_test.php
+          php tests/unit/pdf_layout_test.php
+          php tests/unit/workflow_dialog_test.php
+          php tests/unit/branding_configuration_test.php
+          php tests/unit/export_branding_path_test.php
+          php tests/unit/new_requirements_test.php
+          php tests/unit/workflow_test.php
+          php tests/unit/guide_workflow_test.php
+          php tests/unit/stock_workflow_test.php
+          php tests/unit/workflow_transitions_test.php
+          php tests/unit/document_permissions_test.php
+          php tests/unit/guide_permissions_test.php
+          php tests/unit/stock_permissions_test.php
+          php tests/unit/workflow_permissions_test.php
+          php tests/unit/document_ownership_test.php
+          php tests/unit/repository_ownership_test.php
+          php tests/unit/guide_ownership_test.php
+          php tests/unit/stock_ownership_test.php
+
+      - name: Integration tests
+        shell: bash
+        run: |
+          php tests/integration/schema_v2_test.php
+          php tests/integration/operational_permissions_migration_test.php
+          php tests/integration/repositories_test.php
+          php tests/integration/master_catalogs_test.php
+          php tests/integration/bulk_workflow_test.php
+          php tests/integration/api_auth_test.php
+          php tests/integration/core_security_test.php

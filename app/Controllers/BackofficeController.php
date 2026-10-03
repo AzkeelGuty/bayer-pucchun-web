@@ -6,6 +6,7 @@ namespace App\Controllers;
 use App\Exceptions\HttpException;
 use App\Policies\AccessPolicy;
 use App\Repositories\{DocumentRepository,GuideRepository,StockRepository};
+use App\Services\MasterCatalogService;
 
 final class BackofficeController
 {
@@ -14,20 +15,119 @@ final class BackofficeController
         \require_role('ADMIN');
         $key=(string)($_GET['tab'] ?? 'clientes');
         $catalogs=[
-            'clientes'=>['Clientes',"SELECT c.id,c.codigo,c.tipo_doc,c.nro_doc,c.razon_social,d.nombre distrito,p.nombre provincia,dp.nombre departamento FROM clientes c LEFT JOIN distritos d ON d.id=c.distrito_id LEFT JOIN provincias p ON p.id=c.provincia_id LEFT JOIN departamentos dp ON dp.id=c.departamento_id ORDER BY c.razon_social LIMIT 300"],
-            'productos'=>['Productos',"SELECT pr.id,pr.codigo,pr.nombre,c.nombre categoria,m.nombre marca,u.codigo unidad,IF(pr.estado=1,'ACTIVO','INACTIVO') estado FROM productos pr LEFT JOIN categorias_producto c ON c.id=pr.categoria_id LEFT JOIN marcas m ON m.id=pr.marca_id LEFT JOIN unidades_medida u ON u.id=pr.unidad_base_id ORDER BY pr.nombre LIMIT 300"],
-            'vendedores'=>['Vendedores',"SELECT id,codigo,TRIM(CONCAT(nombres,' ',COALESCE(apellidos,''))) vendedor,email,IF(estado=1,'ACTIVO','INACTIVO') estado FROM vendedores ORDER BY nombres LIMIT 300"],
-            'sucursales'=>['Sucursales',"SELECT s.id,s.codigo,s.nombre,e.razon_social empresa,s.direccion,d.nombre distrito,IF(s.estado=1,'ACTIVO','INACTIVO') estado FROM sucursales s JOIN empresas e ON e.id=s.empresa_id LEFT JOIN distritos d ON d.id=s.distrito_id ORDER BY s.nombre LIMIT 300"],
-            'almacenes'=>['Almacenes',"SELECT a.id,a.codigo,a.nombre,a.tipo,s.nombre sucursal,IF(a.estado=1,'ACTIVO','INACTIVO') estado FROM almacenes a JOIN sucursales s ON s.id=a.sucursal_id ORDER BY a.nombre LIMIT 300"],
-            'unidades'=>['Unidades de medida',"SELECT id,codigo,nombre,abreviatura,factor_base FROM unidades_medida ORDER BY nombre LIMIT 300"],
-            'empresas'=>['Empresas',"SELECT id,ruc,razon_social,nombre_comercial,IF(estado=1,'ACTIVO','INACTIVO') estado FROM empresas ORDER BY razon_social LIMIT 300"],
-            'tipos'=>['Tipos de documento',"SELECT id,codigo,nombre,sunat_code FROM tipos_documento ORDER BY nombre LIMIT 300"],
-            'ubigeo'=>['Ubigeo',"SELECT d.id,dp.nombre departamento,p.nombre provincia,d.nombre distrito FROM distritos d JOIN provincias p ON p.id=d.provincia_id JOIN departamentos dp ON dp.id=p.departamento_id ORDER BY dp.nombre,p.nombre,d.nombre LIMIT 300"],
+            'clientes'=>[
+                'title'=>'Clientes',
+                'select'=>"SELECT c.id,c.codigo,c.tipo_doc,c.nro_doc,c.razon_social,d.nombre distrito,p.nombre provincia,dp.nombre departamento FROM clientes c LEFT JOIN distritos d ON d.id=c.distrito_id LEFT JOIN provincias p ON p.id=c.provincia_id LEFT JOIN departamentos dp ON dp.id=c.departamento_id",
+                'search'=>['c.codigo','c.nro_doc','c.razon_social'],
+                'order'=>'c.razon_social',
+            ],
+            'productos'=>[
+                'title'=>'Productos',
+                'select'=>"SELECT pr.id,pr.codigo,pr.nombre,c.nombre categoria,m.nombre marca,u.codigo unidad,IF(pr.estado=1,'ACTIVO','INACTIVO') estado FROM productos pr LEFT JOIN categorias_producto c ON c.id=pr.categoria_id LEFT JOIN marcas m ON m.id=pr.marca_id LEFT JOIN unidades_medida u ON u.id=pr.unidad_base_id",
+                'search'=>['pr.codigo','pr.nombre','u.codigo'],
+                'order'=>'pr.nombre',
+            ],
+            'proveedores'=>[
+                'title'=>'Proveedores',
+                'select'=>"SELECT id,codigo,nombre,IF(estado=1,'ACTIVO','INACTIVO') estado FROM proveedores",
+                'search'=>['codigo','nombre'],
+                'order'=>'nombre',
+            ],
+            'vendedores'=>[
+                'title'=>'Vendedores',
+                'select'=>"SELECT id,codigo,TRIM(CONCAT(nombres,' ',COALESCE(apellidos,''))) vendedor,email,IF(estado=1,'ACTIVO','INACTIVO') estado FROM vendedores",
+                'search'=>['codigo','nombres','apellidos','email'],
+                'order'=>'nombres',
+            ],
+            'sucursales'=>[
+                'title'=>'Sucursales',
+                'select'=>"SELECT s.id,s.codigo,s.nombre,e.razon_social empresa,s.direccion,d.nombre distrito,IF(s.estado=1,'ACTIVO','INACTIVO') estado FROM sucursales s JOIN empresas e ON e.id=s.empresa_id LEFT JOIN distritos d ON d.id=s.distrito_id",
+                'search'=>['s.codigo','s.nombre','e.razon_social','s.direccion'],
+                'order'=>'s.nombre',
+            ],
+            'almacenes'=>[
+                'title'=>'Almacenes',
+                'select'=>"SELECT a.id,a.codigo,a.nombre,a.tipo,s.nombre sucursal,IF(a.estado=1,'ACTIVO','INACTIVO') estado FROM almacenes a JOIN sucursales s ON s.id=a.sucursal_id",
+                'search'=>['a.codigo','a.nombre','a.tipo','s.nombre'],
+                'order'=>'a.nombre',
+            ],
+            'unidades'=>[
+                'title'=>'Unidades de medida',
+                'select'=>"SELECT id,codigo,nombre,abreviatura,factor_base FROM unidades_medida",
+                'search'=>['codigo','nombre','abreviatura'],
+                'order'=>'nombre',
+            ],
+            'empresas'=>[
+                'title'=>'Empresas',
+                'select'=>"SELECT id,ruc,razon_social,nombre_comercial,IF(estado=1,'ACTIVO','INACTIVO') estado FROM empresas",
+                'search'=>['ruc','razon_social','nombre_comercial'],
+                'order'=>'razon_social',
+            ],
+            'tipos'=>[
+                'title'=>'Tipos de documento',
+                'select'=>"SELECT id,codigo,nombre,sunat_code FROM tipos_documento",
+                'search'=>['codigo','nombre','sunat_code'],
+                'order'=>'nombre',
+            ],
+            'ubigeo'=>[
+                'title'=>'Ubigeo',
+                'select'=>"SELECT d.id,dp.nombre departamento,p.nombre provincia,d.nombre distrito FROM distritos d JOIN provincias p ON p.id=d.provincia_id JOIN departamentos dp ON dp.id=p.departamento_id",
+                'search'=>['dp.nombre','p.nombre','d.nombre'],
+                'order'=>'dp.nombre,p.nombre,d.nombre',
+            ],
         ];
         if(!isset($catalogs[$key])) throw new HttpException(404,'Catálogo no encontrado.');
-        [$title,$sql]=$catalogs[$key];
-        $rows=\db()->query($sql)->fetchAll();
-        \view('backoffice.table',['section'=>'Catálogos maestros','title'=>$title,'rows'=>$rows,'tabs'=>array_map(fn($v)=>$v[0],$catalogs),'active'=>$key,'base'=>'/maestros']);
+
+        $q=trim((string)($_GET['q'] ?? ''));
+        if(mb_strlen($q)>80) $q=mb_substr($q,0,80);
+        $cfg=$catalogs[$key];
+        $rows=[];
+        $catalogNotice=null;
+
+        // "Proveedores" fue agregado en la migración 004. En instalaciones
+        // existentes que todavía no la ejecutaron, no debe provocar un Error 500.
+        if($key==='proveedores' && !$this->tableExists('proveedores')){
+            $catalogNotice='El catálogo de proveedores todavía no está inicializado en esta base de datos. Ejecute la migración 004_catalogos_masivos_busqueda.sql.';
+        } else {
+            $sql=$cfg['select'];
+            $params=[];
+            if($q!==''){
+                $parts=[];
+                foreach($cfg['search'] as $column){
+                    $parts[]=$column.' LIKE ?';
+                    $params[]='%'.$q.'%';
+                }
+                $sql.=' WHERE ('.implode(' OR ',$parts).')';
+            }
+            $sql.=' ORDER BY '.$cfg['order'].' LIMIT 300';
+            $st=\db()->prepare($sql);
+            $st->execute($params);
+            $rows=$st->fetchAll();
+        }
+
+        $tabs=[];
+        foreach($catalogs as $tabKey=>$tabCfg) $tabs[$tabKey]=$tabCfg['title'];
+        \view('backoffice.table',[
+            'section'=>'Catálogos maestros',
+            'title'=>$cfg['title'],
+            'rows'=>$rows,
+            'tabs'=>$tabs,
+            'active'=>$key,
+            'base'=>'/maestros',
+            'q'=>$q,
+            'catalogNotice'=>$catalogNotice,
+            'masterMeta'=>(new MasterCatalogService())->definition($key),
+            'masterAdmin'=>\has_role('ADMIN'),
+            'masterManageIssue'=>$catalogNotice ?? (new MasterCatalogService())->availabilityIssue($key),
+            'masterManageAvailable'=>\has_role('ADMIN') && $catalogNotice===null && (new MasterCatalogService())->availabilityIssue($key)===null,
+        ]);
+    }
+
+    private function tableExists(string $table): bool
+    {
+        $st=\db()->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
+        $st->execute([$table]);
+        return (int)$st->fetchColumn()>0;
     }
 
     public function homologations(): void
@@ -58,6 +158,14 @@ final class BackofficeController
         foreach($docs as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'documentos','dataset'=>'Documentos',...$r];
         foreach($guides as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'guias','dataset'=>'Guías',...$r];
         foreach($stock as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'stock','dataset'=>'Stock',...$r];
+        $priority=['VALIDADO'=>0,'BORRADOR'=>1,'OBSERVADO'=>2];
+        usort($rows,static function(array $a,array $b)use($priority):int{
+            $stateCmp=($priority[$a['estado_registro']]??9)<=>($priority[$b['estado_registro']]??9);
+            if($stateCmp!==0) return $stateCmp;
+            $aDate=(string)($a['fecha']??$a['fecha_stock']??'');
+            $bDate=(string)($b['fecha']??$b['fecha_stock']??'');
+            return $bDate<=>$aDate;
+        });
         \view('backoffice.validation',['rows'=>$rows]);
     }
 
@@ -94,6 +202,18 @@ final class BackofficeController
     public function evolution(): void
     {
         \require_role('ADMIN','SUPERVISOR','GERENCIA');
-        \view('backoffice.evolution',['apiEnabled'=>(bool)\config('app.api_enabled')]);
+
+        $counts=[
+            'sales'=>(int)\db()->query("SELECT COUNT(*) FROM documentos_detalle d JOIN documentos_cabecera h ON h.id=d.documento_id WHERE h.estado_registro='PUBLICADO'")->fetchColumn(),
+            'shipments'=>(int)\db()->query("SELECT COUNT(*) FROM guias_detalle d JOIN guias_cabecera h ON h.id=d.guia_id WHERE h.estado_registro='PUBLICADO'")->fetchColumn(),
+            'inventory'=>(int)\db()->query("SELECT COUNT(*) FROM stock_detalle d JOIN stock_cabecera h ON h.id=d.stock_id WHERE h.estado_registro='PUBLICADO'")->fetchColumn(),
+        ];
+
+        \view('backoffice.evolution',[
+            'apiEnabled'=>(bool)\config('app.api_enabled'),
+            'apiTokenConfigured'=>trim((string)\config('app.api_token'))!=='',
+            'apiBase'=>rtrim((string)\config('app.url'),'\/').'/api/v1/bayer',
+            'apiCounts'=>$counts,
+        ]);
     }
 }

@@ -57,6 +57,26 @@ SELECT * FROM schema_migrations;
 ```
 
 
+## Actualización de una instalación Schema v2 existente
+
+Si la base ya estaba en Schema v2 antes de integrar el backend de permisos granulares, **no vuelva a importar el esquema ni borre la base**. Ejecute una sola vez:
+
+```sql
+SOURCE database/migrations/003_operational_permissions.sql;
+```
+
+En phpMyAdmin: seleccione la base `bayer_pucchun` → **Importar** → cargue `database/migrations/003_operational_permissions.sql`.
+
+Esta migración no cambia tablas. Solo agrega/asigna los permisos persistidos requeridos por Documentos, Guías y Stock:
+
+- ADMIN: lectura + creación/edición de Documentos, Guías y Stock.
+- DIGITADOR: lectura + creación/edición de Documentos, Guías y Stock.
+- SUPERVISOR: lectura operativa; validación/publicación sigue controlada por sus permisos específicos.
+- GERENCIA: lectura operativa.
+- BAYER: sin acceso a CRUD interno.
+
+Después cierre sesión y vuelva a ingresar para probar la navegación.
+
 ## Actualización desde Schema v1
 
 
