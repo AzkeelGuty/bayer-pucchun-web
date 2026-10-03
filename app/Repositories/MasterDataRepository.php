@@ -78,6 +78,33 @@ class MasterDataRepository
         return $this->all('SELECT id, provincia_id, nombre FROM distritos ORDER BY nombre');
     }
 
+    public function updateClientLocation(int $clientId,int $departmentId,int $provinceId,int $districtId): void
+    {
+        foreach([$clientId,$departmentId,$provinceId,$districtId] as $id){
+            if($id<1) throw new \InvalidArgumentException('Identificador de ubicación inválido.');
+        }
+
+        $st=$this->pdo->prepare(
+            'SELECT d.id FROM distritos d
+             JOIN provincias p ON p.id=d.provincia_id
+             WHERE d.id=? AND p.id=? AND p.departamento_id=?'
+        );
+        $st->execute([$districtId,$provinceId,$departmentId]);
+        if($st->fetchColumn()===false){
+            throw new \InvalidArgumentException('Departamento, provincia y distrito no corresponden entre sí.');
+        }
+
+        $st=$this->pdo->prepare(
+            'UPDATE clientes SET departamento_id=?,provincia_id=?,distrito_id=? WHERE id=?'
+        );
+        $st->execute([$departmentId,$provinceId,$districtId,$clientId]);
+        if($st->rowCount()===0){
+            $check=$this->pdo->prepare('SELECT id FROM clientes WHERE id=?');
+            $check->execute([$clientId]);
+            if($check->fetchColumn()===false) throw new \RuntimeException('Cliente no encontrado.');
+        }
+    }
+
     private function all(string $sql): array
     {
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
