@@ -145,6 +145,26 @@ abstract class OperationalRepository
         return $version + 1;
     }
 
+    public function countByState(string $state): int
+    {
+        if(!in_array($state,['BORRADOR','VALIDADO','PUBLICADO','OBSERVADO','ANULADO'],true)){
+            throw new InvalidArgumentException('Estado no admitido.');
+        }
+        $statement=$this->execute('SELECT COUNT(*) FROM '.static::HEADER.' WHERE estado_registro=?',[$state]);
+        return (int)$statement->fetchColumn();
+    }
+
+    public function workflowCandidates(string $state): array
+    {
+        if(!in_array($state,['BORRADOR','VALIDADO'],true)){
+            throw new InvalidArgumentException('Estado masivo no admitido.');
+        }
+        return $this->execute(
+            'SELECT id,version FROM '.static::HEADER.' WHERE estado_registro=? ORDER BY id',
+            [$state]
+        )->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     protected function normalize(array $header, array $details): array
     {
         $allowed = [...static::HEADER_FIELDS, ...static::OPTIONAL_FIELDS];
