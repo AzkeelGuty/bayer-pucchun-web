@@ -562,3 +562,15 @@
         });
     }
 })();
+
+
+// Confirmación centralizada para acciones masivas de workflow.
+document.addEventListener('submit', function (event) {
+    const form = event.target.closest?.('[data-bulk-workflow]');
+    if (!form) return;
+    const label = form.dataset.bulkLabel || 'procesar todos los registros';
+    if (!window.confirm('¿Confirmas que deseas ' + label + '? Esta acción se aplicará a todos los registros elegibles del módulo.')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+}, true);
