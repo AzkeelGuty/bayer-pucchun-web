@@ -22,6 +22,7 @@ $formsJs=$read('public/assets/js/forms.js');
 $routes=$read('routes/web.php');
 $masterTable=$read('app/Views/backoffice/table.php');
 $bulk=$read('app/Views/components/bulk_workflow.php');
+req(!is_file($root.'/app/Services/OperationalNumberingService.php'),'El generador automático de correlativos debe estar eliminado.');
 
 foreach([$docController,$guideController,$docForm,$guideForm,$docJs,$formsJs] as $content){
     req(!str_contains($content,'data-number-manual'),'No debe quedar el selector de numeración automática/manual.');
