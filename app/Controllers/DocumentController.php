@@ -17,10 +17,10 @@ final class DocumentController
     public function index(): void {
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read');
         $data=(new DocumentScreenService())->listing($_GET);
-        $data['bulkCounts']=[
+        $data['bulkCounts']=\has_role('ADMIN','SUPERVISOR') ? [
             'BORRADOR'=>$this->repository->countByState('BORRADOR'),
             'VALIDADO'=>$this->repository->countByState('VALIDADO'),
-        ];
+        ] : ['BORRADOR'=>0,'VALIDADO'=>0];
         \view('documentos.index',$data);
     }
     public function create(): void {
