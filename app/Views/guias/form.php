@@ -3,10 +3,7 @@ require base_path('app/Views/components/form_fields.php');
 $editing = isset($record);
 $correcting = $editing && (($record['header']['estado_registro'] ?? '') === 'OBSERVADO');
 $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'unidad_id' => '', 'cantidad' => '1']];
-$numberMode = $editing ? 'manual' : ((string)old('number_mode') === 'manual' ? 'manual' : 'auto');
-$numberValue = $editing
-    ? (string)old('numero')
-    : ($numberMode === 'manual' ? (string)old('numero') : (string)($autoNumber ?? ''));
+$numberValue = (string)old('numero');
 $dateValue = (string)old('fecha');
 if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('Y-m-d'));
 ?>
@@ -30,19 +27,9 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
         <div class="row g-3">
             <div class="col-md-4">
                 <label class="form-label" for="guide-number">Número</label>
-                <?php if($editing): ?>
-                    <input class="form-control <?=form_error('numero')?'is-invalid':''?>" id="guide-number" name="numero" maxlength="25" value="<?=e($numberValue)?>" required>
-                    <div class="invalid-feedback"><?=e(form_error('numero'))?></div>
-                <?php else: ?>
-                    <input type="hidden" name="number_mode" value="<?=e($numberMode)?>" data-number-mode>
-                    <input class="form-control <?=form_error('numero')?'is-invalid':''?>" id="guide-number" name="numero" maxlength="25" value="<?=e($numberValue)?>" data-auto-number="<?=e((string)($autoNumber??''))?>" data-number-input <?= $numberMode==='auto'?'readonly':'' ?> required>
-                    <div class="invalid-feedback"><?=e(form_error('numero'))?></div>
-                    <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" id="guide-number-manual" data-number-manual <?= $numberMode==='manual'?'checked':'' ?>>
-                        <label class="form-check-label small" for="guide-number-manual">Ingresar número externo/manual</label>
-                    </div>
-                    <div class="form-text" data-number-help><?= $numberMode==='auto'?'El correlativo se genera automáticamente al guardar.':'Modo manual para una guía que ya existe fuera del sistema.' ?></div>
-                <?php endif; ?>
+                <input class="form-control <?=form_error('numero')?'is-invalid':''?>" id="guide-number" name="numero" maxlength="25" value="<?=e($numberValue)?>" autocomplete="off" required>
+                <div class="invalid-feedback"><?=e(form_error('numero'))?></div>
+                <div class="form-text">Ingrese el número real de la guía. El sistema no genera correlativos.</div>
             </div>
             <div class="col-md-4">
                 <label class="form-label" for="guide-date">Fecha</label>
@@ -55,14 +42,17 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
             <?php select('vendedor_id', 'Vendedor', $vendedores, 'id', 'nombre'); ?>
             <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre'); ?>
 
-            <div class="col-12" data-ubigeo-scope data-destination-shell>
+            <div class="col-12" data-ubigeo-scope data-destination-shell data-client-location-url="<?=e(url('/guias/cliente-ubicacion'))?>">
                 <label class="form-label mb-2">Destino de entrega</label>
                 <div class="destination-card">
                     <div class="destination-copy">
                         <strong data-destination-summary>Selecciona un cliente para completar el destino.</strong>
                         <small data-destination-note>El sistema usa la ubicación registrada del cliente y solo pide cambios cuando sea necesario.</small>
                     </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm" data-destination-toggle hidden>Cambiar destino</button>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-success btn-sm" data-destination-save-client hidden><i class="bi bi-link-45deg"></i> Guardar ubicación en cliente</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-destination-toggle hidden>Cambiar destino</button>
+                    </div>
                 </div>
                 <div class="row g-3 mt-1" data-destination-fields hidden>
                     <?php select('departamento_id', 'Departamento', $departamentos, 'id', 'nombre', false, 'data-role="departamento" data-old="' . e((string) old('departamento_id')) . '"'); ?>
