@@ -64,10 +64,10 @@ final class GuideController
             'rows'=>$this->repository->all($filters),
             'filters'=>$filters,
             'sucursales'=>$this->masters()->sucursales(),
-            'bulkCounts'=>[
+            'bulkCounts'=>\has_role('ADMIN','SUPERVISOR') ? [
                 'BORRADOR'=>$this->repository->countByState('BORRADOR'),
                 'VALIDADO'=>$this->repository->countByState('VALIDADO'),
-            ],
+            ] : ['BORRADOR'=>0,'VALIDADO'=>0],
         ]);
     }
 
