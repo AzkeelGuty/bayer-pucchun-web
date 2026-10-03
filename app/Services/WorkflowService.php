@@ -78,6 +78,44 @@ final class WorkflowService
         }
     }
 
+    public function bulkTransition(
+        OperationalRepository $repository,
+        string $target,
+        int $actorId
+    ): array {
+        $source=match($target){
+            'VALIDADO'=>'BORRADOR',
+            'PUBLICADO'=>'VALIDADO',
+            default=>throw new HttpException(422,'Acción masiva no permitida.'),
+        };
+
+        $success=0;
+        $failed=0;
+        foreach($repository->workflowCandidates($source) as $candidate){
+            try{
+                $this->transition(
+                    $repository,
+                    (int)$candidate['id'],
+                    (int)$candidate['version'],
+                    $target,
+                    $actorId
+                );
+                $success++;
+            }catch(HttpException $error){
+                // Un registro que cambió mientras se procesaba no bloquea el resto.
+                $failed++;
+                \log_event('bulk_workflow_skip',[
+                    'module'=>$this->module($repository),
+                    'id'=>(int)$candidate['id'],
+                    'target'=>$target,
+                    'status'=>$error->status,
+                ]);
+            }
+        }
+
+        return ['success'=>$success,'failed'=>$failed,'source'=>$source,'target'=>$target];
+    }
+
     private function module(OperationalRepository $repository): string
     {
         $class=$repository::class;
