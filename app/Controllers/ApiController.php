@@ -95,6 +95,12 @@ final class ApiController
             'data'=>[
                 'name'=>'Bayer Pucchún REST API',
                 'publishedOnly'=>true,
+                'authentication'=>[
+                    'login'=>'POST /api/v1/auth/login',
+                    'logout'=>'POST /api/v1/auth/logout',
+                    'scheme'=>'Bearer',
+                    'expiresInSeconds'=>(int)\config('app.api_token_ttl',28800),
+                ],
                 'endpoints'=>[
                     '/api/v1/bayer/all',
                     '/api/v1/bayer/sales',
