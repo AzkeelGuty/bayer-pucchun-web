@@ -127,8 +127,10 @@ if($activeTab==='' && !empty($tabs)){
                 <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/maestros/plantilla?tab='.urlencode($activeTab))?>" data-native-navigation>
                     <i class="bi bi-download"></i><span>Plantilla XLSX</span>
                 </a>
+            <?php elseif(empty($masterAdmin)): ?>
+                <span class="text-muted small"><i class="bi bi-shield-lock me-1"></i>Solo el rol ADMIN puede modificar los catálogos.</span>
             <?php else: ?>
-                <span class="text-muted small">Ejecute la migración requerida para habilitar la administración de este catálogo.</span>
+                <span class="text-muted small"><i class="bi bi-exclamation-triangle me-1"></i><?=e((string)($masterManageIssue??'Complete la migración requerida para administrar este catálogo.'))?></span>
             <?php endif; ?>
         </div>
     </div>
