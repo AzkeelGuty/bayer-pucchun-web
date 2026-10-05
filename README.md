@@ -101,7 +101,7 @@ Consultar:
 
 Pedro desarrolla persistencia y Alisson funcionamiento, según el intercambio confirmado por Pedro. Esta entrega se publica en `feature/logistics-flow-pedro`; la base común y los contratos con G4, G5 e Inventarios siguen sujetos a validación.
 
-Consultar el [índice de Logística](docs/logistica/README.md), la [guía de quince casos para Alisson](docs/logistica/casos-para-alisson/GUIA_PARA_ALISSON.md) y el [orden de commits y publicación](docs/logistica/PUBLICACION_GIT.md). Las galerías incluyen dieciséis láminas y funcionan sin conexión.
+Consultar el [índice de Logística](docs/logistica/README.md), la [guía de quince casos para Alisson](docs/logistica/guias/GUIA_PARA_ALISSON.md) y el [orden de commits y publicación](docs/logistica/guias/PUBLICACION_GIT.md). Las galerías incluyen dieciséis láminas y funcionan sin conexión.
 
 ## Seguridad
 

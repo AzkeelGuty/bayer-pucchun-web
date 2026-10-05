@@ -49,4 +49,4 @@ Inventarios conserva stock/Kardex; Logística conserva el proceso y sus referenc
 
 Abrir **COORDINACION_Y_CONTRATO.md**: elegir una sola persistencia, aplicar el reparto confirmado, validar la base con G4/G5/Inventarios y acordar reserva/salida, confirmaciones, Guías y permisos.
 
-Abrir **GUIA_PARA_ALISSON.md** cuando se necesiten nombres de métodos, entradas JSON, pruebas o límites. El parche incluido permite comparar lo implementado; no sustituye esa revisión.
+Abrir **GUIA_PARA_ALISSON.md** cuando se necesiten nombres de métodos, entradas JSON, pruebas o límites. Los contratos y archivos vigentes del repositorio permiten comparar lo implementado antes de integrar.

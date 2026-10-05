@@ -2,7 +2,7 @@
 
 Rama de publicación: `feature/logistics-flow-pedro`, desde la misma base `f38f4e8` de las ramas creadas por Alisson. Pedro confirmó el intercambio de responsabilidades: Pedro desarrolla persistencia y Alisson funcionamiento, Services y Controllers. Se conserva el nombre histórico de la rama por indicación de Pedro. El trabajo se preparó originalmente en una rama local de persistencia; sólo se publica en la rama flow de Pedro. Las ramas de Alisson y la rama conjunta conservan su contenido.
 
-La referencia `schema_v2` sigue provisional hasta validar la base y los contratos con G4, G5 e Inventarios; no implica aprobación del ingeniero para mantener ese esquema exacto. La [guía de casos y galerías](../logistica/README.md) explica el funcionamiento, y la [guía de publicación](../logistica/PUBLICACION_GIT.md) describe los commits y comandos.
+La referencia `schema_v2` sigue provisional hasta validar la base y los contratos con G4, G5 e Inventarios; no implica aprobación del ingeniero para mantener ese esquema exacto. La [guía de casos y galerías](../logistica/README.md) explica el funcionamiento, y la [guía de publicación](../logistica/guias/PUBLICACION_GIT.md) describe los commits y comandos.
 
 ## Qué utilizará Alisson
 

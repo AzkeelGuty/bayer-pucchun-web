@@ -69,7 +69,7 @@ En los casos 1–10 se parte de una línea de venta de 100 unidades, con Guía v
 
 ## Matriz de implementación y evidencia
 
-S = bloque de funcionamiento (Services). R = Repository. Las copias de las pruebas citadas están en `referencias/tests/integration`. “Directa” significa que localicé el escenario o sus aserciones en el archivo; “derivado” significa ejemplo construido con las reglas vigentes, sin afirmar que esos números exactos se ejecutaron. La ejecución local histórica está documentada en `docs/handoffs/logistics-validation.md`: 545 comprobaciones de Logística. Esta guía no vuelve a ejecutar las suites ni certifica la futura integración.
+S = bloque de funcionamiento (Services). R = Repository. Las pruebas citadas están en `tests/integration` del repositorio. “Directa” significa que localicé el escenario o sus aserciones en el archivo; “derivado” significa ejemplo construido con las reglas vigentes, sin afirmar que esos números exactos se ejecutaron. La ejecución local histórica está documentada en `docs/handoffs/logistics-validation.md`: 545 comprobaciones de Logística. Esta guía no vuelve a ejecutar las suites ni certifica la futura integración.
 
 | Caso | Responsabilidad S | Método y protección R | Evidencia localizada |
 | --- | --- | --- | --- |
@@ -183,11 +183,11 @@ No equivalen literalmente a los nombres `*_cabecera` propuestos por Alisson. Hay
 
 ## Referencias ejecutables
 
-- [Contrato vigente 007](referencias/docs/contracts/logistics-incidents.md).
-- [Contrato base 006, subordinado a 007](referencias/docs/contracts/logistics-persistence.md).
-- [Interfaz de persistencia](referencias/app/Contracts/LogisticsRepositoryInterface.php).
-- [Repository implementado](referencias/app/Repositories/LogisticsRepository.php).
-- [Proveedor confiable de Inventarios](referencias/app/Contracts/LogisticsInventoryConfirmationProviderInterface.php).
-- [Pruebas de incidencias](referencias/tests/integration/logistics_incidents_test.php).
-- [Pruebas de persistencia](referencias/tests/integration/logistics_persistence_test.php).
-- [Informe de ejecución local](referencias/docs/handoffs/logistics-validation.md).
+- [Contrato vigente 007](../../contracts/logistics-incidents.md).
+- [Contrato base 006, subordinado a 007](../../contracts/logistics-persistence.md).
+- [Interfaz de persistencia](../../../app/Contracts/LogisticsRepositoryInterface.php).
+- [Repository implementado](../../../app/Repositories/LogisticsRepository.php).
+- [Proveedor confiable de Inventarios](../../../app/Contracts/LogisticsInventoryConfirmationProviderInterface.php).
+- [Pruebas de incidencias](../../../tests/integration/logistics_incidents_test.php).
+- [Pruebas de persistencia](../../../tests/integration/logistics_persistence_test.php).
+- [Informe de ejecución local](../../handoffs/logistics-validation.md).

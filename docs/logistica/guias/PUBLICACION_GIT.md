@@ -1,8 +1,10 @@
-# Publicación del trabajo de Pedro
+# Registro de la publicación inicial de Pedro
 
 Fecha: 5 de octubre de 2026. Destino autorizado por Pedro: **feature/logistics-flow-pedro** en [AzkeelGuty/bayer-pucchun-web](https://github.com/AzkeelGuty/bayer-pucchun-web/tree/feature/logistics-flow-pedro).
 
 Pedro confirmó el intercambio con Alisson: **Pedro desarrolla persistencia; Alisson desarrolla funcionamiento**. Por su indicación se conserva el nombre flow-pedro aunque esta entrega sea de persistencia. La base del trabajo es `f38f4e8`, común a las tres ramas de Logística creadas por Alisson.
+
+Este registro conserva la primera entrega de quince commits. La reorganización posterior de documentación se registra en otro commit de la misma rama.
 
 ## Orden de los quince commits
 
@@ -63,7 +65,7 @@ Las pruebas usan un servidor temporal dedicado en localhost:43316 y bases aleato
 
 1. [Historial de la rama](https://github.com/AzkeelGuty/bayer-pucchun-web/commits/feature/logistics-flow-pedro).
 2. [Comparación con la rama conjunta](https://github.com/AzkeelGuty/bayer-pucchun-web/compare/feature/logistics-pedro-alisson...feature/logistics-flow-pedro).
-3. [Índice de Logística](README.md), [guía de casos](casos-para-alisson/GUIA_PARA_ALISSON.md) y contratos.
+3. [Índice de Logística](../README.md), [guía de casos](GUIA_PARA_ALISSON.md) y contratos.
 4. Comparación técnica con Alisson antes de integrar; validar base y contratos con G4, G5 e Inventarios.
 
-Los adjuntos originales del docente, ZIP duplicados, datos del servidor de QA, logs, archivos de procesos y `.env` permanecen fuera de los commits. Las galerías incluyen copias de consulta y un parche histórico; la fuente vigente para integrar son los archivos del repositorio. La base concreta sigue provisional y los adaptadores reales de Inventarios/Services continúan pendientes.
+Los adjuntos originales del docente, ZIP duplicados, datos del servidor de QA, logs, archivos de procesos y `.env` permanecen fuera de los commits. La reorganización posterior retiró las copias de consulta y el parche histórico del repositorio. Los contratos, código y pruebas vigentes permanecen en sus carpetas originales. La base concreta sigue provisional y los adaptadores reales de Inventarios/Services continúan pendientes.

@@ -4,42 +4,42 @@
   "modo": "Generador de imágenes integrado de Codex",
   "imagenes": [
     {
-      "archivo": "01_flujo_logistico.png",
+      "archivo": "../../material-visual/01_flujo_logistico.png",
       "ancho": 1536,
       "alto": 1024,
       "bytes": 1975439,
       "sha256": "0EB7A2D9F825B251DB75077398A75CAF3AD0E58BC0650BA109A71BB87E5746E7"
     },
     {
-      "archivo": "02_responsabilidades.png",
+      "archivo": "../../material-visual/02_responsabilidades.png",
       "ancho": 1536,
       "alto": 1024,
       "bytes": 1883754,
       "sha256": "0365C444CC63A1FF06A21DAC871F044525058245A3BF7DB3145B7D2ED7BDF932"
     },
     {
-      "archivo": "03_caso_100_unidades.png",
+      "archivo": "../../material-visual/03_caso_100_unidades.png",
       "ancho": 1536,
       "alto": 1024,
       "bytes": 1972635,
       "sha256": "50D6EE05F7158BE8547AF6DF9754411A1B2AC40CED72ABFC99D6A0A25358ABC0"
     },
     {
-      "archivo": "04_intento_fallido.png",
+      "archivo": "../../material-visual/04_intento_fallido.png",
       "ancho": 1536,
       "alto": 1024,
       "bytes": 2473492,
       "sha256": "1167224E85990D75337D6BE1558805F2CA1DB96C7471DAA8DF49F342B198F109"
     },
     {
-      "archivo": "05_seguridad_de_datos.png",
+      "archivo": "../../material-visual/05_seguridad_de_datos.png",
       "ancho": 1536,
       "alto": 1024,
       "bytes": 1928364,
       "sha256": "C0FAD21DD25748FEC811E8CC38796E127C0FEB1D4915944F147C838950AC7680"
     },
     {
-      "archivo": "06_mapa_de_persistencia.png",
+      "archivo": "../../material-visual/06_mapa_de_persistencia.png",
       "ancho": 1536,
       "alto": 1024,
       "bytes": 2111817,
@@ -50,6 +50,6 @@
   "tipografia": "Fuentes reales autoalojadas en la galería HTML; tipografía generada dentro de los PNG",
   "contenido": "Contrastado con el contrato vigente y las verificaciones locales",
   "dimensiones": "1536 × 1024 píxeles por lámina",
-  "instrucciones": "PROMPTS.md",
+  "instrucciones": "PROMPTS_material-visual.md",
   "actualizacion_reparto": "2026-10-05: Pedro en persistencia y Alisson en funcionamiento; pie de lamina 02 corregido con herramienta integrada."
 }

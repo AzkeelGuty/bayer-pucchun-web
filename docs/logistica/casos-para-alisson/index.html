@@ -7,10 +7,10 @@
   <meta name="description" content="Diez láminas y una guía de casos para conectar funcionamiento y persistencia de Logística del Grupo 7.">
   <title>Logística · Casos para Alisson</title>
   <style>
-    @font-face{font-family:"Source Serif 4";src:url("fuentes/SourceSerif4-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
-    @font-face{font-family:"Source Serif 4";src:url("fuentes/SourceSerif4-Semibold.woff2") format("woff2");font-weight:600;font-display:swap}
-    @font-face{font-family:"Source Sans 3";src:url("fuentes/SourceSans3-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
-    @font-face{font-family:"Source Sans 3";src:url("fuentes/SourceSans3-Semibold.woff2") format("woff2");font-weight:600;font-display:swap}
+    @font-face{font-family:"Source Serif 4";src:url("../recursos/fuentes/SourceSerif4-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+    @font-face{font-family:"Source Serif 4";src:url("../recursos/fuentes/SourceSerif4-Semibold.woff2") format("woff2");font-weight:600;font-display:swap}
+    @font-face{font-family:"Source Sans 3";src:url("../recursos/fuentes/SourceSans3-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+    @font-face{font-family:"Source Sans 3";src:url("../recursos/fuentes/SourceSans3-Semibold.woff2") format("woff2");font-weight:600;font-display:swap}
     :root{--paper:#f3eee3;--ink:#222720;--forest:#405d4d;--rule:#bbb9ac}
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
@@ -61,10 +61,9 @@
       <p class="intro">Diez láminas para hablar el mismo idioma al conectar el funcionamiento del módulo con su persistencia. Cada ejemplo explica el hecho, el saldo y lo que permite cerrar el despacho.</p>
       <p class="scope"><strong>Alcance:</strong> explican la implementación local de persistencia. La base común y los contratos con G4, G5 e Inventarios necesitan validación del equipo. El reparto confirmado es Pedro en persistencia y Alisson en Services, Controllers y funcionamiento. La entrega se publica en <code>feature/logistics-flow-pedro</code>. Se reutilizan las Guías existentes y el stock pertenece a Inventarios.</p>
       <div class="resources">
-        <a href="EXPLICACION_EN_5_MINUTOS.md">Guion para explicarlo</a>
-        <a href="GUIA_PARA_ALISSON.md">Guía técnica · 15 casos</a>
-        <a href="COORDINACION_Y_CONTRATO.md">8 acuerdos y borrador de mensaje</a>
-        <a href="codigo/logistics-persistence-pedro.patch" download>Parche para comparar</a>
+        <a href="../guias/EXPLICACION_EN_5_MINUTOS.md">Guion para explicarlo</a>
+        <a href="../guias/GUIA_PARA_ALISSON.md">Guía técnica · 15 casos</a>
+        <a href="../guias/COORDINACION_Y_CONTRATO.md">8 acuerdos y borrador de mensaje</a>
       </div>
     </header>
     <nav id="indice" aria-label="Índice de casos">
@@ -261,8 +260,8 @@
       <a class="back" href="#indice">Volver al índice ↑</a>
     </section>
     <footer>
-      <p><strong>Para continuar:</strong> revisar la <a href="GUIA_PARA_ALISSON.md">matriz de 15 casos</a>, comparar las implementaciones y cerrar los <a href="COORDINACION_Y_CONTRATO.md">ocho acuerdos de integración</a>. Los fragmentos de datos describen entradas de Repository; no son rutas HTTP ya implementadas.</p>
-      <p>Imágenes PNG estáticas generadas con la herramienta integrada; no contienen animaciones. La galería usa Source Serif 4 y Source Sans 3 autoalojadas, funciona sin conexión y respeta la preferencia de movimiento reducido. <a href="PROMPTS.md">Instrucciones de generación</a> · <a href="README.md">Contenido del paquete</a>.</p>
+      <p><strong>Para continuar:</strong> revisar la <a href="../guias/GUIA_PARA_ALISSON.md">matriz de 15 casos</a>, comparar las implementaciones y cerrar los <a href="../guias/COORDINACION_Y_CONTRATO.md">ocho acuerdos de integración</a>. Los fragmentos de datos describen entradas de Repository; no son rutas HTTP ya implementadas.</p>
+      <p>Imágenes PNG estáticas generadas con la herramienta integrada; no contienen animaciones. La galería usa Source Serif 4 y Source Sans 3 autoalojadas, funciona sin conexión y respeta la preferencia de movimiento reducido. <a href="../recursos/generacion/PROMPTS_casos-para-alisson.md">Instrucciones de generación</a> · <a href="../README.md">Índice de Logística</a>.</p>
     </footer>
   </main>
 </body>
