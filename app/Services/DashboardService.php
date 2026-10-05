@@ -14,6 +14,22 @@ final class DashboardService
 
     public function kpis(bool $publishedOnly=false,?int $ownerId=null): array
     {
+        if($publishedOnly && ($ownerId===null || $ownerId<1)){
+            $row=\db()->query("SELECT
+                (SELECT COUNT(*) FROM documentos_cabecera WHERE estado_registro='PUBLICADO') documentos,
+                (SELECT COUNT(*) FROM guias_cabecera WHERE estado_registro='PUBLICADO') guias,
+                (SELECT COUNT(*) FROM stock_cabecera WHERE estado_registro='PUBLICADO') stock")->fetch();
+            $docs=(int)($row['documentos']??0);
+            $guides=(int)($row['guias']??0);
+            $stock=(int)($row['stock']??0);
+            return [
+                'documentos'=>$docs,
+                'guias'=>$guides,
+                'stock'=>$stock,
+                'publicados'=>$docs+$guides+$stock,
+            ];
+        }
+
         $out=[];
         foreach(['documentos_cabecera'=>'documentos','guias_cabecera'=>'guias','stock_cabecera'=>'stock'] as $table=>$key){
             $where=[];
