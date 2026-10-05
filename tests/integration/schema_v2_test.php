@@ -48,6 +48,15 @@ try {
     }
     rejects(fn() => $upgrade->load('database/migrations/002_schema_v2.sql'), PDOException::class, 1644);
 
+    // Performance migration is additive and idempotent; it is applied after the
+    // clean-vs-upgraded structural parity check because it is a post-v2 tuning layer.
+    $upgrade->load('database/migrations/006_performance_indexes.sql');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM schema_migrations WHERE version=6")->fetchColumn()===1,'Performance migration registered');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='productos' AND INDEX_NAME='ix_productos_estado_nombre'")->fetchColumn()===3,'Product autocomplete index created');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='documentos_cabecera' AND INDEX_NAME='ix_documentos_cliente_fecha'")->fetchColumn()===3,'Client history lookup index created');
+    $upgrade->load('database/migrations/006_performance_indexes.sql');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM schema_migrations WHERE version=6")->fetchColumn()===1,'Performance migration can be re-run safely');
+
     // Check constraints directly through SQL so passing repository validation cannot hide a broken schema.
     foreach (['INVALIDO', 'borrador'] as $state) {
         rejects(fn() => $upgrade->pdo->exec("UPDATE documentos_cabecera SET estado_registro='$state' WHERE id=1"), PDOException::class);
