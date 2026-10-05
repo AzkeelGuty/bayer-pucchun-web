@@ -41,18 +41,29 @@ final class GuideController
         return OperationalOwnershipPolicy::scope($filters);
     }
 
-    private function viewData(): array
+    private function viewData(?array $record=null): array
     {
         $m=$this->masters();
+        $old=is_array($_SESSION['_old']??null)?$_SESSION['_old']:[];
+        $header=is_array($record['header']??null)?$record['header']:$old;
+        $details=is_array($record['details']??null)?$record['details']:(is_array($old['detalle']??null)?$old['detalle']:[]);
+
+        $productIds=[];$lotIds=[];
+        foreach($details as $line){
+            if(!is_array($line)) continue;
+            $productIds[]=(int)($line['producto_id']??0);
+            $lotIds[]=(int)($line['lote_id']??0);
+        }
+
         return [
-            'clientes'=>$m->clientes(),
-            'vendedores'=>$m->vendedores(),
-            'sucursales'=>$m->sucursales(),
-            'productos'=>$m->productos(),
+            'clientes'=>$m->clientesByIds([(int)($header['cliente_id']??0)]),
+            'vendedores'=>$m->vendedoresByIds([(int)($header['vendedor_id']??0)]),
+            'sucursales'=>$m->sucursalesByIds([(int)($header['sucursal_id']??0)]),
+            'productos'=>$m->productosByIds($productIds),
             'unidades'=>$m->unidades(),
             'departamentos'=>$m->departamentos(),
-            'provincias'=>$m->provincias(),
-            'distritos'=>$m->distritos(),
+            'provincias'=>$m->provinciasByIds([(int)($header['provincia_id']??0)]),
+            'distritos'=>$m->distritosByIds([(int)($header['distrito_id']??0)]),
         ];
     }
 
@@ -71,7 +82,7 @@ final class GuideController
             'page'=>$page,
             'pages'=>$pages,
             'perPage'=>$perPage,
-            'sucursales'=>$this->masters()->sucursales(),
+            'sucursales'=>$this->masters()->sucursalesByIds([(int)($filters['sucursal_id']??0)]),
             'bulkCounts'=>\has_role('ADMIN','SUPERVISOR') ? [
                 'BORRADOR'=>$this->repository->countByState('BORRADOR'),
                 'VALIDADO'=>$this->repository->countByState('VALIDADO'),
@@ -85,23 +96,24 @@ final class GuideController
         $id=(int)\input('id',0);
         $record=$this->record($id);
         $m=$this->masters();
+        $productIds=array_map(static fn(array $line):int=>(int)($line['producto_id']??0),$record['details']);
         \view('guias.show',[
             'record'=>$record,
-            'clientes'=>\index_by($m->clientes(),'id'),
-            'vendedores'=>\index_by($m->vendedores(),'id'),
-            'sucursales'=>\index_by($m->sucursales(),'id'),
-            'productos'=>\index_by($m->productos(),'id'),
+            'clientes'=>\index_by($m->clientesByIds([(int)$record['header']['cliente_id']]),'id'),
+            'vendedores'=>\index_by($m->vendedoresByIds([(int)$record['header']['vendedor_id']]),'id'),
+            'sucursales'=>\index_by($m->sucursalesByIds([(int)$record['header']['sucursal_id']]),'id'),
+            'productos'=>\index_by($m->productosByIds($productIds),'id'),
             'unidades'=>\index_by($m->unidades(),'id'),
             'departamentos'=>\index_by($m->departamentos(),'id'),
-            'provincias'=>\index_by($m->provincias(),'id'),
-            'distritos'=>\index_by($m->distritos(),'id'),
+            'provincias'=>\index_by($m->provinciasByIds([(int)($record['header']['provincia_id']??0)]),'id'),
+            'distritos'=>\index_by($m->distritosByIds([(int)($record['header']['distrito_id']??0)]),'id'),
         ]);
     }
 
     public function create(): void
     {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
-        \view('guias.form',$this->viewData()+[
+        \view('guias.form',$this->viewData(null)+[
             'defaultDate'=>date('Y-m-d'),
         ]);
     }
@@ -122,14 +134,12 @@ final class GuideController
             'provincia_id'=>$record['header']['provincia_id']??'',
             'distrito_id'=>$record['header']['distrito_id']??'',
         ];
-        \view('guias.form',$this->viewData()+['record'=>$record]);
+        \view('guias.form',$this->viewData($record)+['record'=>$record]);
     }
 
     private function applyClientDefaults(array $header): array
     {
-        $clients=[];
-        foreach($this->masters()->clientes() as $row) $clients[(int)$row['id']]=$row;
-        $client=$clients[(int)($header['cliente_id']??0)]??null;
+        $client=$this->masters()->clienteById((int)($header['cliente_id']??0));
         if(!$client) return $header;
 
         if((int)($header['vendedor_id']??0)<1 && (int)($client['vendedor_sugerido_id']??0)>0){
@@ -158,8 +168,10 @@ final class GuideController
 
     private function normalizeDetails(array $details): array
     {
+        $productIds=[];
+        foreach($details as $line) if(is_array($line)) $productIds[]=(int)($line['producto_id']??0);
         $products=[];
-        foreach($this->masters()->productos() as $row) $products[(int)$row['id']]=$row;
+        foreach($this->masters()->productosByIds($productIds) as $row) $products[(int)$row['id']]=$row;
         $normalized=[];
         $positions=[];
 
