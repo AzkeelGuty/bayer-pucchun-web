@@ -206,6 +206,25 @@ try {
     }
 
     $admin=[];loginAs('ADMIN',$admin);
+
+    // Remote lookups: authenticated, small, filtered and parent-aware.
+    $lookupGuest=[];
+    ensure(request('/lookups?type=productos&q=M1',$lookupGuest,null,['Accept: application/json'])['status']===302,'Guest cannot use internal lookup');
+    $lookup=request('/lookups?type=productos&q=M1',$admin,null,['Accept: application/json']);
+    ensure($lookup['status']===200,'Product remote lookup responds');
+    $lookupData=json_decode($lookup['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure(count($lookupData['items']??[])===1 && ($lookupData['items'][0]['value']??'')==='1','Product lookup returns matching product only');
+    ensure(($lookupData['items'][0]['meta']['unitId']??'')==='1','Product lookup includes unit metadata');
+    $clientLookup=request('/lookups?type=clientes&q=0000',$admin,null,['Accept: application/json']);
+    $clientData=json_decode($clientLookup['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($clientLookup['status']===200 && count($clientData['items']??[])<=15,'Client lookup is limited and searchable');
+    $provinceLookup=request('/lookups?type=provincias&q=P&parent=1',$admin,null,['Accept: application/json']);
+    $provinceData=json_decode($provinceLookup['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($provinceLookup['status']===200 && count($provinceData['items']??[])===1 && ($provinceData['items'][0]['label']??'')==='P1','Province lookup respects department parent');
+    $lotLookup=request('/lookups?type=lotes&q=L&parent=1',$admin,null,['Accept: application/json']);
+    $lotData=json_decode($lotLookup['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($lotLookup['status']===200 && count($lotData['items']??[])===1 && ($lotData['items'][0]['value']??'')==='1','Lot lookup respects product parent');
+
     $pdo->exec('RENAME TABLE documentos_detalle TO documentos_detalle_unavailable');
     $response=request('/documentos',$admin,null,['Accept: application/json']);
     ensure($response['status']===500 && !str_contains($response['body'],'SQLSTATE') && !str_contains($response['body'],'SELECT'),'500 sanitized despite debug');
