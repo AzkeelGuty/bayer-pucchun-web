@@ -21,6 +21,7 @@ $docJs=$read('public/assets/js/documentos-captura.js');
 $formsJs=$read('public/assets/js/forms.js');
 $routes=$read('routes/web.php');
 $masterTable=$read('app/Views/backoffice/table.php');
+$backofficeController=$read('app/Controllers/BackofficeController.php');
 $bulk=$read('app/Views/components/bulk_workflow.php');
 $exportPresentation=$read('app/Services/ExportPresentation.php');
 $apiController=$read('app/Controllers/ApiController.php');
@@ -52,6 +53,11 @@ foreach(['/maestros/nuevo','/maestros/guardar','/maestros/editar','/maestros/act
 foreach(['Agregar uno','Importar Excel','Plantilla XLSX','data-master-delete'] as $needle){
     req(str_contains($masterTable,$needle),'Falta acción de catálogo: '.$needle);
 }
+req(str_contains($backofficeController,'$perPage=50'),'Catálogos maestros deben paginar en servidor a 50 filas.');
+req(str_contains($backofficeController,"'pagination'=>["),'El controlador debe enviar metadatos de paginación.');
+req(!str_contains($backofficeController,"LIMIT 300';"),'Catálogos maestros no deben volver a cargar 300 filas por clic.');
+req(str_contains($masterTable,'catalog-pagination'),'La vista debe mostrar navegación paginada.');
+req(str_contains($masterTable,'50 registros por página') || str_contains($masterTable,'$perPage'),'La vista debe explicar la carga paginada.');
 
 req(str_contains($exportPresentation,"\\public_path(ltrim(\$relative, '/'))"),'PDF/XLSX deben resolver logos desde la raíz pública real de cPanel.');
 req(!str_contains($exportPresentation,"base_path('public/'"),'Exportaciones no deben asumir que el Document Root es /public.');
