@@ -1,4 +1,14 @@
-<?php require_once base_path('app/Views/components/workflow_control.php'); require_once base_path('app/Views/components/bulk_workflow.php'); ?>
+<?php
+require_once base_path('app/Views/components/workflow_control.php');
+require_once base_path('app/Views/components/bulk_workflow.php');
+$stockPageUrl=static function(int $n) use($filters): string {
+    $params=$filters;
+    if($n>1) $params['page']=$n;
+    return url('/stock'.($params?'?'.http_build_query($params):''));
+};
+$firstStock=$total>0 ? (($page-1)*$perPage)+1 : 0;
+$lastStock=$total>0 ? min($total,$page*$perPage) : 0;
+?>
 <section class="module-header">
     <div>
         <div class="page-eyebrow">CAPTURA Y CONTROL</div>
@@ -47,7 +57,7 @@
 </form>
 
 <div class="card"><div class="card-body">
-    <p class="text-muted small"><?= count($rows) ?> registros de stock encontrados</p>
+    <p class="text-muted small"><?=e($total)?> registros de stock encontrados<?= $total>0 ? ' · Mostrando '.e($firstStock).'–'.e($lastStock) : '' ?> · Página <?=e($page)?> de <?=e($pages)?></p>
     <div class="table-responsive">
         <table class="table app-table align-middle">
             <thead><tr><th>Fecha</th><th>Almacén</th><th>Ítems</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
@@ -81,4 +91,9 @@
             </tbody>
         </table>
     </div>
+    <nav aria-label="Paginación de stock" class="catalog-pagination">
+        <a class="btn btn-sm btn-outline-primary <?=$page<=1?'disabled':''?>" href="<?=$page>1?e($stockPageUrl($page-1)):'#'?>" <?=$page<=1?'aria-disabled="true" tabindex="-1"':''?>><i class="bi bi-chevron-left"></i><span>Anterior</span></a>
+        <span>Página <?=e($page)?> de <?=e($pages)?></span>
+        <a class="btn btn-sm btn-outline-primary <?=$page>=$pages?'disabled':''?>" href="<?=$page<$pages?e($stockPageUrl($page+1)):'#'?>" <?=$page>=$pages?'aria-disabled="true" tabindex="-1"':''?>><span>Siguiente</span><i class="bi bi-chevron-right"></i></a>
+    </nav>
 </div></div>
