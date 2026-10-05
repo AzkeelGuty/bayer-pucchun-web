@@ -222,7 +222,7 @@ try {
     $provinceLookup=request('/lookups?type=provincias&q=P&parent=1',$admin,null,['Accept: application/json']);
     $provinceData=json_decode($provinceLookup['body'],true,512,JSON_THROW_ON_ERROR);
     ensure($provinceLookup['status']===200 && count($provinceData['items']??[])===1 && ($provinceData['items'][0]['label']??'')==='P1','Province lookup respects department parent');
-    $lotLookup=request('/lookups?type=lotes&q=L&parent=1',$admin,null,['Accept: application/json']);
+    $lotLookup=request('/lookups?type=lotes&q=L1&parent=1',$admin,null,['Accept: application/json']);
     $lotData=json_decode($lotLookup['body'],true,512,JSON_THROW_ON_ERROR);
     ensure($lotLookup['status']===200 && count($lotData['items']??[])===1 && ($lotData['items'][0]['value']??'')==='1','Lot lookup respects product parent');
 
