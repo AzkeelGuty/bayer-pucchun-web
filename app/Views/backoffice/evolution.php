@@ -1,6 +1,7 @@
 <?php
-$apiReady = $apiEnabled && $apiTokenConfigured;
+$apiReady = $apiEnabled && $apiStorageReady;
 $totalRows = (int)($apiCounts['sales']??0) + (int)($apiCounts['shipments']??0) + (int)($apiCounts['inventory']??0);
+$ttlHours = max(1, (int)round(((int)$apiTokenTtl) / 3600));
 ?>
 <section class="page-header">
     <div>
@@ -18,12 +19,20 @@ $totalRows = (int)($apiCounts['sales']??0) + (int)($apiCounts['shipments']??0) +
                 <h5 class="mb-3"><?= $apiReady ? 'API operativa' : 'API pendiente de configuración' ?></h5>
                 <div class="d-grid gap-2">
                     <div><strong>API habilitada:</strong> <?= $apiEnabled ? 'Sí' : 'No' ?></div>
-                    <div><strong>Token configurado:</strong> <?= $apiTokenConfigured ? 'Sí' : 'No' ?></div>
+                    <div><strong>Autenticación:</strong> Usuario + Bearer temporal</div>
+                    <div><strong>Almacén de tokens:</strong> <?= $apiStorageReady ? 'Listo' : 'Pendiente' ?></div>
+                    <div><strong>Duración del token:</strong> <?=e((string)$ttlHours)?> h</div>
                     <div><strong>Datos expuestos:</strong> Solo PUBLICADOS</div>
                     <div><strong>Formato:</strong> JSON</div>
                 </div>
                 <?php if(!$apiReady): ?>
-                    <div class="alert alert-warning mt-3 mb-0">Revisa <code>API_ENABLED=true</code> y que <code>API_TOKEN</code> tenga un valor seguro en el <code>.env</code> del servidor.</div>
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <?php if(!$apiEnabled): ?>
+                            Activa <code>API_ENABLED=true</code> en el <code>.env</code> del servidor.
+                        <?php else: ?>
+                            <?=e((string)($apiStorageIssue ?: 'Ejecute la migración 005_api_tokens.sql.'))?>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -39,8 +48,12 @@ $totalRows = (int)($apiCounts['sales']??0) + (int)($apiCounts['shipments']??0) +
                     <code>GET <?=e($apiBase)?>/all</code>
                 </div>
                 <div class="mt-3">
-                    <strong>Autenticación:</strong>
-                    <code class="ms-1">Authorization: Bearer &lt;API_TOKEN&gt;</code>
+                    <strong>1. Iniciar sesión:</strong>
+                    <code class="ms-1">POST <?=e($apiAuthBase)?>/login</code>
+                </div>
+                <div class="mt-2">
+                    <strong>2. Consumir datos:</strong>
+                    <code class="ms-1">Authorization: Bearer &lt;token_temporal&gt;</code>
                 </div>
             </div>
         </div>
@@ -83,10 +96,10 @@ $totalRows = (int)($apiCounts['sales']??0) + (int)($apiCounts['shipments']??0) +
     <div class="card-body">
         <h5><i class="bi bi-shield-lock me-2"></i>Cómo lo utilizará Bayer</h5>
         <div class="architecture-flow mt-3">
-            <div class="architecture-node"><span><i class="bi bi-building"></i> BAYER</span><strong>Sistema interno</strong><small>Proceso programado</small></div><i>→</i>
-            <div class="architecture-node"><span><i class="bi bi-key"></i> HTTPS + TOKEN</span><strong>API REST</strong><small>Autenticación Bearer</small></div><i>→</i>
-            <div class="architecture-node"><span><i class="bi bi-database-check"></i> PUCCHÚN</span><strong>Datos publicados</strong><small>JSON automático</small></div>
+            <div class="architecture-node"><span><i class="bi bi-person-lock"></i> LOGIN API</span><strong>Usuario autorizado</strong><small>Correo + contraseña</small></div><i>→</i>
+            <div class="architecture-node"><span><i class="bi bi-key"></i> BEARER TEMPORAL</span><strong>Token con vencimiento</strong><small><?=e((string)$ttlHours)?> horas</small></div><i>→</i>
+            <div class="architecture-node"><span><i class="bi bi-database-check"></i> PUCCHÚN</span><strong>Solo PUBLICADOS</strong><small>JSON automático</small></div>
         </div>
-        <p class="text-muted mt-3 mb-0">No requiere iniciar sesión en el portal ni presionar XLSX, JSON, TXT o PDF. Las exportaciones manuales se mantienen como alternativa para usuarios humanos.</p>
+        <p class="text-muted mt-3 mb-0">La integración no usa la sesión web del portal: primero autentica un usuario autorizado mediante el endpoint de login de API, recibe un Bearer temporal y luego consulta los datasets publicados. Las exportaciones manuales se mantienen como alternativa para usuarios humanos.</p>
     </div>
 </div>
