@@ -6,8 +6,14 @@ $field=function(string $name,string $label,string $key,mixed $value,string $cata
     $attrs=' id="'.e($id).'" name="'.e($name).'" required aria-invalid="'.($error?'true':'false').'"'.($error?' aria-describedby="'.e($id).'-error"':'');
     if($catalog){
         $searchAttrs='';
-        if($catalog==='cliente_id') $searchAttrs=' data-search-select data-search-placeholder="Buscar por DNI/RUC o razón social..." data-search-min="1"';
-        if($catalog==='producto_id') $searchAttrs=' data-search-select data-search-placeholder="Buscar por código o producto..." data-search-min="1"';
+        $searchable=[
+            'tipo_documento_id'=>'Buscar tipo de documento...',
+            'cliente_id'=>'Buscar por DNI/RUC o razón social...',
+            'vendedor_id'=>'Buscar vendedor...',
+            'sucursal_id'=>'Buscar sucursal...',
+            'producto_id'=>'Buscar por código o producto...',
+        ];
+        if(isset($searchable[$catalog])) $searchAttrs=' data-search-select data-search-placeholder="'.e($searchable[$catalog]).'" data-search-min="1"';
         echo '<select class="form-select'.($error?' is-invalid':'').'"'.$attrs.$searchAttrs.'><option value="">Seleccionar…</option>';
         foreach($catalogs[$catalog] as $item){
             $meta='';
