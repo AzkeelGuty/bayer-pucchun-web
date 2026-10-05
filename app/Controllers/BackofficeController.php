@@ -6,7 +6,7 @@ namespace App\Controllers;
 use App\Exceptions\HttpException;
 use App\Policies\AccessPolicy;
 use App\Repositories\{DocumentRepository,GuideRepository,StockRepository};
-use App\Services\MasterCatalogService;
+use App\Services\{ApiTokenService,MasterCatalogService};
 
 final class BackofficeController
 {
@@ -209,10 +209,22 @@ final class BackofficeController
             'inventory'=>(int)\db()->query("SELECT COUNT(*) FROM stock_detalle d JOIN stock_cabecera h ON h.id=d.stock_id WHERE h.estado_registro='PUBLICADO'")->fetchColumn(),
         ];
 
+        $apiStorageReady=true;
+        $apiStorageIssue=null;
+        try{
+            (new ApiTokenService())->assertStorageReady();
+        }catch(HttpException $error){
+            $apiStorageReady=false;
+            $apiStorageIssue=$error->getMessage();
+        }
+
         \view('backoffice.evolution',[
             'apiEnabled'=>(bool)\config('app.api_enabled'),
-            'apiTokenConfigured'=>trim((string)\config('app.api_token'))!=='',
+            'apiStorageReady'=>$apiStorageReady,
+            'apiStorageIssue'=>$apiStorageIssue,
+            'apiTokenTtl'=>(int)\config('app.api_token_ttl',28800),
             'apiBase'=>rtrim((string)\config('app.url'),'\/').'/api/v1/bayer',
+            'apiAuthBase'=>rtrim((string)\config('app.url'),'\/').'/api/v1/auth',
             'apiCounts'=>$counts,
         ]);
     }
