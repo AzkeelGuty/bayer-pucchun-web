@@ -217,15 +217,22 @@ final class MasterCatalogService
         return $tabs;
     }
 
-    public function formOptions(string $tab): array
+    public function formOptions(string $tab,array $record=[]): array
     {
         $definition=$this->definition($tab);
         $options=[];
         foreach($definition['fields'] as $name=>$field){
             $source=$field['source']??null;
             if(!$source) continue;
+            if($source==='distritos'){
+                $selected=(int)($record[$name]??0);
+                if($selected<1){ $options[$name]=[]; continue; }
+                $st=$this->pdo->prepare("SELECT d.id,CONCAT(dp.nombre,' · ',p.nombre,' · ',d.nombre) label FROM distritos d JOIN provincias p ON p.id=d.provincia_id JOIN departamentos dp ON dp.id=p.departamento_id WHERE d.id=?");
+                $st->execute([$selected]);
+                $options[$name]=$st->fetchAll(PDO::FETCH_ASSOC);
+                continue;
+            }
             $options[$name]=match($source){
-                'distritos'=>$this->rows("SELECT d.id,CONCAT(dp.nombre,' · ',p.nombre,' · ',d.nombre) label FROM distritos d JOIN provincias p ON p.id=d.provincia_id JOIN departamentos dp ON dp.id=p.departamento_id ORDER BY dp.nombre,p.nombre,d.nombre"),
                 'unidades'=>$this->rows("SELECT id,CONCAT(codigo,' · ',nombre) label FROM unidades_medida ORDER BY nombre"),
                 'categorias'=>$this->rows("SELECT id,nombre label FROM categorias_producto ORDER BY nombre"),
                 'marcas'=>$this->rows("SELECT id,nombre label FROM marcas ORDER BY nombre"),
