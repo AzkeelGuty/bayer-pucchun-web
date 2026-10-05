@@ -21,10 +21,15 @@ $field=function(string $name,string $label,string $key,mixed $value,string $cata
         echo '<select class="form-select'.($error?' is-invalid':'').'"'.$attrs.$searchAttrs.'><option value="">Seleccionar…</option>';
         foreach($catalogs[$catalog] as $item){
             $meta='';
-            if($catalog==='producto_id') $meta.=' data-unit-id="'.e((string)($item['unidad_base_id']??'')).'"';
+            if($catalog==='producto_id'){
+                $meta.=' data-unit-id="'.e((string)($item['unidad_base_id']??'')).'"';
+                $meta.=' data-unit-label="'.e((string)($item['unidad_label']??'')).'"';
+            }
             if($catalog==='cliente_id'){
                 $meta.=' data-seller-id="'.e((string)($item['vendedor_sugerido_id']??'')).'"';
+                $meta.=' data-seller-label="'.e((string)($item['vendedor_sugerido_label']??'')).'"';
                 $meta.=' data-branch-id="'.e((string)($item['sucursal_sugerida_id']??'')).'"';
+                $meta.=' data-branch-label="'.e((string)($item['sucursal_sugerida_label']??'')).'"';
             }
             echo '<option value="'.e($item['id']).'"'.$meta.((string)$value===(string)$item['id']?' selected':'').'>'.e($item['label']).'</option>';
         }
