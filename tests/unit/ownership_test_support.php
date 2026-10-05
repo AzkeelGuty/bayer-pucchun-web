@@ -57,6 +57,11 @@ trait OwnershipRepositoryDouble {
         if (isset($filters['created_by'])) $rows=array_values(array_filter($rows,static fn(array $row): bool => $row['created_by'] === $filters['created_by']));
         return array_slice($rows,$offset,$limit);
     }
+    public function countFiltered(array $filters = []): int {
+        $rows = array_column(array_values($this->records),'header');
+        if (isset($filters['created_by'])) $rows=array_values(array_filter($rows,static fn(array $row): bool => $row['created_by'] === $filters['created_by']));
+        return count($rows);
+    }
     public function countByState(string $state): int {
         return count(array_filter($this->records,static fn(array $record): bool => ($record['header']['estado_registro']??'')===$state));
     }
