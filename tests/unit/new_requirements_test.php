@@ -24,6 +24,7 @@ $masterTable=$read('app/Views/backoffice/table.php');
 $bulk=$read('app/Views/components/bulk_workflow.php');
 $exportPresentation=$read('app/Services/ExportPresentation.php');
 $apiController=$read('app/Controllers/ApiController.php');
+$apiEvolution=$read('app/Views/backoffice/evolution.php');
 $appConfig=$read('config/app.php');
 req(!is_file($root.'/app/Services/OperationalNumberingService.php'),'El generador automático de correlativos debe estar eliminado.');
 
@@ -59,5 +60,9 @@ req(str_contains($routes,"/api/v1/auth/login") && str_contains($routes,"/api/v1/
 req(str_contains($routes,"postApi('/api/v1/auth/login"),'El login API debe aceptar POST sin CSRF de sesión web.');
 req(str_contains($apiController,'ApiTokenService') && str_contains($apiController,'Primero inicie sesión'),'La API debe exigir token emitido tras login.');
 req(!str_contains($appConfig,"'api_token' =>"),'No debe quedar token API fijo compartido en configuración.');
+req(!str_contains($apiEvolution,'Token configurado:'),'El panel API no debe seguir mostrando el token fijo antiguo.');
+req(!str_contains($apiEvolution,'API_TOKEN'),'El panel API no debe pedir API_TOKEN en .env.');
+req(str_contains($apiEvolution,'Usuario + Bearer temporal'),'El panel API debe explicar la autenticación nueva.');
+req(str_contains($apiEvolution,'/login'),'El panel API debe mostrar el endpoint de login.');
 
 echo "Nuevos requisitos UI/rutas: OK\n";
