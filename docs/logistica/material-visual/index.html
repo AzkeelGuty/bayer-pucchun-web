@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Seis láminas para explicar la persistencia del módulo de Logística: recorrido, responsabilidades, incidencias, intentos y protección de datos.">
+  <title>Cuaderno de Logística · Grupo 7</title>
+  <style>
+    @font-face { font-family: "Source Serif 4"; src: url("fuentes/SourceSerif4-Regular.woff2") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; }
+    @font-face { font-family: "Source Serif 4"; src: url("fuentes/SourceSerif4-Semibold.woff2") format("woff2"); font-style: normal; font-weight: 600; font-display: swap; }
+    @font-face { font-family: "Source Sans 3"; src: url("fuentes/SourceSans3-Regular.woff2") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; }
+    @font-face { font-family: "Source Sans 3"; src: url("fuentes/SourceSans3-Semibold.woff2") format("woff2"); font-style: normal; font-weight: 600; font-display: swap; }
+    :root { --papel: #F3EFE4; --tinta: #282821; --acento: #405A47; --linea: rgb(40 40 33 / 23%); }
+    * { box-sizing: border-box; }
+    html { scroll-padding-top: 24px; }
+    body { margin: 0; background: var(--papel); color: var(--tinta); font-family: "Source Sans 3", "Segoe UI", sans-serif; font-size: 18px; line-height: 1.6; }
+    a { color: var(--acento); text-decoration-thickness: 1px; text-underline-offset: 4px; transition: color 120ms ease, text-decoration-color 120ms ease; }
+    a:hover { color: var(--tinta); }
+    a:focus-visible, summary:focus-visible { outline: 2px solid var(--acento); outline-offset: 6px; }
+    .skip { position: absolute; top: 12px; left: 12px; padding: 8px 12px; background: var(--papel); transform: translateY(-200%); z-index: 2; }
+    .skip:focus { transform: none; }
+    .page { max-width: 1160px; margin: 0 auto; padding: 0 42px; }
+    .masthead { display: flex; justify-content: space-between; gap: 20px; padding-top: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--linea); font-size: 14px; letter-spacing: .045em; }
+    .intro { padding: 64px 0 42px; max-width: 850px; }
+    .eyebrow { margin: 0 0 14px; color: var(--acento); font-size: 14px; letter-spacing: .09em; text-transform: uppercase; }
+    h1, h2, h3 { font-family: "Source Serif 4", Georgia, serif; font-weight: 400; }
+    h1 { margin: 0; font-size: clamp(44px, 6vw, 76px); line-height: 1.04; letter-spacing: -.035em; }
+    .lead { max-width: 640px; margin-top: 24px; font-size: 21px; line-height: 1.5; }
+    .scope { max-width: 760px; margin: 22px 0 0; padding-left: 18px; border-left: 2px solid var(--acento); font-size: 16px; }
+    nav { padding: 20px 0 26px; border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); }
+    nav ol { display: flex; flex-wrap: wrap; gap: 10px 26px; margin: 0; padding: 0; list-style: none; }
+    nav a { display: inline-block; padding: 3px 0; font-size: 16px; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    nav .n { font-variant-numeric: tabular-nums; margin-right: 7px; font-size: 13px; }
+    article { margin: 0; padding: 58px 0 50px; border-bottom: 1px solid var(--linea); }
+    .section-head { display: grid; grid-template-columns: 66px 1fr; align-items: baseline; gap: 16px; margin-bottom: 22px; }
+    .folio { color: var(--acento); font-family: "Source Serif 4", Georgia, serif; font-size: 29px; line-height: 1; }
+    h2 { margin: 0; font-size: clamp(28px, 3.1vw, 40px); line-height: 1.15; letter-spacing: -.02em; }
+    .deck { max-width: 730px; margin: 10px 0 0; font-size: 17px; }
+    figure { margin: 0; }
+    figure img { display: block; width: 100%; height: auto; }
+    figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; padding-top: 14px; font-size: 14px; line-height: 1.5; }
+    .caption-note { max-width: 690px; }
+    .image-links { display: flex; flex-wrap: wrap; gap: 18px; white-space: nowrap; }
+    details { margin-top: 26px; border-top: 1px solid var(--linea); padding-top: 16px; }
+    summary { cursor: pointer; color: var(--acento); font-weight: 600; font-size: 16px; transition: color 120ms ease; }
+    summary:hover { color: var(--tinta); }
+    .explanation { max-width: 850px; padding: 12px 0 0 20px; font-size: 17px; }
+    .explanation p { margin: 0 0 15px; }
+    h3 { margin: 25px 0 10px; font-size: 24px; }
+    blockquote { margin: 0; padding: 0 0 0 18px; border-left: 1px solid var(--acento); }
+    code { font-family: "Source Sans 3", "Segoe UI", sans-serif; font-weight: 600; font-size: .95em; overflow-wrap: anywhere; }
+    .balance { margin: 16px 0; padding: 12px 0; border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); font-variant-numeric: tabular-nums; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 15px; }
+    th, td { padding: 10px 10px 10px 0; text-align: left; border-bottom: 1px solid var(--linea); vertical-align: top; }
+    th { font-weight: 600; }
+    footer { padding: 38px 0 42px; max-width: 850px; font-size: 15px; }
+    footer p { margin: 0 0 12px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 22px; }
+    @media (max-width: 640px) {
+      .page { padding: 0 20px; }
+      .masthead { font-size: 12px; padding-top: 20px; }
+      .intro { padding: 42px 0 30px; }
+      .lead { font-size: 19px; }
+      nav ol { gap: 8px 20px; }
+      article { padding: 38px 0; }
+      .section-head { grid-template-columns: 35px 1fr; gap: 10px; }
+      .folio { font-size: 23px; }
+      .explanation { padding-left: 0; }
+      figcaption { display: block; }
+      .image-links { margin-top: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+    }
+    @media print {
+      @page { size: A4; margin: 15mm; }
+      body { background: white; color: var(--tinta); font-size: 11pt; }
+      .page { max-width: none; padding: 0; }
+      .skip, nav, .image-links, .footer-links { display: none; }
+      .masthead { padding-top: 0; }
+      .intro { padding: 20px 0; }
+      h1 { font-size: 36pt; }
+      .lead { font-size: 13pt; }
+      .scope, .deck, .explanation { font-size: 10pt; }
+      article { break-before: page; padding: 0; border: 0; }
+      .section-head { margin-bottom: 12px; }
+      h2 { font-size: 22pt; }
+      figure, .section-head, blockquote { break-inside: avoid; }
+      figcaption { font-size: 9pt; }
+      details { margin-top: 12px; padding-top: 10px; }
+      summary { display: none; }
+      details::details-content { content-visibility: visible; height: auto; }
+      details > .explanation { display: block !important; padding: 0; }
+      h3 { font-size: 13pt; margin-top: 14px; }
+      footer { break-before: page; }
+      a { color: inherit; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#laminas">Ir a las láminas</a>
+  <div class="page">
+    <header>
+      <div class="masthead"><span>ERP COMERCIAL · GRUPO 7</span><span>CUADERNO 01 · OCTUBRE 2026</span></div>
+      <div class="intro">
+        <p class="eyebrow">Material para conversar y exponer</p>
+        <h1>Cuaderno<br>de Logística</h1>
+        <p class="lead">Seis láminas para entender qué se registra, cómo se resuelve una incidencia y qué protege la persistencia.</p>
+        <p class="scope">La persistencia está implementada y fue validada localmente. Los servicios, los controladores y la conexión con Inventarios real todavía requieren integración.</p>
+      </div>
+      <nav aria-label="Índice de las seis láminas">
+        <ol>
+          <li><a href="#flujo"><span class="n">01</span>Recorrido</a></li>
+          <li><a href="#responsabilidades"><span class="n">02</span>Responsabilidades</a></li>
+          <li><a href="#caso"><span class="n">03</span>100 unidades</a></li>
+          <li><a href="#fallida"><span class="n">04</span>Intento fallido</a></li>
+          <li><a href="#seguridad"><span class="n">05</span>Datos protegidos</a></li>
+          <li><a href="#mapa"><span class="n">06</span>Diez tablas</a></li>
+        </ol>
+      </nav>
+    </header>
+    <main id="laminas">
+      <article id="flujo" aria-labelledby="titulo-flujo">
+        <div class="section-head"><span class="folio" aria-hidden="true">01</span><div><h2 id="titulo-flujo">El recorrido logístico</h2><p class="deck">La Guía acompaña al despacho como documento vinculado.</p></div></div>
+        <figure>
+          <img src="01_flujo_logistico.png" alt="Recorrido conceptual con Guía documental y tres resultados operativos: ENTREGADO sin pendientes ni bloqueos, EN TRANSITO con saldo pendiente sin bloqueos y EN RESOLUCION con incidencia bloqueante.">
+          <figcaption><span class="caption-note">Una entrega parcial puede continuar en tránsito. Un asunto bloqueante lleva a resolución.</span><span class="image-links"><a href="01_flujo_logistico.png" target="_blank" rel="noopener" aria-label="Abrir la imagen del recorrido logístico">Abrir imagen</a><a href="01_flujo_logistico.png" download aria-label="Descargar la imagen del recorrido logístico">Descargar PNG</a></span></figcaption>
+        </figure>
+        <details><summary>Explicación y guion para exponer</summary><div class="explanation">
+          <p>El proceso relaciona preparación, despacho e intentos de entrega. La Guía se vincula y conserva su versión; se reutiliza el módulo existente y no se crea otro CRUD. «Entrega» representa una etapa del proceso, no un estado adicional llamado <code>ENTREGA</code>.</p>
+          <p>Una cantidad pendiente no basta para pasar a <code>EN_RESOLUCION</code>: sin asunto bloqueante, el despacho puede seguir <code>EN_TRANSITO</code>. Con una incidencia bloqueante pendiente se mantiene en resolución. El cierre exige cantidades conciliadas y ausencia de bloqueos pendientes.</p>
+          <h3>Guion breve</h3><blockquote><p>«Primero organizamos la preparación y el despacho. Vinculamos la Guía que ya existe y registramos cada intento de entrega. Si quedan cantidades, conservamos el saldo. Cuando existe una incidencia bloqueante, tratamos el caso antes de cerrar.»</p></blockquote>
+        </div></details>
+      </article>
+      <article id="responsabilidades" aria-labelledby="titulo-responsabilidades">
+        <div class="section-head"><span class="folio" aria-hidden="true">02</span><div><h2 id="titulo-responsabilidades">Cada responsabilidad en su lugar</h2><p class="deck">Decidir una operación, guardarla y confirmar un movimiento son tareas distintas.</p></div></div>
+        <figure>
+          <img src="02_responsabilidades.png" loading="lazy" alt="Separación entre Servicios y controladores, persistencia de Logística e Inventarios, con Guías como módulo documental existente.">
+          <figcaption><span class="caption-note">Logística conserva sus hechos y referencias. Inventarios conserva la responsabilidad del stock y el Kardex.</span><span class="image-links"><a href="02_responsabilidades.png" target="_blank" rel="noopener" aria-label="Abrir la imagen de responsabilidades">Abrir imagen</a><a href="02_responsabilidades.png" download aria-label="Descargar la imagen de responsabilidades">Descargar PNG</a></span></figcaption>
+        </figure>
+        <details><summary>Explicación y guion para exponer</summary><div class="explanation">
+          <p>Los <strong>Servicios y controladores</strong> atienden solicitudes, autorizan al actor y la sede, validan reglas, deciden acciones y coordinan otros módulos. La persistencia verifica identidad, relaciones, cantidades, versiones y condiciones de cierre, y guarda los cambios en transacciones.</p>
+          <p>Inventarios confirma los hechos físicos y sus movimientos. Logística no mantiene un stock paralelo ni descuenta otra vez el almacén al registrar una entrega o una pérdida. Falta el adaptador real de Inventarios y la coordinación de reservas y salidas. La aceptación de traslados está bloqueada hasta integrar la recepción confirmada del destino.</p>
+          <p>El reparto confirmado es <strong>Pedro: persistencia</strong> y <strong>Alisson: funcionamiento del módulo</strong>. La entrega se publica en <code>feature/logistics-flow-pedro</code>, según la indicación de Pedro.</p>
+          <h3>Guion breve</h3><blockquote><p>«La parte de funcionamiento decide si una operación está permitida. La persistencia protege y guarda sus datos. Inventarios confirma movimientos de mercadería y Guías aporta el documento existente. Cada módulo conserva una responsabilidad clara.»</p></blockquote>
+        </div></details>
+      </article>
+      <article id="caso" aria-labelledby="titulo-caso">
+        <div class="section-head"><span class="folio" aria-hidden="true">03</span><div><h2 id="titulo-caso">100 unidades, un balance verificable</h2><p class="deck">Un rechazo abre un pendiente; el destino posterior se confirma por separado.</p></div></div>
+        <figure>
+          <img src="03_caso_100_unidades.png" loading="lazy" alt="Caso de 100 unidades despachadas: 80 aceptadas y 20 rechazadas; después 12 retornos confirmados y 8 pérdidas autorizadas y confirmadas permiten cerrar con incidencia.">
+          <figcaption><span class="caption-note">Caso probado con confirmaciones simuladas de Inventarios. El rechazo no acredita un retorno automático.</span><span class="image-links"><a href="03_caso_100_unidades.png" target="_blank" rel="noopener" aria-label="Abrir la imagen del caso de cien unidades">Abrir imagen</a><a href="03_caso_100_unidades.png" download aria-label="Descargar la imagen del caso de cien unidades">Descargar PNG</a></span></figcaption>
+        </figure>
+        <details><summary>Explicación y guion para exponer</summary><div class="explanation">
+          <p>Se despachan 100 unidades de una línea, producto, lote y unidad determinados. El cliente acepta 80 y rechaza 20. Se conserva el intento parcial y se abre un caso cuantitativo por esas 20. Si rechazo y daño afectan las mismas unidades, se agregan causas al mismo caso; no se asignan otras 20.</p>
+          <p class="balance"><strong>Tras el intento:</strong> 100 = 80 aceptadas + 0 retornadas + 0 finales + 20 pendientes.<br><strong>Tras resolver:</strong> 100 = 80 aceptadas + 12 retornadas + 8 pérdidas + 0 pendientes.</p>
+          <p>Las 12 retornadas requieren confirmación confiable de Inventarios. Las 8 pérdidas requieren confirmación, autorización y evidencia. Con todos los saldos en cero y sin incidencias bloqueantes pendientes, se solicita el cierre <code>CERRADO_CON_INCIDENCIA</code>. No corresponde <code>ENTREGADO</code>, porque no se aceptaron las 100.</p>
+          <h3>Guion breve</h3><blockquote><p>«Las veinte rechazadas siguen siendo pendientes. Después confirmamos doce retornadas y ocho perdidas con autorización. Las cien quedan explicadas sin duplicar cantidades. Ese balance y la resolución de los bloqueos permiten cerrar con incidencia.»</p></blockquote>
+        </div></details>
+      </article>
+      <article id="fallida" aria-labelledby="titulo-fallida">
+        <div class="section-head"><span class="folio" aria-hidden="true">04</span><div><h2 id="titulo-fallida">Registrar una visita sin entrega</h2><p class="deck">Un intento fallido documenta lo ocurrido sin inventar recepción ni cantidades.</p></div></div>
+        <figure>
+          <img src="04_intento_fallido.png" loading="lazy" alt="Intento fallido por ausencia del receptor: resultado FALLIDA, sin líneas de cantidades, con cero aceptadas y cien pendientes; reprogramar no cambia el balance.">
+          <figcaption><span class="caption-note">FALLIDA es un resultado del intento. La ausencia registrada como incidencia bloqueante mantiene el despacho en resolución.</span><span class="image-links"><a href="04_intento_fallido.png" target="_blank" rel="noopener" aria-label="Abrir la imagen del intento fallido">Abrir imagen</a><a href="04_intento_fallido.png" download aria-label="Descargar la imagen del intento fallido">Descargar PNG</a></span></figcaption>
+        </figure>
+        <details><summary>Explicación y guion para exponer</summary><div class="explanation">
+          <p>Si no había receptor, se registra un intento con resultado <code>FALLIDA</code>, motivo, contexto y tipo <code>AUSENCIA_RECEPTOR</code>. Puede existir sin líneas y sin receptor; no se insertan cantidades cero para simular una entrega. La ausencia se registra como incidencia informativa bloqueante.</p>
+          <p>En este ejemplo, el balance continúa con 0 aceptadas y 100 pendientes. Esa incidencia no asigna cantidades a un caso cuantitativo. Reprogramar conserva una acción y su evidencia, sin acreditar aceptación, retorno ni pérdida. Un fallo documental necesita su propia causa; no debe registrarse como ausencia.</p>
+          <h3>Guion breve</h3><blockquote><p>«Visitamos al cliente, pero no hubo receptor. Guardamos el intento y su causa sin inventar una entrega. Las cien unidades siguen pendientes. Podemos registrar la reprogramación; la aceptación solo se acredita cuando realmente ocurre.»</p></blockquote>
+        </div></details>
+      </article>
+      <article id="seguridad" aria-labelledby="titulo-seguridad">
+        <div class="section-head"><span class="folio" aria-hidden="true">05</span><div><h2 id="titulo-seguridad">Repetir una solicitud no duplica un hecho</h2><p class="deck">Idempotencia y concurrencia protegen el mismo balance desde dos frentes.</p></div></div>
+        <figure>
+          <img src="05_seguridad_de_datos.png" loading="lazy" alt="Protección de datos: una solicitud idéntica con la misma clave devuelve su resultado original; una solicitud diferente provoca conflicto; dos procesos sobre el mismo saldo producen un éxito y un conflicto.">
+          <figcaption><span class="caption-note">La misma solicitud incluye comando, datos, actor y contexto. Las pruebas verifican la persistencia local.</span><span class="image-links"><a href="05_seguridad_de_datos.png" target="_blank" rel="noopener" aria-label="Abrir la imagen de protección de datos">Abrir imagen</a><a href="05_seguridad_de_datos.png" download aria-label="Descargar la imagen de protección de datos">Descargar PNG</a></span></figcaption>
+        </figure>
+        <details><summary>Explicación y guion para exponer</summary><div class="explanation">
+          <p>La tabla técnica <code>logistica_operaciones</code> controla idempotencia por comando: una repetición exacta de una solicitud confirmada devuelve su resultado original, sin crear otro hecho. Usar su clave para otra solicitud provoca conflicto. No se activa un segundo deduplicador en las cabeceras.</p>
+          <p>Las versiones, bloqueos y transacciones protegen las cantidades frente a procesos simultáneos. En la prueba de retorno y aceptación posterior de las mismas 20 unidades, uno confirma y el otro recibe <code>CONFLICT</code>: queda una sola resolución y el balance continúa exacto. Una confirmación externa granular tampoco puede aplicarse dos veces con distintas claves.</p>
+          <p>La autorización sigue correspondiendo a los Servicios y controladores antes de una operación o repetición. Estas protecciones no sustituyen la integración y coordinación con los módulos externos.</p>
+          <h3>Guion breve</h3><blockquote><p>«Si la conexión repite la misma solicitud, recuperamos el resultado que ya se guardó. Si dos procesos quieren resolver el mismo saldo, solo uno puede confirmar. Así evitamos duplicar despachos, resoluciones y cantidades.»</p></blockquote>
+        </div></details>
+      </article>
+      <article id="mapa" aria-labelledby="titulo-mapa">
+        <div class="section-head"><span class="folio" aria-hidden="true">06</span><div><h2 id="titulo-mapa">Diez tablas, un proceso trazable</h2><p class="deck">Los hechos del negocio y los controles técnicos se relacionan sin confundirse.</p></div></div>
+        <figure>
+          <img src="06_mapa_de_persistencia.png" loading="lazy" alt="Mapa conceptual de diez tablas: preparación y detalle, despacho y detalle, intentos de entrega y detalle, incidencias, resoluciones, historial y operaciones técnicas; incluye el alcance validado y las integraciones pendientes.">
+          <figcaption><span class="caption-note">Mapa conceptual, sin escala ni todas las claves foráneas. Incidencias y operaciones técnicas tienen objetivos distintos.</span><span class="image-links"><a href="06_mapa_de_persistencia.png" target="_blank" rel="noopener" aria-label="Abrir la imagen del mapa de persistencia">Abrir imagen</a><a href="06_mapa_de_persistencia.png" download aria-label="Descargar la imagen del mapa de persistencia">Descargar PNG</a></span></figcaption>
+        </figure>
+        <details><summary>Explicación y guion para exponer</summary><div class="explanation">
+          <p>Seis tablas conservan las cabeceras y detalles del proceso. Incidencias y resoluciones explican los problemas y su tratamiento. El historial conserva eventos, actores y referencias; operaciones controla repeticiones técnicas. Una tabla de operaciones no reemplaza el registro de incidencias físicas.</p>
+          <div class="table-wrap"><table><caption>Tablas implementadas</caption><thead><tr><th scope="col">Conjunto</th><th scope="col">Tablas</th></tr></thead><tbody>
+            <tr><th scope="row">Preparación</th><td><code>logistica_preparaciones</code><br><code>logistica_preparacion_detalle</code></td></tr>
+            <tr><th scope="row">Despacho</th><td><code>logistica_despachos</code><br><code>logistica_despacho_detalle</code></td></tr>
+            <tr><th scope="row">Intentos de entrega</th><td><code>logistica_entregas</code><br><code>logistica_entrega_detalle</code></td></tr>
+            <tr><th scope="row">Incidencias y resoluciones</th><td><code>logistica_incidencias</code><br><code>logistica_incidencia_resoluciones</code></td></tr>
+            <tr><th scope="row">Control y trazabilidad</th><td><code>logistica_operaciones</code><br><code>logistica_historial</code></td></tr>
+          </tbody></table></div>
+          <p><code>ENTREGADO</code> acredita aceptación completa sin bloqueos. <code>CERRADO_CON_INCIDENCIA</code> acredita saldo conciliado con retorno o disposición, sin bloqueos pendientes. Un despacho final no se reabre mediante anulación ordinaria; correcciones con dependencias requieren otro proceso de compensación.</p>
+          <p>Se ejecutaron <strong>545 comprobaciones de Logística</strong> correctas, además de las 27 suites originales. Esto acredita los casos probados en el entorno local de validación; no significa que el ERP esté listo para producción.</p>
+          <h3>Guion breve</h3><blockquote><p>«Estas diez tablas forman una sola persistencia. Registran el proceso, explican las incidencias y protegen los datos. Ya validamos sus casos principales. Falta integrar el funcionamiento, Inventarios real y las compatibilidades del proyecto compartido.»</p></blockquote>
+        </div></details>
+      </article>
+    </main>
+    <footer>
+      <p>Imágenes estáticas generadas con la herramienta integrada, acompañadas de explicaciones basadas en el contrato y la verificación locales. Los diagramas son conceptuales y no están a escala.</p>
+      <p>El adaptador real de Inventarios, los Servicios y controladores, permisos y coordinación de reservas y salidas están pendientes. También requiere revisión la compatibilidad de Guías con cantidades fraccionarias.</p>
+      <div class="footer-links"><a href="README.md">Notas y fuentes</a><a href="fuentes/SourceSerif4-LICENSE.md">Licencia Source Serif 4</a><a href="fuentes/SourceSans3-LICENSE.md">Licencia Source Sans 3</a></div>
+    </footer>
+  </div>
+</body>
+</html>
