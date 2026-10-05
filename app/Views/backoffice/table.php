@@ -76,7 +76,7 @@ $paginationData=is_array($pagination??null) ? $pagination : [];
 $currentPage=max(1,(int)($paginationData['page']??1));
 $totalPages=max(1,(int)($paginationData['pages']??1));
 $totalRows=max(0,(int)($paginationData['total']??count($rows??[])));
-$perPage=max(1,(int)($paginationData['perPage']??50));
+$perPage=max(1,(int)($paginationData['perPage']??25));
 $firstRow=$totalRows>0 ? (($currentPage-1)*$perPage)+1 : 0;
 $lastRow=$totalRows>0 ? min($totalRows,$currentPage*$perPage) : 0;
 
