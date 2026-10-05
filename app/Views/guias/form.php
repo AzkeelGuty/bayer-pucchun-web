@@ -62,8 +62,8 @@ $lookupProductos=e(url('/lookups?type=productos'));
                 </div>
                 <div class="row g-3 mt-1" data-destination-fields hidden>
                     <?php select('departamento_id', 'Departamento', $departamentos, 'id', 'nombre', false, 'data-role="departamento" data-old="' . e((string) old('departamento_id')) . '" data-search-select data-search-placeholder="Buscar departamento..." data-search-min="1"'); ?>
-                    <?php select('provincia_id', 'Provincia', [], 'id', 'nombre', false, 'data-role="provincia" data-old="' . e((string) old('provincia_id')) . '" data-search-select data-search-url="' . e(url('/lookups?type=provincias')) . '" data-search-parent="[data-role=departamento]" data-search-placeholder="Buscar provincia..." data-search-min="1"'); ?>
-                    <?php select('distrito_id', 'Distrito', [], 'id', 'nombre', false, 'data-role="distrito" data-old="' . e((string) old('distrito_id')) . '" data-search-select data-search-url="' . e(url('/lookups?type=distritos')) . '" data-search-parent="[data-role=provincia]" data-search-placeholder="Buscar distrito..." data-search-min="1"'); ?>
+                    <?php select('provincia_id', 'Provincia', $provincias, 'id', 'nombre', false, 'data-role="provincia" data-old="' . e((string) old('provincia_id')) . '" data-search-select data-search-url="' . e(url('/lookups?type=provincias')) . '" data-search-parent="[data-role=departamento]" data-search-placeholder="Buscar provincia..." data-search-min="1"'); ?>
+                    <?php select('distrito_id', 'Distrito', $distritos, 'id', 'nombre', false, 'data-role="distrito" data-old="' . e((string) old('distrito_id')) . '" data-search-select data-search-url="' . e(url('/lookups?type=distritos')) . '" data-search-parent="[data-role=provincia]" data-search-placeholder="Buscar distrito..." data-search-min="1"'); ?>
                 </div>
             </div>
         </div>
