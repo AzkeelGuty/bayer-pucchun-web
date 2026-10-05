@@ -1,3 +1,12 @@
+<?php
+$sessionPage=max(1,(int)($sessionPagination['page']??1));
+$sessionPages=max(1,(int)($sessionPagination['pages']??1));
+$sessionTotal=max(0,(int)($sessionPagination['total']??count($sessions)));
+$sessionPerPage=max(1,(int)($sessionPagination['perPage']??15));
+$sessionFirst=$sessionTotal>0?(($sessionPage-1)*$sessionPerPage)+1:0;
+$sessionLast=$sessionTotal>0?min($sessionTotal,$sessionPage*$sessionPerPage):0;
+$sessionPageUrl=static fn(int $page): string => url('/seguridad'.($page>1?'?page='.$page:''));
+?>
 <section class="page-header security-page-header">
     <div>
         <div class="page-eyebrow"><i class="bi bi-shield-check"></i> SEGURIDAD Y ACCESO</div>
@@ -122,7 +131,7 @@
 <div class="card mt-4 access-activity-card">
     <div class="card-header bg-white security-table-title security-table-title-between">
         <div><i class="bi bi-clock-history"></i><strong>Actividad de acceso</strong></div>
-        <small>Últimos <?=e(count($sessions))?> eventos registrados</small>
+        <small><?=e($sessionTotal)?> eventos<?= $sessionTotal>0 ? ' · Mostrando '.e($sessionFirst).'–'.e($sessionLast) : '' ?> · Página <?=e($sessionPage)?> de <?=e($sessionPages)?></small>
     </div>
     <div class="table-responsive">
         <table class="table app-table mb-0 access-table">
@@ -156,4 +165,11 @@
             </tbody>
         </table>
     </div>
+    <?php if($sessionPages>1): ?>
+    <nav class="catalog-pagination" aria-label="Paginación de actividad de acceso">
+        <a class="btn btn-sm btn-outline-primary <?=$sessionPage<=1?'disabled':''?>" href="<?=$sessionPage>1?e($sessionPageUrl($sessionPage-1)):'#'?>" <?=$sessionPage<=1?'aria-disabled="true" tabindex="-1"':''?>><i class="bi bi-chevron-left"></i><span>Anterior</span></a>
+        <span>Página <?=e($sessionPage)?> de <?=e($sessionPages)?></span>
+        <a class="btn btn-sm btn-outline-primary <?=$sessionPage>=$sessionPages?'disabled':''?>" href="<?=$sessionPage<$sessionPages?e($sessionPageUrl($sessionPage+1)):'#'?>" <?=$sessionPage>=$sessionPages?'aria-disabled="true" tabindex="-1"':''?>><span>Siguiente</span><i class="bi bi-chevron-right"></i></a>
+    </nav>
+    <?php endif; ?>
 </div>
