@@ -21,3 +21,7 @@ SET @sql_tipo_art := IF(@has_tipo_art = 0,
 PREPARE stmt_tipo_art FROM @sql_tipo_art;
 EXECUTE stmt_tipo_art;
 DEALLOCATE PREPARE stmt_tipo_art;
+
+
+INSERT IGNORE INTO schema_migrations(version,description)
+VALUES (4,'Catalogos masivos, proveedores y tipo de articulo');
