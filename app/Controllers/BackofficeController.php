@@ -157,22 +157,39 @@ final class BackofficeController
         return (int)$st->fetchColumn()>0;
     }
 
+    private function paginateSql(string $sql,string $orderBy): array
+    {
+        $perPage=15;
+        $page=max(1,(int)($_GET['page']??1));
+        $total=(int)\db()->query('SELECT COUNT(*) FROM ('.$sql.') page_count')->fetchColumn();
+        $pages=max(1,(int)ceil($total/$perPage));
+        if($page>$pages) $page=$pages;
+        $offset=($page-1)*$perPage;
+        $rows=\db()->query($sql.' '.$orderBy.' LIMIT '.$perPage.' OFFSET '.$offset)->fetchAll();
+        return [$rows,[
+            'page'=>$page,
+            'perPage'=>$perPage,
+            'total'=>$total,
+            'pages'=>$pages,
+        ]];
+    }
+
     public function homologations(): void
     {
         \require_role('ADMIN');
         $key=(string)($_GET['tab'] ?? 'productos');
         $maps=[
-            'productos'=>['Productos Bayer',"SELECT h.id,p.nombre partner,pr.codigo codigo_interno,pr.nombre producto,h.material_id codigo_bayer,h.material_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_productos_bayer h JOIN partners p ON p.id=h.partner_id JOIN productos pr ON pr.id=h.producto_id ORDER BY h.id DESC LIMIT 300"],
-            'clientes'=>['Clientes Bayer',"SELECT h.id,p.nombre partner,c.nro_doc documento,c.razon_social cliente,h.customer_id codigo_bayer,h.customer_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_clientes h JOIN partners p ON p.id=h.partner_id JOIN clientes c ON c.id=h.cliente_id ORDER BY h.id DESC LIMIT 300"],
-            'unidades'=>['Unidades Bayer',"SELECT h.id,p.nombre partner,u.codigo codigo_interno,u.nombre unidad,h.external_unit_code codigo_bayer,h.external_unit_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_unidades h JOIN partners p ON p.id=h.partner_id JOIN unidades_medida u ON u.id=h.unidad_id ORDER BY h.id DESC LIMIT 300"],
-            'sucursales'=>['Sucursales Bayer',"SELECT h.id,p.nombre partner,s.codigo codigo_interno,s.nombre sucursal,h.branch_id codigo_bayer,h.branch_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_sucursales h JOIN partners p ON p.id=h.partner_id JOIN sucursales s ON s.id=h.sucursal_id ORDER BY h.id DESC LIMIT 300"],
-            'almacenes'=>['Almacenes Bayer',"SELECT h.id,p.nombre partner,a.codigo codigo_interno,a.nombre almacen,h.warehouse_id codigo_bayer,h.warehouse_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_almacenes h JOIN partners p ON p.id=h.partner_id JOIN almacenes a ON a.id=h.almacen_id ORDER BY h.id DESC LIMIT 300"],
-            'vendedores'=>['Vendedores Bayer',"SELECT h.id,p.nombre partner,v.codigo codigo_interno,TRIM(CONCAT(v.nombres,' ',COALESCE(v.apellidos,''))) vendedor,h.sales_id codigo_bayer,h.sales_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_vendedores h JOIN partners p ON p.id=h.partner_id JOIN vendedores v ON v.id=h.vendedor_id ORDER BY h.id DESC LIMIT 300"],
+            'productos'=>['Productos Bayer',"SELECT h.id,p.nombre partner,pr.codigo codigo_interno,pr.nombre producto,h.material_id codigo_bayer,h.material_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_productos_bayer h JOIN partners p ON p.id=h.partner_id JOIN productos pr ON pr.id=h.producto_id"],
+            'clientes'=>['Clientes Bayer',"SELECT h.id,p.nombre partner,c.nro_doc documento,c.razon_social cliente,h.customer_id codigo_bayer,h.customer_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_clientes h JOIN partners p ON p.id=h.partner_id JOIN clientes c ON c.id=h.cliente_id"],
+            'unidades'=>['Unidades Bayer',"SELECT h.id,p.nombre partner,u.codigo codigo_interno,u.nombre unidad,h.external_unit_code codigo_bayer,h.external_unit_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_unidades h JOIN partners p ON p.id=h.partner_id JOIN unidades_medida u ON u.id=h.unidad_id"],
+            'sucursales'=>['Sucursales Bayer',"SELECT h.id,p.nombre partner,s.codigo codigo_interno,s.nombre sucursal,h.branch_id codigo_bayer,h.branch_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_sucursales h JOIN partners p ON p.id=h.partner_id JOIN sucursales s ON s.id=h.sucursal_id"],
+            'almacenes'=>['Almacenes Bayer',"SELECT h.id,p.nombre partner,a.codigo codigo_interno,a.nombre almacen,h.warehouse_id codigo_bayer,h.warehouse_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_almacenes h JOIN partners p ON p.id=h.partner_id JOIN almacenes a ON a.id=h.almacen_id"],
+            'vendedores'=>['Vendedores Bayer',"SELECT h.id,p.nombre partner,v.codigo codigo_interno,TRIM(CONCAT(v.nombres,' ',COALESCE(v.apellidos,''))) vendedor,h.sales_id codigo_bayer,h.sales_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_vendedores h JOIN partners p ON p.id=h.partner_id JOIN vendedores v ON v.id=h.vendedor_id"],
         ];
         if(!isset($maps[$key])) throw new HttpException(404,'Homologación no encontrada.');
         [$title,$sql]=$maps[$key];
-        $rows=\db()->query($sql)->fetchAll();
-        \view('backoffice.table',['section'=>'Homologaciones Bayer','title'=>$title,'rows'=>$rows,'tabs'=>array_map(fn($v)=>$v[0],$maps),'active'=>$key,'base'=>'/homologaciones']);
+        [$rows,$pagination]=$this->paginateSql($sql,'ORDER BY id DESC');
+        \view('backoffice.table',['section'=>'Homologaciones Bayer','title'=>$title,'rows'=>$rows,'tabs'=>array_map(fn($v)=>$v[0],$maps),'active'=>$key,'base'=>'/homologaciones','pagination'=>$pagination]);
     }
 
     public function validation(): void
@@ -199,22 +216,25 @@ final class BackofficeController
     public function publications(): void
     {
         \require_role('ADMIN','SUPERVISOR','GERENCIA');
-        $rows=\db()->query("SELECT p.id,p.modulo,p.fecha_publicacion,p.estado,u.nombre usuario,COUNT(dp.id) registros FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id LEFT JOIN detalle_publicacion dp ON dp.publicacion_id=p.id GROUP BY p.id ORDER BY p.fecha_publicacion DESC LIMIT 300")->fetchAll();
-        \view('backoffice.table',['section'=>'Control','title'=>'Registro de publicaciones','rows'=>$rows,'tabs'=>[],'active'=>'','base'=>'/publicaciones']);
+        $sql="SELECT p.id,p.modulo,p.fecha_publicacion,p.estado,u.nombre usuario,COUNT(dp.id) registros FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id LEFT JOIN detalle_publicacion dp ON dp.publicacion_id=p.id GROUP BY p.id";
+        [$rows,$pagination]=$this->paginateSql($sql,'ORDER BY fecha_publicacion DESC');
+        \view('backoffice.table',['section'=>'Control','title'=>'Registro de publicaciones','rows'=>$rows,'tabs'=>[],'active'=>'','base'=>'/publicaciones','pagination'=>$pagination]);
     }
 
     public function reports(): void
     {
         \require_role('ADMIN','SUPERVISOR','GERENCIA');
-        $rows=\db()->query("SELECT e.id,e.nombre_archivo,e.tipo_dataset,e.formato,e.record_count,e.resultado,e.generated_at,u.nombre usuario FROM exportaciones e JOIN usuarios u ON u.id=e.usuario_id ORDER BY e.generated_at DESC LIMIT 200")->fetchAll();
-        \view('backoffice.reports',['rows'=>$rows]);
+        $sql="SELECT e.id,e.nombre_archivo,e.tipo_dataset,e.formato,e.record_count,e.resultado,e.generated_at,u.nombre usuario FROM exportaciones e JOIN usuarios u ON u.id=e.usuario_id";
+        [$rows,$pagination]=$this->paginateSql($sql,'ORDER BY generated_at DESC');
+        \view('backoffice.reports',['rows'=>$rows,'pagination'=>$pagination]);
     }
 
     public function audit(): void
     {
         \require_role('ADMIN','SUPERVISOR','GERENCIA');
-        $rows=\db()->query("SELECT a.id,a.fecha_hora,u.nombre usuario,a.modulo,a.accion,a.entidad_id,a.resultado,a.ip FROM auditoria_acciones a JOIN usuarios u ON u.id=a.usuario_id ORDER BY a.fecha_hora DESC LIMIT 300")->fetchAll();
-        \view('backoffice.table',['section'=>'Trazabilidad','title'=>'Auditoría de acciones','rows'=>$rows,'tabs'=>[],'active'=>'','base'=>'/auditoria']);
+        $sql="SELECT a.id,a.fecha_hora,u.nombre usuario,a.modulo,a.accion,a.entidad_id,a.resultado,a.ip FROM auditoria_acciones a JOIN usuarios u ON u.id=a.usuario_id";
+        [$rows,$pagination]=$this->paginateSql($sql,'ORDER BY fecha_hora DESC');
+        \view('backoffice.table',['section'=>'Trazabilidad','title'=>'Auditoría de acciones','rows'=>$rows,'tabs'=>[],'active'=>'','base'=>'/auditoria','pagination'=>$pagination]);
     }
 
     public function security(): void
@@ -222,8 +242,9 @@ final class BackofficeController
         \require_role('ADMIN');
         $users=\db()->query("SELECT u.id,u.nombre,u.email,IF(u.estado=1,'ACTIVO','INACTIVO') estado,GROUP_CONCAT(r.nombre ORDER BY r.nombre SEPARATOR ', ') roles,u.created_at FROM usuarios u LEFT JOIN usuario_rol ur ON ur.usuario_id=u.id LEFT JOIN roles r ON r.id=ur.rol_id WHERE u.email NOT LIKE 'historico-%@pucchun.pe' GROUP BY u.id ORDER BY u.estado DESC,u.nombre")->fetchAll();
         $roles=\db()->query("SELECT r.id,r.nombre,r.descripcion,IF(r.estado=1,'ACTIVO','INACTIVO') estado,COUNT(DISTINCT CASE WHEN u.estado=1 AND u.email NOT LIKE 'historico-%@pucchun.pe' THEN ur.usuario_id END) usuarios,COUNT(DISTINCT rp.permiso_id) permisos FROM roles r LEFT JOIN usuario_rol ur ON ur.rol_id=r.id LEFT JOIN usuarios u ON u.id=ur.usuario_id LEFT JOIN rol_permiso rp ON rp.rol_id=r.id GROUP BY r.id ORDER BY r.id")->fetchAll();
-        $sessions=\db()->query("SELECT b.fecha_hora,u.nombre usuario,b.ip,b.user_agent,b.accion FROM bitacora_acceso b LEFT JOIN usuarios u ON u.id=b.usuario_id ORDER BY b.fecha_hora DESC LIMIT 150")->fetchAll();
-        \view('backoffice.security',['users'=>$users,'roles'=>$roles,'sessions'=>$sessions]);
+        $sessionSql="SELECT b.fecha_hora,u.nombre usuario,b.ip,b.user_agent,b.accion FROM bitacora_acceso b LEFT JOIN usuarios u ON u.id=b.usuario_id";
+        [$sessions,$sessionPagination]=$this->paginateSql($sessionSql,'ORDER BY fecha_hora DESC');
+        \view('backoffice.security',['users'=>$users,'roles'=>$roles,'sessions'=>$sessions,'sessionPagination'=>$sessionPagination]);
     }
 
     public function evolution(): void
