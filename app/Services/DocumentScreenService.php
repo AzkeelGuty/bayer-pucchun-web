@@ -40,9 +40,10 @@ final class DocumentScreenService
         if($state!=='') { $where[]='h.estado_registro=?'; $params[]=$state; }
         $joins=' FROM documentos_cabecera h JOIN clientes c ON c.id=h.cliente_id JOIN vendedores v ON v.id=h.vendedor_id JOIN sucursales s ON s.id=h.sucursal_id WHERE '.implode(' AND ',$where);
         $st=\db()->prepare('SELECT COUNT(*)'.$joins); $st->execute($params); $total=(int)$st->fetchColumn();
-        $pages=max(1,(int)ceil($total/10));
+        $perPage=15;
+        $pages=max(1,(int)ceil($total/$perPage));
         $page=min($pages,max(1,(int)(is_scalar($query['page']??1)?($query['page']??1):1)));
-        $st=\db()->prepare('SELECT h.*,c.razon_social cliente,v.nombres vendedor,s.nombre sucursal,(SELECT SUM(d.cantidad) FROM documentos_detalle d WHERE d.documento_id=h.id) cantidad'.$joins.' ORDER BY h.fecha DESC,h.id DESC LIMIT 10 OFFSET '.(($page-1)*10));
+        $st=\db()->prepare('SELECT h.*,c.razon_social cliente,v.nombres vendedor,s.nombre sucursal,(SELECT SUM(d.cantidad) FROM documentos_detalle d WHERE d.documento_id=h.id) cantidad'.$joins.' ORDER BY h.fecha DESC,h.id DESC LIMIT '.$perPage.' OFFSET '.(($page-1)*$perPage));
         $st->execute($params);
         return ['rows'=>$st->fetchAll(),'q'=>$q,'state'=>$state,'total'=>$total,'page'=>$page,'pages'=>$pages];
     }
