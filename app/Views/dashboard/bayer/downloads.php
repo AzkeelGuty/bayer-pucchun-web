@@ -7,13 +7,16 @@ $formatDate=static function(mixed $value): string {
     $time=strtotime($value);
     return $time!==false ? date('d/m/Y H:i',$time) : $value;
 };
+$firstRow=$total>0?(($page-1)*$perPage)+1:0;
+$lastRow=$total>0?min($total,$page*$perPage):0;
+$pageUrl=static fn(int $target): string => url('/bayer/descargas'.($target>1?'?page='.$target:''));
 ?>
 <link rel="stylesheet" href="<?=url('/assets/css/bayer-portal.css?v=1')?>">
 <section class="page-header portal-page-header">
     <div>
         <div class="page-eyebrow"><i class="bi bi-clock-history"></i> TRAZABILIDAD</div>
         <h1 class="page-title">Historial de descargas</h1>
-        <p class="page-subtitle">Registro de exportaciones generadas con tu cuenta.</p>
+        <p class="page-subtitle">Registro de exportaciones generadas con tu cuenta. <?=$total>0?'Mostrando '.e((string)$firstRow).'–'.e((string)$lastRow).' de '.e((string)$total).'.':''?></p>
     </div>
 </section>
 
@@ -47,4 +50,11 @@ $formatDate=static function(mixed $value): string {
             </div>
         <?php endif;?>
     </div>
+    <?php if($pages>1): ?>
+    <nav class="catalog-pagination" aria-label="Paginación del historial de descargas">
+        <a class="btn btn-sm btn-outline-primary <?=$page<=1?'disabled':''?>" href="<?=$page>1?e($pageUrl($page-1)):'#'?>" <?=$page<=1?'aria-disabled="true" tabindex="-1"':''?>><i class="bi bi-chevron-left"></i><span>Anterior</span></a>
+        <span>Página <?=e((string)$page)?> de <?=e((string)$pages)?></span>
+        <a class="btn btn-sm btn-outline-primary <?=$page>=$pages?'disabled':''?>" href="<?=$page<$pages?e($pageUrl($page+1)):'#'?>" <?=$page>=$pages?'aria-disabled="true" tabindex="-1"':''?>><span>Siguiente</span><i class="bi bi-chevron-right"></i></a>
+    </nav>
+    <?php endif; ?>
 </div>
