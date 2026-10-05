@@ -31,7 +31,7 @@ final class MasterDataController
         unset($_SESSION['_master_old'],$_SESSION['_master_error']);
         \view('backoffice.master_form',[
             'tab'=>$tab,'meta'=>$meta,'record'=>$record,'editing'=>false,
-            'options'=>$this->service->formOptions($tab),'error'=>$error,
+            'options'=>$this->service->formOptions($tab,$record),'error'=>$error,
         ]);
     }
 
