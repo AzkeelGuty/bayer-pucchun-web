@@ -48,13 +48,21 @@ $formatValue=static function(string $key,mixed $value) use($dateColumns): string
     return $display;
 };
 
-$queryBase=http_build_query(array_filter([
+$queryParams=array_filter([
     'type'=>$type,
     'from'=>$filters['from']??'',
     'to'=>$filters['to']??'',
     'branch'=>$filters['branch']??'',
     'q'=>$filters['q']??'',
-],fn($v)=>$v!==''));
+],fn($v)=>$v!=='');
+$queryBase=http_build_query($queryParams);
+$firstRow=$total>0?(($page-1)*$perPage)+1:0;
+$lastRow=$total>0?min($total,$page*$perPage):0;
+$pageUrl=static function(int $target) use($queryParams): string {
+    $params=$queryParams;
+    if($target>1) $params['page']=$target;
+    return url('/bayer/datos?'.http_build_query($params));
+};
 ?>
 <link rel="stylesheet" href="<?=url('/assets/css/bayer-portal.css?v=2')?>">
 <section class="page-header portal-page-header">
@@ -80,7 +88,7 @@ $queryBase=http_build_query(array_filter([
 </div>
 
 <div class="delivery-toolbar portal-delivery-toolbar">
-    <div class="delivery-count"><strong><?=number_format(count($rows))?></strong><span> registros publicados en la vista</span></div>
+    <div class="delivery-count"><strong><?=number_format($total)?></strong><span> registros publicados<?= $total>0 ? ' · Mostrando '.number_format($firstRow).'–'.number_format($lastRow) : '' ?></span></div>
     <div class="delivery-export">
         <span class="delivery-export-label">Exportar:</span>
         <div class="format-actions"><?php foreach(['xlsx'=>'bi-file-earmark-spreadsheet','json'=>'bi-braces','txt'=>'bi-filetype-txt','pdf'=>'bi-filetype-pdf'] as $format=>$icon): ?><a href="<?=url('/export?'.$queryBase.'&format='.$format)?>" class="format-chip format-<?=$format?>" title="Descargar en <?=strtoupper($format)?>"><i class="bi <?=e($icon)?>"></i><?=strtoupper($format)?></a><?php endforeach;?></div>
@@ -123,4 +131,11 @@ $queryBase=http_build_query(array_filter([
             <div class="published-table-footnote"><i class="bi bi-arrows-expand"></i><span>Desplázate horizontalmente para consultar todas las columnas del registro.</span></div>
         <?php endif;?>
     </div>
+    <?php if($pages>1): ?>
+    <nav class="catalog-pagination" aria-label="Paginación de información publicada">
+        <a class="btn btn-sm btn-outline-primary <?=$page<=1?'disabled':''?>" href="<?=$page>1?e($pageUrl($page-1)):'#'?>" <?=$page<=1?'aria-disabled="true" tabindex="-1"':''?>><i class="bi bi-chevron-left"></i><span>Anterior</span></a>
+        <span>Página <?=e((string)$page)?> de <?=e((string)$pages)?></span>
+        <a class="btn btn-sm btn-outline-primary <?=$page>=$pages?'disabled':''?>" href="<?=$page<$pages?e($pageUrl($page+1)):'#'?>" <?=$page>=$pages?'aria-disabled="true" tabindex="-1"':''?>><span>Siguiente</span><i class="bi bi-chevron-right"></i></a>
+    </nav>
+    <?php endif; ?>
 </div>
