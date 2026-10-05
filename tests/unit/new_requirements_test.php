@@ -19,6 +19,11 @@ $docForm=$read('app/Views/documentos/form.php');
 $guideForm=$read('app/Views/guias/form.php');
 $docJs=$read('public/assets/js/documentos-captura.js');
 $formsJs=$read('public/assets/js/forms.js');
+$searchableJs=$read('public/assets/js/searchable-selects.js');
+$stockForm=$read('app/Views/stock/form.php');
+$masterForm=$read('app/Views/backoffice/master_form.php');
+$guideIndex=$read('app/Views/guias/index.php');
+$stockIndex=$read('app/Views/stock/index.php');
 $routes=$read('routes/web.php');
 $masterTable=$read('app/Views/backoffice/table.php');
 $backofficeController=$read('app/Controllers/BackofficeController.php');
@@ -60,6 +65,14 @@ req(str_contains($masterTable,'catalog-pagination'),'La vista debe mostrar naveg
 req(str_contains($masterTable,"\$isMasterTable=(\$base??'')==='/maestros';"),'La paginación debe quedar aislada a Catálogos maestros.');
 req(str_contains($masterTable,"\$searchQuery=\$isMasterTable ? trim((string)(\$q??'')) : '';"),'La vista compartida no debe asumir que q existe en Publicaciones/Auditoría.');
 req(str_contains($masterTable,'50 registros por página') || str_contains($masterTable,'$perPage'),'La vista debe explicar la carga paginada.');
+req(str_contains($guideForm,'Buscar departamento...') && str_contains($guideForm,'Buscar provincia...') && str_contains($guideForm,'Buscar distrito...'),'Guías debe usar buscadores autocompletables para el ubigeo.');
+req(str_contains($guideForm,'Buscar vendedor...') && str_contains($guideForm,'Buscar sucursal...'),'Guías debe permitir buscar vendedor y sucursal.');
+req(str_contains($stockForm,'Buscar almacén...') && str_contains($stockForm,'Buscar lote...'),'Stock debe usar autocompletado para almacén y lote.');
+req(str_contains($searchableJs,'function refresh(select)'),'Los selects buscables deben refrescar opciones dinámicas.');
+req(str_contains($formsJs,'BP_SearchableSelects?.refresh?.(select)'),'Los cascados de ubigeo/lote deben sincronizar el buscador.');
+req(str_contains($masterForm,'data-search-select'),'Los formularios maestros deben buscar relaciones sin scroll largo.');
+req(str_contains($guideIndex,'Mostrando') && str_contains($stockIndex,'Mostrando'),'Guías y Stock deben mostrar rangos paginados.');
+req(str_contains($backofficeController,'$perPage=15;'),'Backoffice debe limitar las tablas a 15 filas.');
 
 req(str_contains($exportPresentation,"\\public_path(ltrim(\$relative, '/'))"),'PDF/XLSX deben resolver logos desde la raíz pública real de cPanel.');
 req(!str_contains($exportPresentation,"base_path('public/'"),'Exportaciones no deben asumir que el Document Root es /public.');
