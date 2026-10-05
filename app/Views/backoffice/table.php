@@ -72,17 +72,19 @@ if($activeTab==='' && !empty($tabs)){
     $activeTab=(string)array_key_first($tabs);
 }
 
-$paginationData=is_array($pagination??null) ? $pagination : [];
+$isMasterTable=($base??'')==='/maestros';
+$searchQuery=$isMasterTable ? trim((string)($q??'')) : '';
+$paginationData=$isMasterTable && is_array($pagination??null) ? $pagination : [];
 $currentPage=max(1,(int)($paginationData['page']??1));
 $totalPages=max(1,(int)($paginationData['pages']??1));
 $totalRows=max(0,(int)($paginationData['total']??count($rows??[])));
-$perPage=max(1,(int)($paginationData['perPage']??25));
+$perPage=max(1,(int)($paginationData['perPage']??15));
 $firstRow=$totalRows>0 ? (($currentPage-1)*$perPage)+1 : 0;
 $lastRow=$totalRows>0 ? min($totalRows,$currentPage*$perPage) : 0;
 
-$pageUrl=static function(int $page) use($base,$activeTab,$q): string {
+$pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
     $params=['tab'=>$activeTab];
-    if(trim((string)($q??''))!=='') $params['q']=(string)$q;
+    if($searchQuery!=='') $params['q']=$searchQuery;
     if($page>1) $params['page']=$page;
     return url($base.'?'.http_build_query($params));
 };
@@ -124,7 +126,7 @@ $pageUrl=static function(int $page) use($base,$activeTab,$q): string {
 </div>
 <?php endif; ?>
 
-<?php if($base==='/maestros'): ?>
+<?php if($isMasterTable): ?>
 <div class="master-toolbar card mb-3">
     <div class="card-body py-3 d-flex align-items-center justify-content-between gap-3 flex-wrap">
         <div>
@@ -173,8 +175,8 @@ $pageUrl=static function(int $page) use($base,$activeTab,$q): string {
 </form>
 <?php endif; ?>
 
-<div class="card data-table-card"<?=$base==='/maestros'?'':' data-live-refresh="6000" data-live-refresh-key="backoffice-data-table"'?>>
-    <?php if($base==='/maestros'): ?>
+<div class="card data-table-card"<?=$isMasterTable?'':' data-live-refresh="6000" data-live-refresh-key="backoffice-data-table"'?>>
+    <?php if($isMasterTable): ?>
     <div class="catalog-result-bar">
         <div>
             <strong><?=number_format($totalRows,0,'.',',')?> registros</strong>
@@ -196,7 +198,7 @@ $pageUrl=static function(int $page) use($base,$activeTab,$q): string {
                     <thead>
                         <tr>
                             <?php foreach(array_keys($rows[0]) as $h): ?><th><?=e($headerLabel((string)$h))?></th><?php endforeach;?>
-                            <?php if($base==='/maestros' && !empty($masterManageAvailable)): ?><th class="text-end">Acciones</th><?php endif; ?>
+                            <?php if($isMasterTable && !empty($masterManageAvailable)): ?><th class="text-end">Acciones</th><?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
@@ -226,7 +228,7 @@ $pageUrl=static function(int $page) use($base,$activeTab,$q): string {
                                 <?php endif; ?>
                             </td>
                         <?php endforeach;?>
-                        <?php if($base==='/maestros' && !empty($masterManageAvailable)): ?>
+                        <?php if($isMasterTable && !empty($masterManageAvailable)): ?>
                             <td class="text-end">
                                 <div class="master-row-actions">
                                     <a class="btn btn-sm btn-outline-primary btn-with-icon" href="<?=url('/maestros/editar?tab='.urlencode($activeTab).'&id='.(int)$row['id'])?>">
@@ -250,7 +252,7 @@ $pageUrl=static function(int $page) use($base,$activeTab,$q): string {
             </div>
         <?php endif; ?>
     </div>
-    <?php if($base==='/maestros' && $totalPages>1):
+    <?php if($isMasterTable && $totalPages>1):
         $pageNumbers=[1,$totalPages];
         for($p=max(1,$currentPage-2);$p<=min($totalPages,$currentPage+2);$p++) $pageNumbers[]=$p;
         $pageNumbers=array_values(array_unique($pageNumbers));
