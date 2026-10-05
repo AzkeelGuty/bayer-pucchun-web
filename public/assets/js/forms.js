@@ -1,97 +1,93 @@
 /**
- * Comportamiento compartido de formularios de captura (Guías/Stock).
- * Prioriza automatización: cliente -> vendedor/sucursal/destino,
- * producto -> unidad, y evita líneas duplicadas.
+ * Formularios de captura optimizados.
+ * Los catálogos grandes se consultan bajo demanda mediante /lookups.
  */
 (function () {
     'use strict';
 
-    function rebuildOptions(select, rows, valueKey, labelKey, parentKey, parentValue, placeholder) {
-        const current = select.value;
-        select.innerHTML = '';
-        const empty = document.createElement('option');
-        empty.value = '';
-        empty.textContent = placeholder;
-        select.appendChild(empty);
+    const selectedOption = (select) => {
+        const option = select?.selectedOptions?.[0];
+        return option && option.value ? option : null;
+    };
 
-        rows.filter(function (row) {
-            return !parentValue || String(row[parentKey]) === String(parentValue);
-        }).forEach(function (row) {
-            const option = document.createElement('option');
-            option.value = row[valueKey];
-            option.textContent = row[labelKey];
-            select.appendChild(option);
-        });
-
-        if ([...select.options].some(function (option) { return option.value === current; })) {
-            select.value = current;
+    const setOption = (select, value, label, dispatch = true) => {
+        if (!select) return;
+        window.BP_SearchableSelects?.setOption?.(select, value ? {
+            value: String(value),
+            label: String(label || value),
+            meta: {},
+        } : null, dispatch);
+        if (!window.BP_SearchableSelects?.setOption) {
+            select.value = value ? String(value) : '';
+            if (dispatch) select.dispatchEvent(new Event('change', {bubbles:true}));
         }
-        window.BP_SearchableSelects?.refresh?.(select);
-    }
+    };
 
     function wireUbigeo(scope) {
-        const geo = window.BP_GEO;
         const depSelect = scope.querySelector('[data-role="departamento"]');
         const provSelect = scope.querySelector('[data-role="provincia"]');
         const distSelect = scope.querySelector('[data-role="distrito"]');
-        if (!geo || !depSelect || !provSelect || !distSelect) return;
+        if (!depSelect || !provSelect || !distSelect) return;
 
-        function refreshDistritos() {
-            rebuildOptions(distSelect, geo.distritos, 'id', 'nombre', 'provincia_id', provSelect.value, 'Seleccione…');
+        depSelect.addEventListener('change', () => {
+            setOption(provSelect, '', '', false);
+            setOption(distSelect, '', '', false);
+        });
+        provSelect.addEventListener('change', () => {
+            setOption(distSelect, '', '', false);
+        });
+    }
+
+    function clientMeta(clienteSelect) {
+        const option = selectedOption(clienteSelect);
+        if (!option) return null;
+        return {
+            sellerId: option.dataset.sellerId || '',
+            sellerLabel: option.dataset.sellerLabel || '',
+            branchId: option.dataset.branchId || '',
+            branchLabel: option.dataset.branchLabel || '',
+            departmentId: option.dataset.departmentId || '',
+            departmentLabel: option.dataset.departmentLabel || '',
+            provinceId: option.dataset.provinceId || '',
+            provinceLabel: option.dataset.provinceLabel || '',
+            districtId: option.dataset.districtId || '',
+            districtLabel: option.dataset.districtLabel || '',
+        };
+    }
+
+    function applyClientDefaults(clienteSelect, force = false) {
+        const form = clienteSelect.closest('form');
+        const meta = clientMeta(clienteSelect);
+        if (!form || !meta) return;
+
+        const seller = form.querySelector('[name="vendedor_id"]');
+        const branch = form.querySelector('[name="sucursal_id"]');
+        const dep = form.querySelector('[data-role="departamento"]');
+        const prov = form.querySelector('[data-role="provincia"]');
+        const dist = form.querySelector('[data-role="distrito"]');
+
+        if (seller && (force || !seller.value) && meta.sellerId) {
+            setOption(seller, meta.sellerId, meta.sellerLabel || meta.sellerId);
+        }
+        if (branch && (force || !branch.value) && meta.branchId) {
+            setOption(branch, meta.branchId, meta.branchLabel || meta.branchId);
         }
 
-        function refreshProvincias() {
-            rebuildOptions(provSelect, geo.provincias, 'id', 'nombre', 'departamento_id', depSelect.value, 'Seleccione…');
-            refreshDistritos();
+        const geoEmpty = !dep?.value && !prov?.value && !dist?.value;
+        if (dep && prov && dist && (force || geoEmpty) &&
+            meta.departmentId && meta.provinceId && meta.districtId) {
+            setOption(dep, meta.departmentId, meta.departmentLabel || meta.departmentId, false);
+            setOption(prov, meta.provinceId, meta.provinceLabel || meta.provinceId, false);
+            setOption(dist, meta.districtId, meta.districtLabel || meta.districtId, false);
+            window.BP_SearchableSelects?.refresh?.(dep);
+            window.BP_SearchableSelects?.refresh?.(prov);
+            window.BP_SearchableSelects?.refresh?.(dist);
         }
-
-        depSelect.addEventListener('change', refreshProvincias);
-        provSelect.addEventListener('change', refreshDistritos);
-
-        if (depSelect.dataset.old) depSelect.value = depSelect.dataset.old;
-        refreshProvincias();
-        if (provSelect.dataset.old) provSelect.value = provSelect.dataset.old;
-        refreshDistritos();
-        if (distSelect.dataset.old) distSelect.value = distSelect.dataset.old;
     }
 
     function wireClienteSuggestions(clienteSelect) {
-        const clientes = window.BP_CLIENTES;
-        const form = clienteSelect.closest('form');
-        if (!clientes || !form) return;
-
-        const depSelect = form.querySelector('[data-role="departamento"]');
-        const provSelect = form.querySelector('[data-role="provincia"]');
-        const distSelect = form.querySelector('[data-role="distrito"]');
-        const sellerSelect = form.querySelector('[name="vendedor_id"]');
-        const branchSelect = form.querySelector('[name="sucursal_id"]');
-
-        function apply(force) {
-            const cliente = clientes[clienteSelect.value];
-            if (!cliente) return;
-
-            if (sellerSelect && (force || !sellerSelect.value)) {
-                sellerSelect.value = cliente.vendedor_sugerido_id || '';
-                sellerSelect.dispatchEvent(new Event('change', {bubbles: true}));
-            }
-            if (branchSelect && (force || !branchSelect.value)) {
-                branchSelect.value = cliente.sucursal_sugerida_id || '';
-                branchSelect.dispatchEvent(new Event('change', {bubbles: true}));
-            }
-
-            const geoEmpty = !depSelect?.value && !provSelect?.value && !distSelect?.value;
-            if (depSelect && provSelect && distSelect && (force || geoEmpty)) {
-                depSelect.value = cliente.departamento_id || '';
-                depSelect.dispatchEvent(new Event('change', {bubbles: true}));
-                provSelect.value = cliente.provincia_id || '';
-                provSelect.dispatchEvent(new Event('change', {bubbles: true}));
-                distSelect.value = cliente.distrito_id || '';
-                distSelect.dispatchEvent(new Event('change', {bubbles: true}));
-            }
-        }
-
-        clienteSelect.addEventListener('change', function () { apply(true); });
-        if (clienteSelect.value) apply(false);
+        clienteSelect.addEventListener('change', () => applyClientDefaults(clienteSelect, true));
+        if (clienteSelect.value) applyClientDefaults(clienteSelect, false);
     }
 
     function wireDestinationEditor(scope) {
@@ -109,22 +105,17 @@
         if (!clienteSelect || !depSelect || !provSelect || !distSelect || !fields || !toggle || !summary) return;
 
         let manual = false;
-        let restoringAutomatic = false;
 
-        const getClient = () => (window.BP_CLIENTES || {})[clienteSelect.value] || null;
-        const clientHasDestination = (client) => Boolean(
-            client?.departamento_id && client?.provincia_id && client?.distrito_id
+        const meta = () => clientMeta(clienteSelect);
+        const clientHasDestination = client => Boolean(
+            client?.departmentId && client?.provinceId && client?.districtId
         );
-
-        const selectedText = (select) => {
-            const option = select.selectedOptions?.[0];
-            return option && option.value ? option.textContent.trim() : '';
-        };
+        const selectedText = select => selectedOption(select)?.textContent.trim() || '';
 
         function refresh() {
             const hasClient = Boolean(clienteSelect.value);
-            const client = getClient();
-            const hasAutomatic = clientHasDestination(client);
+            const client = meta();
+            const automatic = clientHasDestination(client);
             const complete = Boolean(depSelect.value && provSelect.value && distSelect.value);
 
             if (!hasClient) {
@@ -140,28 +131,20 @@
             if (complete) {
                 summary.textContent = [selectedText(distSelect), selectedText(provSelect), selectedText(depSelect)]
                     .filter(Boolean).join(' · ');
-
-                if (note) {
-                    note.textContent = manual
-                        ? 'Destino ajustado para esta guía.'
-                        : (hasAutomatic
-                            ? 'Destino completado desde la ficha del cliente.'
-                            : 'Destino definido para esta guía.');
-                }
-
                 fields.hidden = !manual;
-                toggle.hidden = !hasAutomatic;
-                if (hasAutomatic) {
-                    toggle.textContent = manual ? 'Restaurar destino del cliente' : 'Cambiar destino';
-                }
+                toggle.hidden = !automatic;
+                toggle.textContent = manual ? 'Restaurar destino del cliente' : 'Cambiar destino';
+                if (note) note.textContent = manual
+                    ? 'Destino ajustado para esta guía.'
+                    : (automatic ? 'Destino completado desde la ficha del cliente.' : 'Destino definido para esta guía.');
 
                 if (saveClient) {
-                    const differs = !hasAutomatic
-                        || String(client.departamento_id) !== String(depSelect.value)
-                        || String(client.provincia_id) !== String(provSelect.value)
-                        || String(client.distrito_id) !== String(distSelect.value);
+                    const differs = !automatic
+                        || String(client.departmentId) !== String(depSelect.value)
+                        || String(client.provinceId) !== String(provSelect.value)
+                        || String(client.districtId) !== String(distSelect.value);
                     saveClient.hidden = !differs;
-                    saveClient.innerHTML = hasAutomatic
+                    saveClient.innerHTML = automatic
                         ? '<i class="bi bi-link-45deg"></i> Actualizar ubicación del cliente'
                         : '<i class="bi bi-link-45deg"></i> Guardar ubicación en cliente';
                 }
@@ -173,114 +156,88 @@
             toggle.hidden = true;
             summary.textContent = 'Completa el destino de entrega.';
             if (saveClient) saveClient.hidden = true;
-            if (note) note.textContent = hasAutomatic
+            if (note) note.textContent = automatic
                 ? 'Puedes completar el destino o restaurar la ubicación registrada del cliente.'
                 : 'Este cliente no tiene una ubicación completa registrada.';
         }
 
         function restoreAutomaticDestination() {
-            const client = getClient();
+            const client = meta();
             if (!clientHasDestination(client)) return false;
-
-            restoringAutomatic = true;
             manual = false;
-
-            depSelect.value = String(client.departamento_id);
-            depSelect.dispatchEvent(new Event('change', {bubbles: true}));
-
-            provSelect.value = String(client.provincia_id);
-            provSelect.dispatchEvent(new Event('change', {bubbles: true}));
-
-            distSelect.value = String(client.distrito_id);
-            distSelect.dispatchEvent(new Event('change', {bubbles: true}));
-
-            restoringAutomatic = false;
+            setOption(depSelect, client.departmentId, client.departmentLabel || client.departmentId, false);
+            setOption(provSelect, client.provinceId, client.provinceLabel || client.provinceId, false);
+            setOption(distSelect, client.districtId, client.districtLabel || client.districtId, false);
+            [depSelect,provSelect,distSelect].forEach(select => window.BP_SearchableSelects?.refresh?.(select));
             refresh();
             return true;
         }
 
-        if (saveClient) {
-            saveClient.addEventListener('click', async function () {
-                if (!endpoint || !clienteSelect.value || !depSelect.value || !provSelect.value || !distSelect.value) return;
+        saveClient?.addEventListener('click', async () => {
+            if (!endpoint || !clienteSelect.value || !depSelect.value || !provSelect.value || !distSelect.value) return;
+            const csrf = form.querySelector('input[name="_csrf"]')?.value || '';
+            const data = new FormData();
+            data.append('_csrf', csrf);
+            data.append('cliente_id', clienteSelect.value);
+            data.append('departamento_id', depSelect.value);
+            data.append('provincia_id', provSelect.value);
+            data.append('distrito_id', distSelect.value);
 
-                const csrf = form.querySelector('input[name="_csrf"]')?.value || '';
-                const data = new FormData();
-                data.append('_csrf', csrf);
-                data.append('cliente_id', clienteSelect.value);
-                data.append('departamento_id', depSelect.value);
-                data.append('provincia_id', provSelect.value);
-                data.append('distrito_id', distSelect.value);
+            const original = saveClient.innerHTML;
+            saveClient.disabled = true;
+            saveClient.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Guardando…';
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST', body: data, credentials: 'same-origin',
+                    headers: {'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || !payload.success) throw new Error(payload.message || 'No se pudo vincular la ubicación.');
 
-                const original = saveClient.innerHTML;
-                saveClient.disabled = true;
-                saveClient.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Guardando…';
-
-                try {
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        body: data,
-                        credentials: 'same-origin',
-                        headers: {'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}
-                    });
-                    const payload = await response.json().catch(() => ({}));
-                    if (!response.ok || !payload.success) {
-                        throw new Error(payload.message || 'No se pudo vincular la ubicación.');
-                    }
-
-                    const client = getClient();
-                    if (client) {
-                        client.departamento_id = String(depSelect.value);
-                        client.provincia_id = String(provSelect.value);
-                        client.distrito_id = String(distSelect.value);
-                    }
-                    manual = false;
-                    if (note) note.textContent = payload.message || 'Ubicación guardada en la ficha del cliente.';
-                    refresh();
-                } catch (error) {
-                    if (note) note.textContent = error?.message || 'No se pudo guardar la ubicación del cliente.';
-                    saveClient.innerHTML = original;
-                } finally {
-                    saveClient.disabled = false;
+                const option = selectedOption(clienteSelect);
+                if (option) {
+                    option.dataset.departmentId = String(depSelect.value);
+                    option.dataset.departmentLabel = selectedText(depSelect);
+                    option.dataset.provinceId = String(provSelect.value);
+                    option.dataset.provinceLabel = selectedText(provSelect);
+                    option.dataset.districtId = String(distSelect.value);
+                    option.dataset.districtLabel = selectedText(distSelect);
                 }
-            });
-        }
+                manual = false;
+                if (note) note.textContent = payload.message || 'Ubicación guardada en la ficha del cliente.';
+                refresh();
+            } catch (error) {
+                if (note) note.textContent = error?.message || 'No se pudo guardar la ubicación del cliente.';
+                saveClient.innerHTML = original;
+            } finally {
+                saveClient.disabled = false;
+            }
+        });
 
-        toggle.addEventListener('click', function () {
+        toggle.addEventListener('click', () => {
             if (manual) {
                 restoreAutomaticDestination();
                 return;
             }
-
             manual = true;
             refresh();
-            depSelect.focus({preventScroll: true});
+            depSelect.closest('.incremental-select')?.querySelector('input')?.focus({preventScroll:true});
         });
 
-        clienteSelect.addEventListener('change', function () {
+        clienteSelect.addEventListener('change', () => {
             manual = false;
             window.setTimeout(() => {
-                const client = getClient();
-                const complete = Boolean(depSelect.value && provSelect.value && distSelect.value);
-                if (clientHasDestination(client) && !complete) {
-                    restoreAutomaticDestination();
-                } else {
-                    refresh();
-                }
+                const client = meta();
+                if (clientHasDestination(client)) restoreAutomaticDestination();
+                else refresh();
             }, 0);
         });
 
-        [depSelect, provSelect, distSelect].forEach(function (select) {
-            select.addEventListener('change', function () {
-                if (restoringAutomatic) return;
-                refresh();
-            });
-        });
-
+        [depSelect,provSelect,distSelect].forEach(select => select.addEventListener('change', refresh));
         refresh();
     }
 
     function wireProductUnit(row) {
-        const productos = window.BP_PRODUCTS || {};
         const productSelect = row.querySelector('[data-role="producto"]');
         const unitSelect = row.querySelector('select[name$="[unidad_id]"]');
         if (!productSelect || !unitSelect) return;
@@ -290,27 +247,22 @@
         unitSelect.tabIndex = -1;
 
         function refresh(force) {
-            const product = productos[productSelect.value];
-            if (!product || !product.unidad_base_id || (!force && unitSelect.value)) return;
-            unitSelect.value = String(product.unidad_base_id);
+            if (!force && unitSelect.value) return;
+            const option = selectedOption(productSelect);
+            const unitId = option?.dataset.unitId || '';
+            const unitLabel = option?.dataset.unitLabel || unitId;
+            setOption(unitSelect, unitId, unitLabel, false);
         }
 
-        productSelect.addEventListener('change', function () { refresh(true); });
+        productSelect.addEventListener('change', () => refresh(true));
         refresh(false);
     }
 
     function wireLoteCascade(row) {
-        const lotes = window.BP_LOTES || [];
-        const productoSelect = row.querySelector('[data-role="producto"]');
+        const productSelect = row.querySelector('[data-role="producto"]');
         const loteSelect = row.querySelector('[data-role="lote"]');
-        if (!productoSelect || !loteSelect) return;
-
-        function refresh() {
-            rebuildOptions(loteSelect, lotes, 'id', 'codigo_lote', 'producto_id', productoSelect.value, 'Sin lote');
-        }
-
-        productoSelect.addEventListener('change', refresh);
-        refresh();
+        if (!productSelect || !loteSelect) return;
+        productSelect.addEventListener('change', () => setOption(loteSelect, '', '', false));
     }
 
     function numericQuantity(row) {
@@ -327,95 +279,69 @@
 
     function mergeDuplicateRows(body, config, forceBlankLot) {
         const seen = new Map();
-        Array.from(body.rows).forEach(function (row) {
+        Array.from(body.rows).forEach(row => {
             if (!row.isConnected) return;
             const product = row.querySelector('[data-role="producto"]')?.value || '';
             if (!product) return;
-
             let key = product;
             if (config.hasLote) {
                 const lote = row.querySelector('[data-role="lote"]')?.value || '';
                 if (!lote && !forceBlankLot) return;
                 key += ':' + (lote || 'SIN_LOTE');
             }
-
             if (!seen.has(key)) {
-                seen.set(key, row);
+                seen.set(key,row);
                 return;
             }
-
-            const first = seen.get(key);
-            setQuantity(first, numericQuantity(first) + numericQuantity(row));
+            const first=seen.get(key);
+            setQuantity(first,numericQuantity(first)+numericQuantity(row));
             row.remove();
-            first.querySelector('input[name$="[cantidad]"]')?.focus({preventScroll: true});
+            first.querySelector('input[name$="[cantidad]"]')?.focus({preventScroll:true});
         });
     }
 
     function initDetailRepeater(config) {
-        const table = document.getElementById(config.tableId);
-        const template = document.getElementById(config.templateId);
-        const addButton = document.getElementById(config.addButtonId);
-        if (!table || !template || !addButton) return;
-
-        const body = table.tBodies[0];
-        const form = table.closest('form');
-        let index = body.rows.length;
+        const table=document.getElementById(config.tableId);
+        const template=document.getElementById(config.templateId);
+        const addButton=document.getElementById(config.addButtonId);
+        if(!table||!template||!addButton) return;
+        const body=table.tBodies[0];
+        const form=table.closest('form');
+        let index=body.rows.length;
 
         function attachRow(row) {
-            if (config.hasLote) wireLoteCascade(row);
+            if(config.hasLote) wireLoteCascade(row);
             wireProductUnit(row);
-
-            const product = row.querySelector('[data-role="producto"]');
-            const lote = row.querySelector('[data-role="lote"]');
-            if (product && !config.hasLote) {
-                product.addEventListener('change', function () {
-                    mergeDuplicateRows(body, config, false);
-                });
-            }
-            if (lote && config.hasLote) {
-                lote.addEventListener('change', function () {
-                    mergeDuplicateRows(body, config, false);
-                });
-            }
-
-            const removeBtn = row.querySelector('.remove-line-btn');
-            if (removeBtn) {
-                removeBtn.addEventListener('click', function () {
-                    if (body.rows.length > 1) row.remove();
-                });
-            }
+            const product=row.querySelector('[data-role="producto"]');
+            const lote=row.querySelector('[data-role="lote"]');
+            product?.addEventListener('change',()=>mergeDuplicateRows(body,config,false));
+            lote?.addEventListener('change',()=>mergeDuplicateRows(body,config,false));
+            row.querySelector('.remove-line-btn')?.addEventListener('click',()=>{
+                if(body.rows.length>1) row.remove();
+            });
         }
 
         Array.from(body.rows).forEach(attachRow);
-
-        addButton.addEventListener('click', function () {
-            const html = template.innerHTML.replace(/__IDX__/g, String(index++));
-            const holder = document.createElement('tbody');
-            holder.innerHTML = html;
-            const row = holder.firstElementChild;
+        addButton.addEventListener('click',()=>{
+            const html=template.innerHTML.replace(/__IDX__/g,String(index++));
+            const holder=document.createElement('tbody');
+            holder.innerHTML=html;
+            const row=holder.firstElementChild;
             body.appendChild(row);
             attachRow(row);
             window.BP_SearchableSelects?.enhanceAll(row);
             row.querySelector('[data-role="producto"]')?.closest('.incremental-select')?.querySelector('input')?.focus();
         });
-
-        if (form) {
-            form.addEventListener('submit', function () {
-                mergeDuplicateRows(body, config, true);
-            }, {capture: true});
-        }
+        form?.addEventListener('submit',()=>mergeDuplicateRows(body,config,true),{capture:true});
     }
 
     function init() {
         document.querySelectorAll('[data-ubigeo-scope]').forEach(wireUbigeo);
         document.querySelectorAll('[data-role="cliente"]').forEach(wireClienteSuggestions);
         document.querySelectorAll('[data-destination-shell]').forEach(wireDestinationEditor);
-        if (window.BP_DETAIL_REPEATER) initDetailRepeater(window.BP_DETAIL_REPEATER);
+        if(window.BP_DETAIL_REPEATER) initDetailRepeater(window.BP_DETAIL_REPEATER);
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init, {once: true});
-    } else {
-        init();
-    }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+    else init();
 })();
