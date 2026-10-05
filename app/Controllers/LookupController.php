@@ -17,11 +17,19 @@ final class LookupController
 
     public function search(): void
     {
-        $type=strtolower(trim((string)\input('type','')));
-        $q=trim((string)\input('q',''));
+        $rawType=\input('type','');
+        $rawQ=\input('q','');
+        $rawParent=\input('parent','0');
+        $rawLimit=\input('limit','15');
+        if(!is_scalar($rawType)||!is_scalar($rawQ)||!is_scalar($rawParent)||!is_scalar($rawLimit)){
+            throw new HttpException(422,'Parámetros de búsqueda inválidos.');
+        }
+        $type=strtolower(trim((string)$rawType));
+        $q=trim((string)$rawQ);
         if(mb_strlen($q)>80) $q=mb_substr($q,0,80);
-        $parent=(int)\input('parent',0);
-        $limit=max(5,min(20,(int)\input('limit',15)));
+        $parent=ctype_digit((string)$rawParent)?(int)$rawParent:0;
+        $limit=ctype_digit((string)$rawLimit)?(int)$rawLimit:15;
+        $limit=max(5,min(20,$limit));
 
         $items=match($type){
             'clientes'=>$this->clients($q,$limit),
