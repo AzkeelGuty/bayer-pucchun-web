@@ -195,22 +195,46 @@ final class BackofficeController
     public function validation(): void
     {
         \require_role('ADMIN','SUPERVISOR');
-        $docs=(new DocumentRepository())->all([],100,0);
-        $guides=(new GuideRepository())->all([],100,0);
-        $stock=(new StockRepository())->all([],100,0);
-        $rows=[];
-        foreach($docs as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'documentos','dataset'=>'Documentos',...$r];
-        foreach($guides as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'guias','dataset'=>'Guías',...$r];
-        foreach($stock as $r) if(in_array($r['estado_registro'],['BORRADOR','VALIDADO','OBSERVADO'],true)) $rows[]=['module'=>'stock','dataset'=>'Stock',...$r];
-        $priority=['VALIDADO'=>0,'BORRADOR'=>1,'OBSERVADO'=>2];
-        usort($rows,static function(array $a,array $b)use($priority):int{
-            $stateCmp=($priority[$a['estado_registro']]??9)<=>($priority[$b['estado_registro']]??9);
-            if($stateCmp!==0) return $stateCmp;
-            $aDate=(string)($a['fecha']??$a['fecha_stock']??'');
-            $bDate=(string)($b['fecha']??$b['fecha_stock']??'');
-            return $bDate<=>$aDate;
-        });
-        \view('backoffice.validation',['rows'=>$rows]);
+        $perPage=15;
+        $union="
+            SELECT 'documentos' module,'Documentos' dataset,h.id,h.fecha,NULL fecha_stock,h.numero,NULL almacen,h.estado_registro,h.version
+            FROM documentos_cabecera h
+            WHERE h.estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')
+            UNION ALL
+            SELECT 'guias','Guías',g.id,g.fecha,NULL,g.numero,NULL,g.estado_registro,g.version
+            FROM guias_cabecera g
+            WHERE g.estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')
+            UNION ALL
+            SELECT 'stock','Stock',s.id,NULL,s.fecha_stock,NULL,a.nombre,s.estado_registro,s.version
+            FROM stock_cabecera s
+            JOIN almacenes a ON a.id=s.almacen_id
+            WHERE s.estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')
+        ";
+        $total=(int)\db()->query('SELECT COUNT(*) FROM ('.$union.') pending_rows')->fetchColumn();
+        $pages=max(1,(int)ceil($total/$perPage));
+        $page=min($pages,max(1,(int)($_GET['page']??1)));
+        $offset=($page-1)*$perPage;
+        $rows=\db()->query(
+            'SELECT * FROM ('.$union.') pending_rows
+             ORDER BY CASE estado_registro WHEN \'VALIDADO\' THEN 0 WHEN \'BORRADOR\' THEN 1 ELSE 2 END,
+                      COALESCE(fecha,fecha_stock) DESC,id DESC
+             LIMIT '.$perPage.' OFFSET '.$offset
+        )->fetchAll();
+
+        $counts=['BORRADOR'=>0,'VALIDADO'=>0,'OBSERVADO'=>0];
+        $countRows=\db()->query(
+            "SELECT estado_registro,COUNT(*) total FROM (
+                SELECT estado_registro FROM documentos_cabecera WHERE estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')
+                UNION ALL SELECT estado_registro FROM guias_cabecera WHERE estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')
+                UNION ALL SELECT estado_registro FROM stock_cabecera WHERE estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')
+             ) pending_states GROUP BY estado_registro"
+        )->fetchAll();
+        foreach($countRows as $row) $counts[(string)$row['estado_registro']]=(int)$row['total'];
+
+        \view('backoffice.validation',[
+            'rows'=>$rows,'total'=>$total,'page'=>$page,'pages'=>$pages,'perPage'=>$perPage,
+            'validationCounts'=>$counts,
+        ]);
     }
 
     public function publications(): void
