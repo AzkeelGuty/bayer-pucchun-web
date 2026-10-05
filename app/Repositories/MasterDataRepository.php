@@ -92,7 +92,15 @@ class MasterDataRepository
             COALESCE(
                 (SELECT g.sucursal_id FROM guias_cabecera g WHERE g.cliente_id=c.id ORDER BY g.fecha DESC,g.id DESC LIMIT 1),
                 (SELECT x.sucursal_id FROM documentos_cabecera x WHERE x.cliente_id=c.id ORDER BY x.fecha DESC,x.id DESC LIMIT 1)
-            ) sucursal_sugerida_id
+            ) sucursal_sugerida_id,
+            COALESCE(
+                (SELECT CONCAT(v.codigo," · ",TRIM(CONCAT(v.nombres," ",COALESCE(v.apellidos,"")))) FROM guias_cabecera g JOIN vendedores v ON v.id=g.vendedor_id WHERE g.cliente_id=c.id ORDER BY g.fecha DESC,g.id DESC LIMIT 1),
+                (SELECT CONCAT(v.codigo," · ",TRIM(CONCAT(v.nombres," ",COALESCE(v.apellidos,"")))) FROM documentos_cabecera x JOIN vendedores v ON v.id=x.vendedor_id WHERE x.cliente_id=c.id ORDER BY x.fecha DESC,x.id DESC LIMIT 1)
+            ) vendedor_sugerido_label,
+            COALESCE(
+                (SELECT CONCAT(s.codigo," · ",s.nombre) FROM guias_cabecera g JOIN sucursales s ON s.id=g.sucursal_id WHERE g.cliente_id=c.id ORDER BY g.fecha DESC,g.id DESC LIMIT 1),
+                (SELECT CONCAT(s.codigo," · ",s.nombre) FROM documentos_cabecera x JOIN sucursales s ON s.id=x.sucursal_id WHERE x.cliente_id=c.id ORDER BY x.fecha DESC,x.id DESC LIMIT 1)
+            ) sucursal_sugerida_label
             FROM clientes c
             LEFT JOIN departamentos dp ON dp.id=c.departamento_id
             LEFT JOIN provincias p ON p.id=c.provincia_id
