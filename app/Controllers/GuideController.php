@@ -60,9 +60,17 @@ final class GuideController
     {
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('guides.read');
         $filters=$this->filters();
+        $perPage=15;
+        $total=$this->repository->countFiltered($filters);
+        $pages=max(1,(int)ceil($total/$perPage));
+        $page=min($pages,max(1,(int)\input('page',1)));
         \view('guias.index',[
-            'rows'=>$this->repository->all($filters),
+            'rows'=>$this->repository->all($filters,$perPage,($page-1)*$perPage),
             'filters'=>$filters,
+            'total'=>$total,
+            'page'=>$page,
+            'pages'=>$pages,
+            'perPage'=>$perPage,
             'sucursales'=>$this->masters()->sucursales(),
             'bulkCounts'=>\has_role('ADMIN','SUPERVISOR') ? [
                 'BORRADOR'=>$this->repository->countByState('BORRADOR'),
