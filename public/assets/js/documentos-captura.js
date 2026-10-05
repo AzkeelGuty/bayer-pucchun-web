@@ -35,8 +35,20 @@
             const sellerId = option.dataset.sellerId || '';
             const branchId = option.dataset.branchId || '';
 
-            if (seller && (force || !seller.value)) seller.value = sellerId;
-            if (branch && (force || !branch.value)) branch.value = branchId;
+            if (seller && (force || !seller.value)) {
+                window.BP_SearchableSelects?.setOption?.(seller, sellerId ? {
+                    value: sellerId,
+                    label: option.dataset.sellerLabel || sellerId,
+                    meta: {}
+                } : null);
+            }
+            if (branch && (force || !branch.value)) {
+                window.BP_SearchableSelects?.setOption?.(branch, branchId ? {
+                    value: branchId,
+                    label: option.dataset.branchLabel || branchId,
+                    meta: {}
+                } : null);
+            }
         };
 
         const applyProductUnit = (row, force = false) => {
@@ -51,7 +63,17 @@
 
             if (!force && unit.value) return;
             const option = product.selectedOptions?.[0];
-            unit.value = option?.dataset.unitId || '';
+            const unitId = option?.dataset.unitId || '';
+            const unitLabel = option?.dataset.unitLabel || unitId;
+            if (window.BP_SearchableSelects?.setOption) {
+                window.BP_SearchableSelects.setOption(unit, unitId ? {
+                    value: unitId,
+                    label: unitLabel,
+                    meta: {}
+                } : null, false);
+            } else {
+                unit.value = unitId;
+            }
         };
 
         const mergeDuplicateProducts = () => {
