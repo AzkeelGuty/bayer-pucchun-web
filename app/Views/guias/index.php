@@ -1,4 +1,14 @@
-<?php require_once base_path('app/Views/components/workflow_control.php'); require_once base_path('app/Views/components/bulk_workflow.php'); ?>
+<?php
+require_once base_path('app/Views/components/workflow_control.php');
+require_once base_path('app/Views/components/bulk_workflow.php');
+$guidePageUrl=static function(int $n) use($filters): string {
+    $params=$filters;
+    if($n>1) $params['page']=$n;
+    return url('/guias'.($params?'?'.http_build_query($params):''));
+};
+$firstGuide=$total>0 ? (($page-1)*$perPage)+1 : 0;
+$lastGuide=$total>0 ? min($total,$page*$perPage) : 0;
+?>
 <section class="module-header">
     <div>
         <div class="page-eyebrow">CAPTURA Y CONTROL</div>
@@ -47,7 +57,7 @@
 </form>
 
 <div class="card"><div class="card-body">
-    <p class="text-muted small"><?= count($rows) ?> guías encontradas</p>
+    <p class="text-muted small"><?=e($total)?> guías encontradas<?= $total>0 ? ' · Mostrando '.e($firstGuide).'–'.e($lastGuide) : '' ?> · Página <?=e($page)?> de <?=e($pages)?></p>
     <div class="table-responsive">
         <table class="table app-table align-middle">
             <thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Sucursal</th><th>Ítems</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
@@ -84,4 +94,9 @@
             </tbody>
         </table>
     </div>
+    <nav aria-label="Paginación de guías" class="catalog-pagination">
+        <a class="btn btn-sm btn-outline-primary <?=$page<=1?'disabled':''?>" href="<?=$page>1?e($guidePageUrl($page-1)):'#'?>" <?=$page<=1?'aria-disabled="true" tabindex="-1"':''?>><i class="bi bi-chevron-left"></i><span>Anterior</span></a>
+        <span>Página <?=e($page)?> de <?=e($pages)?></span>
+        <a class="btn btn-sm btn-outline-primary <?=$page>=$pages?'disabled':''?>" href="<?=$page<$pages?e($guidePageUrl($page+1)):'#'?>" <?=$page>=$pages?'aria-disabled="true" tabindex="-1"':''?>><span>Siguiente</span><i class="bi bi-chevron-right"></i></a>
+    </nav>
 </div></div>
