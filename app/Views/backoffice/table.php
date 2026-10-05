@@ -73,8 +73,9 @@ if($activeTab==='' && !empty($tabs)){
 }
 
 $isMasterTable=($base??'')==='/maestros';
+$hasPagination=is_array($pagination??null);
 $searchQuery=$isMasterTable ? trim((string)($q??'')) : '';
-$paginationData=$isMasterTable && is_array($pagination??null) ? $pagination : [];
+$paginationData=$hasPagination ? $pagination : [];
 $currentPage=max(1,(int)($paginationData['page']??1));
 $totalPages=max(1,(int)($paginationData['pages']??1));
 $totalRows=max(0,(int)($paginationData['total']??count($rows??[])));
@@ -83,10 +84,11 @@ $firstRow=$totalRows>0 ? (($currentPage-1)*$perPage)+1 : 0;
 $lastRow=$totalRows>0 ? min($totalRows,$currentPage*$perPage) : 0;
 
 $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
-    $params=['tab'=>$activeTab];
+    $params=[];
+    if($activeTab!=='') $params['tab']=$activeTab;
     if($searchQuery!=='') $params['q']=$searchQuery;
     if($page>1) $params['page']=$page;
-    return url($base.'?'.http_build_query($params));
+    return url($base.($params?'?'.http_build_query($params):''));
 };
 ?>
 <section class="page-header">
@@ -175,8 +177,8 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
 </form>
 <?php endif; ?>
 
-<div class="card data-table-card"<?=$isMasterTable?'':' data-live-refresh="6000" data-live-refresh-key="backoffice-data-table"'?>>
-    <?php if($isMasterTable): ?>
+<div class="card data-table-card"<?=($isMasterTable||$hasPagination)?'':' data-live-refresh="6000" data-live-refresh-key="backoffice-data-table"'?>>
+    <?php if($isMasterTable||$hasPagination): ?>
     <div class="catalog-result-bar">
         <div>
             <strong><?=number_format($totalRows,0,'.',',')?> registros</strong>
@@ -252,7 +254,7 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
             </div>
         <?php endif; ?>
     </div>
-    <?php if($isMasterTable && $totalPages>1):
+    <?php if($hasPagination && $totalPages>1):
         $pageNumbers=[1,$totalPages];
         for($p=max(1,$currentPage-2);$p<=min($totalPages,$currentPage+2);$p++) $pageNumbers[]=$p;
         $pageNumbers=array_values(array_unique($pageNumbers));
