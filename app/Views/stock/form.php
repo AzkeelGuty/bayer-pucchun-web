@@ -31,7 +31,7 @@ if (!$editing && $idempotencyValue === '') $idempotencyValue = (string)($default
                 <input class="form-control <?=form_error('fecha_stock')?'is-invalid':''?>" id="stock-date" type="date" name="fecha_stock" value="<?=e($dateValue)?>" required>
                 <div class="invalid-feedback"><?=e(form_error('fecha_stock'))?></div>
             </div>
-            <?php select('almacen_id', 'Almacén', $almacenes, 'id', 'nombre'); ?>
+            <?php select('almacen_id', 'Almacén', $almacenes, 'id', 'nombre', true, 'data-search-select data-search-placeholder="Buscar almacén..." data-search-min="1"'); ?>
             <input type="hidden" id="idempotency_key" name="idempotency_key" value="<?= e($idempotencyValue) ?>">
         </div>
 
@@ -47,7 +47,7 @@ if (!$editing && $idempotencyValue === '') $idempotencyValue = (string)($default
                     <?php foreach ($detailRows as $i => $line): ?>
                     <tr>
                         <td><?php select_inline("detalle[$i][producto_id]", $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-placeholder="Buscar por código o producto..." data-search-min="1"', 'Seleccione…', true, (string) $line['producto_id']); ?></td>
-                        <td><?php select_inline("detalle[$i][lote_id]", [], 'id', 'codigo_lote', 'data-role="lote"', 'Sin lote', false, (string) ($line['lote_id'] ?? '')); ?></td>
+                        <td><?php select_inline("detalle[$i][lote_id]", [], 'id', 'codigo_lote', 'data-role="lote" data-search-select data-search-placeholder="Buscar lote..." data-search-min="1"', 'Sin lote', false, (string) ($line['lote_id'] ?? '')); ?></td>
                         <td><?php select_inline("detalle[$i][unidad_id]", $unidades, 'id', 'nombre', 'data-auto-unit aria-readonly="true" tabindex="-1"', 'Seleccione…', true, (string) $line['unidad_id']); ?></td>
                         <td><input type="number" step="1" min="0" inputmode="numeric" class="form-control form-control-sm" name="detalle[<?= $i ?>][cantidad]" value="<?= e(($line['cantidad']??'')!=='' ? format_quantity($line['cantidad']) : '') ?>" required></td>
                         <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
@@ -59,7 +59,7 @@ if (!$editing && $idempotencyValue === '') $idempotencyValue = (string)($default
         <template id="detalle-row-template">
             <tr>
                 <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-placeholder="Buscar por código o producto..." data-search-min="1"'); ?></td>
-                <td><?php select_inline('detalle[__IDX__][lote_id]', [], 'id', 'codigo_lote', 'data-role="lote"', 'Sin lote', false); ?></td>
+                <td><?php select_inline('detalle[__IDX__][lote_id]', [], 'id', 'codigo_lote', 'data-role="lote" data-search-select data-search-placeholder="Buscar lote..." data-search-min="1"', 'Sin lote', false); ?></td>
                 <td><?php select_inline('detalle[__IDX__][unidad_id]', $unidades, 'id', 'nombre', 'data-auto-unit aria-readonly="true" tabindex="-1"'); ?></td>
                 <td><input type="number" step="1" min="0" inputmode="numeric" class="form-control form-control-sm" name="detalle[__IDX__][cantidad]" value="1" required></td>
                 <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
