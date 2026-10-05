@@ -39,8 +39,8 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
             <div class="col-md-4"></div>
 
             <?php select('cliente_id', 'Cliente', $clientes, 'id', 'label', true, 'data-role="cliente" data-search-select data-search-placeholder="Buscar por DNI/RUC o razón social..." data-search-min="1"'); ?>
-            <?php select('vendedor_id', 'Vendedor', $vendedores, 'id', 'nombre'); ?>
-            <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre'); ?>
+            <?php select('vendedor_id', 'Vendedor', $vendedores, 'id', 'nombre', true, 'data-search-select data-search-placeholder="Buscar vendedor..." data-search-min="1"'); ?>
+            <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre', true, 'data-search-select data-search-placeholder="Buscar sucursal..." data-search-min="1"'); ?>
 
             <div class="col-12" data-ubigeo-scope data-destination-shell data-client-location-url="<?=e(url('/guias/cliente-ubicacion'))?>">
                 <label class="form-label mb-2">Destino de entrega</label>
@@ -55,9 +55,9 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
                     </div>
                 </div>
                 <div class="row g-3 mt-1" data-destination-fields hidden>
-                    <?php select('departamento_id', 'Departamento', $departamentos, 'id', 'nombre', false, 'data-role="departamento" data-old="' . e((string) old('departamento_id')) . '"'); ?>
-                    <?php select('provincia_id', 'Provincia', [], 'id', 'nombre', false, 'data-role="provincia" data-old="' . e((string) old('provincia_id')) . '"'); ?>
-                    <?php select('distrito_id', 'Distrito', [], 'id', 'nombre', false, 'data-role="distrito" data-old="' . e((string) old('distrito_id')) . '"'); ?>
+                    <?php select('departamento_id', 'Departamento', $departamentos, 'id', 'nombre', false, 'data-role="departamento" data-old="' . e((string) old('departamento_id')) . '" data-search-select data-search-placeholder="Buscar departamento..." data-search-min="1"'); ?>
+                    <?php select('provincia_id', 'Provincia', [], 'id', 'nombre', false, 'data-role="provincia" data-old="' . e((string) old('provincia_id')) . '" data-search-select data-search-placeholder="Buscar provincia..." data-search-min="1"'); ?>
+                    <?php select('distrito_id', 'Distrito', [], 'id', 'nombre', false, 'data-role="distrito" data-old="' . e((string) old('distrito_id')) . '" data-search-select data-search-placeholder="Buscar distrito..." data-search-min="1"'); ?>
                 </div>
             </div>
         </div>
