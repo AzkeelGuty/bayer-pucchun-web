@@ -154,6 +154,26 @@ abstract class OperationalRepository
         return (int)$statement->fetchColumn();
     }
 
+    public function countFiltered(array $filters=[]): int
+    {
+        $fields = ['estado_registro' => 'estado_registro', 'fecha_desde' => static::DATE_FIELD,
+            'fecha_hasta' => static::DATE_FIELD, static::LOCATION_FIELD => static::LOCATION_FIELD, 'created_by' => 'created_by'];
+        if (array_diff(array_keys($filters), array_keys($fields))) {
+            throw new InvalidArgumentException('Filtro no admitido.');
+        }
+        $where=[];
+        $values=[];
+        foreach($filters as $key=>$value){
+            if($key==='created_by') $value=self::positiveId($value);
+            $operator=$key==='fecha_desde'?'>=':($key==='fecha_hasta'?'<=':'=');
+            $where[]=$fields[$key].$operator.'?';
+            $values[]=$value;
+        }
+        $sql='SELECT COUNT(*) FROM '.static::HEADER;
+        if($where) $sql.=' WHERE '.implode(' AND ',$where);
+        return (int)$this->execute($sql,$values)->fetchColumn();
+    }
+
     public function workflowCandidates(string $state): array
     {
         if(!in_array($state,['BORRADOR','VALIDADO'],true)){
