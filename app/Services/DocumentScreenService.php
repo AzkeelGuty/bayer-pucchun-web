@@ -2,6 +2,8 @@
 declare(strict_types=1);
 namespace App\Services;
 
+use App\Repositories\MasterDataRepository;
+
 /** Document screen adapter for Schema v2; does not create master records. */
 final class DocumentScreenService
 {
@@ -27,6 +29,44 @@ final class DocumentScreenService
         $result=[];
         foreach($queries as $key=>$sql) $result[$key]=\db()->query($sql)->fetchAll();
         return $result;
+    }
+
+    /**
+     * Catálogos mínimos para una pantalla concreta.
+     * Evita descargar todos los clientes/productos: solo conserva las opciones ya seleccionadas.
+     */
+    public function catalogsFor(array $header=[],array $details=[]): array
+    {
+        $m=new MasterDataRepository();
+        $productIds=[];$unitIds=[];
+        foreach($details as $line){
+            if(!is_array($line)) continue;
+            $productIds[]=(int)($line['producto_id']??0);
+            $unitIds[]=(int)($line['unidad_id']??0);
+        }
+        $products=$m->productosByIds($productIds);
+        foreach($products as $product) $unitIds[]=(int)($product['unidad_base_id']??0);
+
+        return [
+            'tipo_documento_id'=>\db()->query('SELECT id,codigo,CONCAT(codigo," · ",nombre) label FROM tipos_documento ORDER BY codigo')->fetchAll(),
+            'cliente_id'=>$m->clientesByIds([(int)($header['cliente_id']??0)]),
+            'vendedor_id'=>$m->vendedoresByIds([(int)($header['vendedor_id']??0)]),
+            'sucursal_id'=>$m->sucursalesByIds([(int)($header['sucursal_id']??0)]),
+            'producto_id'=>$products,
+            'unidad_id'=>$this->unitsByIds($unitIds),
+        ];
+    }
+
+    private function unitsByIds(array $ids): array
+    {
+        $ids=array_values(array_unique(array_filter(array_map('intval',$ids),static fn(int $id):bool=>$id>0)));
+        if(!$ids){
+            return \db()->query('SELECT id,CONCAT(codigo," · ",nombre) label FROM unidades_medida ORDER BY nombre')->fetchAll();
+        }
+        $ph=implode(',',array_fill(0,count($ids),'?'));
+        $st=\db()->prepare('SELECT id,CONCAT(codigo," · ",nombre) label FROM unidades_medida WHERE id IN ('.$ph.') ORDER BY nombre');
+        $st->execute($ids);
+        return $st->fetchAll();
     }
 
     public function listing(array $query): array
