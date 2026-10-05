@@ -7,13 +7,17 @@ $field=function(string $name,string $label,string $key,mixed $value,string $cata
     if($catalog){
         $searchAttrs='';
         $searchable=[
-            'tipo_documento_id'=>'Buscar tipo de documento...',
-            'cliente_id'=>'Buscar por DNI/RUC o razón social...',
-            'vendedor_id'=>'Buscar vendedor...',
-            'sucursal_id'=>'Buscar sucursal...',
-            'producto_id'=>'Buscar por código o producto...',
+            'tipo_documento_id'=>['Buscar tipo de documento...',''],
+            'cliente_id'=>['Buscar por DNI/RUC o razón social...',url('/lookups?type=clientes')],
+            'vendedor_id'=>['Buscar vendedor...',url('/lookups?type=vendedores')],
+            'sucursal_id'=>['Buscar sucursal...',url('/lookups?type=sucursales')],
+            'producto_id'=>['Buscar por código o producto...',url('/lookups?type=productos')],
         ];
-        if(isset($searchable[$catalog])) $searchAttrs=' data-search-select data-search-placeholder="'.e($searchable[$catalog]).'" data-search-min="1"';
+        if(isset($searchable[$catalog])){
+            [$placeholder,$remote]=$searchable[$catalog];
+            $searchAttrs=' data-search-select data-search-placeholder="'.e($placeholder).'" data-search-min="1"';
+            if($remote!=='') $searchAttrs.=' data-search-url="'.e($remote).'"';
+        }
         echo '<select class="form-select'.($error?' is-invalid':'').'"'.$attrs.$searchAttrs.'><option value="">Seleccionar…</option>';
         foreach($catalogs[$catalog] as $item){
             $meta='';
