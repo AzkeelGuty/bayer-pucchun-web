@@ -1,0 +1,2 @@
+# El parche de consulta conserva sus bytes y los espacios de contexto de Git.
+docs/logistica/casos-para-alisson/codigo/*.patch -text whitespace=-blank-at-eol

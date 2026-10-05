@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Diez láminas y una guía de casos para conectar funcionamiento y persistencia de Logística del Grupo 7.">
+  <title>Logística · Casos para Alisson</title>
+  <style>
+    @font-face{font-family:"Source Serif 4";src:url("fuentes/SourceSerif4-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+    @font-face{font-family:"Source Serif 4";src:url("fuentes/SourceSerif4-Semibold.woff2") format("woff2");font-weight:600;font-display:swap}
+    @font-face{font-family:"Source Sans 3";src:url("fuentes/SourceSans3-Regular.woff2") format("woff2");font-weight:400;font-display:swap}
+    @font-face{font-family:"Source Sans 3";src:url("fuentes/SourceSans3-Semibold.woff2") format("woff2");font-weight:600;font-display:swap}
+    :root{--paper:#f3eee3;--ink:#222720;--forest:#405d4d;--rule:#bbb9ac}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3",sans-serif;font-size:19px;line-height:1.55}
+    a{color:var(--forest);text-decoration-thickness:1px;text-underline-offset:4px;transition:opacity 120ms ease}
+    a:hover{opacity:.72}
+    a:focus-visible{outline:2px solid var(--forest);outline-offset:6px}
+    .wrap{max-width:1450px;margin:auto;padding:38px 44px 54px}
+    header{padding:24px 0 30px;border-top:2px solid var(--ink);border-bottom:1px solid var(--rule)}
+    .eyebrow{font-size:14px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--forest);margin:0 0 16px}
+    h1,h2,h3{font-family:"Source Serif 4",serif;font-weight:600;line-height:1.12}
+    h1{font-size:clamp(38px,4.4vw,64px);max-width:950px;margin:0 0 22px}
+    h2{font-size:clamp(30px,3vw,43px);margin:0}
+    h3{font-size:24px;margin:0 0 12px}
+    p{margin:0 0 16px}
+    .intro{max-width:920px;font-size:23px}
+    .scope{max-width:1060px;padding-left:18px;border-left:2px solid var(--forest);font-size:17px;margin-top:24px}
+    .resources{display:flex;flex-wrap:wrap;gap:12px 28px;margin-top:26px;font-weight:600}
+    nav{padding:32px 0 38px;border-bottom:1px solid var(--rule)}
+    nav ol{display:grid;grid-template-columns:1fr 1fr;gap:10px 38px;padding-left:28px;margin:18px 0 0}
+    nav li{padding-left:4px}
+    .case{padding:46px 0 40px;border-bottom:1px solid var(--rule);scroll-margin-top:24px}
+    .case-heading{margin-bottom:23px}
+    .case-heading .eyebrow{margin-bottom:10px}
+    .question{font-size:24px;font-weight:600}
+    .answer{font-size:21px;max-width:1110px}
+    figure{margin:26px 0 30px}
+    .image-link{display:block}
+    img{display:block;width:100%;height:auto;border:1px solid var(--rule)}
+    figcaption{display:flex;flex-wrap:wrap;gap:24px;font-size:16px;margin-top:12px}
+    .responsibilities{display:grid;grid-template-columns:1fr 1fr;gap:36px}
+    .responsibilities>div{border-top:1px solid var(--rule);padding-top:21px}
+    .note{font-size:17px;max-width:1150px;padding-left:18px;border-left:2px solid var(--forest);margin:20px 0}
+    code{font-family:Consolas,monospace;font-size:.88em;overflow-wrap:anywhere}
+    .back{font-size:15px}
+    footer{font-size:16px;padding:30px 0 0}
+    footer p{max-width:1080px}
+    @media(max-width:720px){.wrap{padding:24px 20px 40px}nav ol,.responsibilities{grid-template-columns:1fr}.intro{font-size:21px}.question{font-size:22px}.answer{font-size:19px}.resources{gap:12px 24px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}a{transition:none}}
+    @media print{@page{size:A4 landscape;margin:12mm}body{font-size:12pt;background:#fff}.wrap{padding:0;max-width:none}nav,.resources,figcaption,.back{display:none}.case{break-before:page;padding:0;border:none}.case-heading,.question,.answer,.responsibilities,.note{display:none}figure{margin:0}img{max-height:175mm;width:auto;max-width:100%;margin:auto}footer{break-before:page}header{break-after:page}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <p class="eyebrow">Grupo 7 · Logística · 5 de octubre de 2026</p>
+      <h1>Qué ocurre en cada caso</h1>
+      <p class="intro">Diez láminas para hablar el mismo idioma al conectar el funcionamiento del módulo con su persistencia. Cada ejemplo explica el hecho, el saldo y lo que permite cerrar el despacho.</p>
+      <p class="scope"><strong>Alcance:</strong> explican la implementación local de persistencia. La base común y los contratos con G4, G5 e Inventarios necesitan validación del equipo. El reparto confirmado es Pedro en persistencia y Alisson en Services, Controllers y funcionamiento. La entrega se publica en <code>feature/logistics-flow-pedro</code>. Se reutilizan las Guías existentes y el stock pertenece a Inventarios.</p>
+      <div class="resources">
+        <a href="EXPLICACION_EN_5_MINUTOS.md">Guion para explicarlo</a>
+        <a href="GUIA_PARA_ALISSON.md">Guía técnica · 15 casos</a>
+        <a href="COORDINACION_Y_CONTRATO.md">8 acuerdos y borrador de mensaje</a>
+        <a href="codigo/logistics-persistence-pedro.patch" download>Parche para comparar</a>
+      </div>
+    </header>
+    <nav id="indice" aria-label="Índice de casos">
+      <p class="eyebrow">Elegir un caso</p>
+      <ol><li><a href="#caso-01">Entregar todo o entregar por partes</a></li>
+      <li><a href="#caso-02">Rechazo: la mercadería sigue pendiente</a></li>
+      <li><a href="#caso-03">Daño y rechazo pueden ser el mismo problema</a></li>
+      <li><a href="#caso-04">Aceptar toda la cantidad no siempre permite cerrar</a></li>
+      <li><a href="#caso-05">Visita fallida sin cantidades inventadas</a></li>
+      <li><a href="#caso-06">El segundo intento atiende el mismo caso</a></li>
+      <li><a href="#caso-07">Solicitar devolución no confirma una entrada</a></li>
+      <li><a href="#caso-08">Conciliar antes de cerrar con incidencia</a></li>
+      <li><a href="#caso-09">Dos controles independientes antes de cerrar</a></li>
+      <li><a href="#caso-10">Repetir una solicitud no repite el hecho</a></li></ol>
+    </nav>
+
+    <section class="case" id="caso-01" aria-labelledby="titulo-01">
+      <div class="case-heading"><p class="eyebrow">Caso 01</p><h2 id="titulo-01">Entregar todo o entregar por partes</h2></div>
+      <p class="question">¿Una entrega por partes ya termina el despacho?</p>
+      <p class="answer">No. Si se aceptan 60 de 100 y no hay rechazo, quedan 40 por atender. El intento tiene resultado ACEPTADA; el despacho sigue EN_TRANSITO.</p>
+      <figure>
+        <a class="image-link" href="01_entrega_normal_y_parcial.png" aria-label="Abrir lámina 01 a tamaño completo">
+          <img src="01_entrega_normal_y_parcial.png" width="1536" height="1024" loading="eager" decoding="async" alt="Entregar todo o entregar por partes: No. Si se aceptan 60 de 100 y no hay rechazo, quedan 40 por atender. El intento tiene resultado ACEPTADA; el despacho sigue EN_TRANSITO.">
+        </a>
+        <figcaption><a href="01_entrega_normal_y_parcial.png">Abrir imagen completa</a><a href="01_entrega_normal_y_parcial.png" download>Descargar PNG</a></figcaption>
+      </figure>
+      <div class="responsibilities">
+        <div><h3>Qué hace el bloque de funcionamiento</h3><p>Registrar lo que el cliente recibió y mostrar el saldo de cada línea. No inventar un rechazo ni usar PARCIAL sólo porque falta otra visita.</p></div>
+        <div><h3>Qué garantiza la persistencia</h3><p><code>recordDelivery</code> guarda la aceptación y comprueba cantidades, estado esperado y bloqueos. El cierre normal requiere todas las líneas completas.</p></div>
+      </div>
+      <p class="note"><strong>Para explicar con precisión.</strong> Los ejemplos de 100/100 y 60/40 son independientes. Se supone que no existen incidencias bloqueantes previas.</p>
+      <a class="back" href="#indice">Volver al índice ↑</a>
+    </section>
+
+    <section class="case" id="caso-02" aria-labelledby="titulo-02">
+      <div class="case-heading"><p class="eyebrow">Caso 02</p><h2 id="titulo-02">Rechazo: la mercadería sigue pendiente</h2></div>
+      <p class="question">¿Las 20 rechazadas ya están de vuelta en el almacén?</p>
+      <p class="answer">No. Con 80 aceptadas y 20 rechazadas hay 20 pendientes y un caso por resolver. Todavía no existe un retorno confirmado.</p>
+      <figure>
+        <a class="image-link" href="02_rechazo_no_es_retorno.png" aria-label="Abrir lámina 02 a tamaño completo">
+          <img src="02_rechazo_no_es_retorno.png" width="1536" height="1024" loading="lazy" decoding="async" alt="Rechazo: la mercadería sigue pendiente: No. Con 80 aceptadas y 20 rechazadas hay 20 pendientes y un caso por resolver. Todavía no existe un retorno confirmado.">
+        </a>
+        <figcaption><a href="02_rechazo_no_es_retorno.png">Abrir imagen completa</a><a href="02_rechazo_no_es_retorno.png" download>Descargar PNG</a></figcaption>
+      </figure>
+      <div class="responsibilities">
+        <div><h3>Qué hace el bloque de funcionamiento</h3><p>Capturar el motivo de rechazo y coordinar el destino de esas 20. No aumentar el stock ni anunciar que el almacén ya las recibió.</p></div>
+        <div><h3>Qué garantiza la persistencia</h3><p><code>recordDelivery</code> registra aceptación, rechazo e incidencia en la misma transacción. La incidencia asigna esas 20 pendientes a un caso.</p></div>
+      </div>
+      <p class="note"><strong>Para explicar con precisión.</strong> Rechazo, solicitud de devolución y entrada confirmada al almacén son tres hechos distintos.</p>
+      <a class="back" href="#indice">Volver al índice ↑</a>
+    </section>
+
+    <section class="case" id="caso-03" aria-labelledby="titulo-03">
+      <div class="case-heading"><p class="eyebrow">Caso 03</p><h2 id="titulo-03">Daño y rechazo pueden ser el mismo problema</h2></div>
+      <p class="question">¿Daño de 20 y rechazo de esas mismas 20 suman 40?</p>
+      <p class="answer">No. Son dos causas sobre una sola cantidad física. El caso conserva 20 pendientes y las dos causas, sin duplicar el saldo.</p>
+      <figure>
+        <a class="image-link" href="03_dos_causas_una_cantidad.png" aria-label="Abrir lámina 03 a tamaño completo">
+          <img src="03_dos_causas_una_cantidad.png" width="1536" height="1024" loading="lazy" decoding="async" alt="Daño y rechazo pueden ser el mismo problema: No. Son dos causas sobre una sola cantidad física. El caso conserva 20 pendientes y las dos causas, sin duplicar el saldo.">
+        </a>
+        <figcaption><a href="03_dos_causas_una_cantidad.png">Abrir imagen completa</a><a href="03_dos_causas_una_cantidad.png" download>Descargar PNG</a></figcaption>
+      </figure>
+      <div class="responsibilities">
+        <div><h3>Qué hace el bloque de funcionamiento</h3><p>Identificar qué mercadería es la afectada y adjuntar evidencia. Si se conoce la segunda causa más tarde, ampliar el caso existente.</p></div>
+        <div><h3>Qué garantiza la persistencia</h3><p>Las causas pueden registrarse juntas en <code>recordDelivery</code> o añadirse mediante <code>recordIncidentAction</code> con <code>AGREGAR_CAUSAS</code>.</p></div>
+      </div>
+      <p class="note"><strong>Para explicar con precisión.</strong> La incidencia registra el problema; <code>logistica_operaciones</code> impide repetir un comando. Cumplen funciones diferentes.</p>
+      <a class="back" href="#indice">Volver al índice ↑</a>
+    </section>
+
+    <section class="case" id="caso-04" aria-labelledby="titulo-04">
+      <div class="case-heading"><p class="eyebrow">Caso 04</p><h2 id="titulo-04">Aceptar toda la cantidad no siempre permite cerrar</h2></div>
+      <p class="question">¿Recibir 100 permite cerrar aunque haya un reclamo?</p>
+      <p class="answer">No mientras el reclamo bloqueante siga abierto. Las 20 dañadas ya están dentro de las 100 aceptadas: no se suman otra vez.</p>
+      <figure>
+        <a class="image-link" href="04_aceptado_con_dano.png" aria-label="Abrir lámina 04 a tamaño completo">
+          <img src="04_aceptado_con_dano.png" width="1536" height="1024" loading="lazy" decoding="async" alt="Aceptar toda la cantidad no siempre permite cerrar: No mientras el reclamo bloqueante siga abierto. Las 20 dañadas ya están dentro de las 100 aceptadas: no se suman otra vez.">
+        </a>
+        <figcaption><a href="04_aceptado_con_dano.png">Abrir imagen completa</a><a href="04_aceptado_con_dano.png" download>Descargar PNG</a></figcaption>
+      </figure>
+      <div class="responsibilities">
+        <div><h3>Qué hace el bloque de funcionamiento</h3><p>Recoger el daño al registrar la recepción, atender el reclamo y guardar evidencia de su resolución antes de solicitar cierre.</p></div>
+        <div><h3>Qué garantiza la persistencia</h3><p><code>recordDelivery</code> admite incidencias informativas. <code>resolveIncident</code> registra la resolución operativa; <code>closeDispatch</code> vuelve a comprobar el cierre.</p></div>
+      </div>
+      <p class="note"><strong>Para explicar con precisión.</strong> El saldo puede ser cero y el despacho seguir EN_RESOLUCION. Resolver el reclamo y cerrar son pasos distintos.</p>
+      <a class="back" href="#indice">Volver al índice ↑</a>
+    </section>
+
+    <section class="case" id="caso-05" aria-labelledby="titulo-05">
+      <div class="case-heading"><p class="eyebrow">Caso 05</p><h2 id="titulo-05">Visita fallida sin cantidades inventadas</h2></div>
+      <p class="question">¿Cómo registrar que no había nadie para recibir?</p>
+      <p class="answer">Registrar un intento FALLIDA con AUSENCIA_RECEPTOR, motivo y contexto; sin receptor ni líneas. Siguen pendientes las 100.</p>
+      <figure>
+        <a class="image-link" href="05_intento_sin_receptor.png" aria-label="Abrir lámina 05 a tamaño completo">
+          <img src="05_intento_sin_receptor.png" width="1536" height="1024" loading="lazy" decoding="async" alt="Visita fallida sin cantidades inventadas: Registrar un intento FALLIDA con AUSENCIA_RECEPTOR, motivo y contexto; sin receptor ni líneas. Siguen pendientes las 100.">
+        </a>
+        <figcaption><a href="05_intento_sin_receptor.png">Abrir imagen completa</a><a href="05_intento_sin_receptor.png" download>Descargar PNG</a></figcaption>
+      </figure>
+      <div class="responsibilities">
+        <div><h3>Qué hace el bloque de funcionamiento</h3><p>Distinguir ausencia, problema documental y otras causas reales. Reprogramar la visita no equivale a entregar mercadería.</p></div>
+        <div><h3>Qué garantiza la persistencia</h3><p><code>recordDelivery</code> guarda el intento y la incidencia. Las gestiones usan <code>recordIncidentAction</code>; la atención del caso exige evidencia.</p></div>
+      </div>
+      <p class="note"><strong>Para explicar con precisión.</strong> FALLIDA es el resultado del intento. El despacho queda EN_RESOLUCION mientras exista un caso bloqueante.</p>
+      <a class="back" href="#indice">Volver al índice ↑</a>
+    </section>
+
+    <section class="case" id="caso-06" aria-labelledby="titulo-06">
+      <div class="case-heading"><p class="eyebrow">Caso 06</p><h2 id="titulo-06">El segundo intento atiende el mismo caso</h2></div>
+      <p class="question">¿Qué pasa si luego acepta 12 de las 20 rechazadas?</p>
+      <p class="answer">La aceptación acumulada pasa de 80 a 92. Si vuelve a rechazar las otras 8, quedan las mismas 8 pendientes en el caso original.</p>
+      <figure>
+        <a class="image-link" href="06_reintento_parcial.png" aria-label="Abrir lámina 06 a tamaño completo">
+          <img src="06_reintento_parcial.png" width="1536" height="1024" loading="lazy" decoding="async" alt="El segundo intento atiende el mismo caso: La aceptación acumulada pasa de 80 a 92. Si vuelve a rechazar las otras 8, quedan las mismas 8 pendientes en el caso original.">
+        </a>
+        <figcaption><a href="06_reintento_parcial.png">Abrir imagen completa</a><a href="06_reintento_parcial.png" download>Descargar PNG</a></figcaption>
+      </figure>
+      <div class="responsibilities">
+        <div><h3>Qué hace el bloque de funcionamiento</h3><p>Relacionar aceptación y rechazo con la incidencia existente. No abrir otro caso para las mismas 8 ni descontarlas dos veces.</p></div>
+        <div><h3>Qué garantiza la persistencia</h3><p><code>recordDelivery</code> valida <code>aceptaciones_incidencias</code> y <code>rechazos_incidencias</code>. La resolución de las 12 aceptadas se crea dentro de ese comando.</p></div>
+      </div>
+      <p class="note"><strong>Para explicar con precisión.</strong> Este reintento combinado 12/8 es un ejemplo derivado de las reglas. Las pruebas existentes verifican rechazo repetido y aceptaciones de 12 y 8 en comandos separados.</p>
+      <a class="back" href="#indice">Volver al índice ↑</a>
+    </section>
+
+    <section class="case" id="caso-07" aria-labelledby="titulo-07">
+      <div class="case-heading"><p class="eyebrow">Caso 07</p><h2 id="titulo-07">Solicitar devolución no confirma una entrada</h2></div>
+      <p class="question">¿Cuándo se cuentan las unidades como retornadas?</p>
+      <p class="answer">Cuando Inventarios confirma el hecho real. Solicitar devolver 20 no cambia el saldo; una entrada confirmada de 12 deja 8 pendientes.</p>
+      <figure>
+        <a class="image-link" href="07_solicitud_y_confirmacion.png" aria-label="Abrir lámina 07 a tamaño completo">
+          <img src="07_solicitud_y_confirmacion.png" width="1536" height="1024" loading="lazy" decoding="async" alt="Solicitar devolución no confirma una entrada: Cuando Inventarios confirma el hecho real. Solicitar devolver 20 no cambia el saldo; una entrada confirmada de 12 deja 8 pendientes.">
+        </a>
+        <figcaption><a href="07_solicitud_y_confirmacion.png">Abrir imagen completa</a><a href="07_solicitud_y_confirmacion.png" download>Descargar PNG</a></figcaption>
+      </figure>
+      <div class="responsibilities">
+        <div><h3>Qué hace el bloque de funcionamiento</h3><p>Registrar la solicitud y coordinar la recepción con Inventarios. Una observación o una referencia enviada por el cliente no demuestra la entrada.</p></div>
+        <div><h3>Qué garantiza la persistencia</h3><p><code>recordIncidentAction</code> no crea retornos. <code>resolveIncident</code> obtiene el hecho de un proveedor confiable, valida su identidad y guarda la confirmación.</p></div>
+      </div>
+      <p class="note"><strong>Para explicar con precisión.</strong> Falta conectar el proveedor real de Inventarios. Las pruebas usan confirmaciones simuladas; Logística no crea stock ni Kardex propios.</p>
+      <a class="back" href="#indice">Volver al índice ↑</a>
+    </section>
+
+    <section class="case" id="caso-08" aria-labelledby="titulo-08">
+      <div class="case-heading"><p class="eyebrow">Caso 08</p><h2 id="titulo-08">Conciliar antes de cerrar con incidencia</h2></div>
+      <p class="question">¿Cómo termina el caso de 80 aceptadas, 12 retornadas y 8 perdidas?</p>
+      <p class="answer">80 + 12 + 8 = 100. El pendiente es cero cuando el retorno y la pérdida están confirmados y autorizados. Después se comprueba el cierre.</p>
+      <figure>
+        <a class="image-link" href="08_retorno_y_perdida.png" aria-label="Abrir lámina 08 a tamaño completo">
+          <img src="08_retorno_y_perdida.png" width="1536" height="1024" loading="lazy" decoding="async" alt="Conciliar antes de cerrar con incidencia: 80 + 12 + 8 = 100. El pendiente es cero cuando el retorno y la pérdida están confirmados y autorizados. Después se comprueba el cierre.">
+        </a>
+        <figcaption><a href="08_retorno_y_perdida.png">Abrir imagen completa</a><a href="08_retorno_y_perdida.png" download>Descargar PNG</a></figcaption>
+      </figure>
+      <div class="responsibilities">
+        <div><h3>Qué hace el bloque de funcionamiento</h3><p>Coordinar la entrada de 12 y la autorización de pérdida de 8. Solicitar el cierre sólo cuando todas las líneas estén conciliadas.</p></div>
+        <div><h3>Qué garantiza la persistencia</h3><p><code>resolveIncident</code> registra ambas resoluciones parciales con referencias únicas. <code>closeDispatch</code> verifica saldos y bloqueos y fija CERRADO_CON_INCIDENCIA.</p></div>
+      </div>
+      <p class="note"><strong>Para explicar con precisión.</strong> La pérdida no genera un segundo egreso de stock. Estas confirmaciones externas todavía usan un adaptador de pruebas.</p>
+      <a class="back" href="#indice">Volver al índice ↑</a>
+    </section>
+
+    <section class="case" id="caso-09" aria-labelledby="titulo-09">
+      <div class="case-heading"><p class="eyebrow">Caso 09</p><h2 id="titulo-09">Dos controles independientes antes de cerrar</h2></div>
+      <p class="question">¿Qué puede mantener abierto un despacho?</p>
+      <p class="answer">Una línea pendiente, aunque otra ya esté completa; o un caso bloqueante, aunque toda la mercadería esté aceptada.</p>
+      <figure>
+        <a class="image-link" href="09_cierre_con_dos_controles.png" aria-label="Abrir lámina 09 a tamaño completo">
+          <img src="09_cierre_con_dos_controles.png" width="1536" height="1024" loading="lazy" decoding="async" alt="Dos controles independientes antes de cerrar: Una línea pendiente, aunque otra ya esté completa; o un caso bloqueante, aunque toda la mercadería esté aceptada.">
+        </a>
+        <figcaption><a href="09_cierre_con_dos_controles.png">Abrir imagen completa</a><a href="09_cierre_con_dos_controles.png" download>Descargar PNG</a></figcaption>
+      </figure>
+      <div class="responsibilities">
+        <div><h3>Qué hace el bloque de funcionamiento</h3><p>Mostrar los pendientes por línea y los casos sin resolver. No habilitar cierre sólo porque un total general parezca completo.</p></div>
+        <div><h3>Qué garantiza la persistencia</h3><p><code>closeDispatch</code> exige pendiente cero en cada línea y ausencia de casos bloqueantes. No permite forzar un estado final con <code>transitionDispatch</code>.</p></div>
+      </div>
+      <p class="note"><strong>Para explicar con precisión.</strong> La lámina presenta dos situaciones distintas. No son hechos simultáneos de un mismo envío; resolver una no resuelve automáticamente la otra.</p>
+      <a class="back" href="#indice">Volver al índice ↑</a>
+    </section>
+
+    <section class="case" id="caso-10" aria-labelledby="titulo-10">
+      <div class="case-heading"><p class="eyebrow">Caso 10</p><h2 id="titulo-10">Repetir una solicitud no repite el hecho</h2></div>
+      <p class="question">¿Qué ocurre ante un clic duplicado o dos procesos simultáneos?</p>
+      <p class="answer">La misma clave y los mismos datos devuelven el resultado original. Si dos comandos compiten por las mismas 20, sólo uno puede consumirlas.</p>
+      <figure>
+        <a class="image-link" href="10_repeticion_y_concurrencia.png" aria-label="Abrir lámina 10 a tamaño completo">
+          <img src="10_repeticion_y_concurrencia.png" width="1536" height="1024" loading="lazy" decoding="async" alt="Repetir una solicitud no repite el hecho: La misma clave y los mismos datos devuelven el resultado original. Si dos comandos compiten por las mismas 20, sólo uno puede consumirlas.">
+        </a>
+        <figcaption><a href="10_repeticion_y_concurrencia.png">Abrir imagen completa</a><a href="10_repeticion_y_concurrencia.png" download>Descargar PNG</a></figcaption>
+      </figure>
+      <div class="responsibilities">
+        <div><h3>Qué hace el bloque de funcionamiento</h3><p>Autorizar también las repeticiones. Conservar clave y datos originales ante fallo de conexión; ante conflicto, consultar estado, saldo y versión actuales.</p></div>
+        <div><h3>Qué garantiza la persistencia</h3><p><code>logistica_operaciones</code> conserva comando, huella y respuesta. Las transacciones, bloqueos y versiones impiden consumir dos veces el mismo saldo.</p></div>
+      </div>
+      <p class="note"><strong>Para explicar con precisión.</strong> Aquí “retornar” requiere confirmación de Inventarios y “reentregar” exige aceptación real del cliente. Reprogramar no consume saldo. Esta protección local no sustituye la coordinación con Inventarios.</p>
+      <a class="back" href="#indice">Volver al índice ↑</a>
+    </section>
+    <footer>
+      <p><strong>Para continuar:</strong> revisar la <a href="GUIA_PARA_ALISSON.md">matriz de 15 casos</a>, comparar las implementaciones y cerrar los <a href="COORDINACION_Y_CONTRATO.md">ocho acuerdos de integración</a>. Los fragmentos de datos describen entradas de Repository; no son rutas HTTP ya implementadas.</p>
+      <p>Imágenes PNG estáticas generadas con la herramienta integrada; no contienen animaciones. La galería usa Source Serif 4 y Source Sans 3 autoalojadas, funciona sin conexión y respeta la preferencia de movimiento reducido. <a href="PROMPTS.md">Instrucciones de generación</a> · <a href="README.md">Contenido del paquete</a>.</p>
+    </footer>
+  </main>
+</body>
+</html>

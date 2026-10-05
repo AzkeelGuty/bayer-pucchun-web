@@ -1,0 +1,95 @@
+{
+  "entrega": "Casos y guia para Alisson",
+  "fecha": "2026-10-05",
+  "modo_generacion": "Herramienta integrada image_gen: 10 generaciones y 1 edicion",
+  "alcance": "Persistencia local; base comun y contratos G4/G5/Inventarios pendientes de validar",
+  "base_parche": "f38f4e87e09f9311324e5b25384708b58841ca99",
+  "imagenes": [
+    {
+      "archivo": "01_entrega_normal_y_parcial.png",
+      "ancho": 1536,
+      "alto": 1024,
+      "bytes": 1529761,
+      "sha256": "8029AC9A643DE9A2215361489B0F1DE3E49617E62FC3899C89C9ECE28BE3AADB"
+    },
+    {
+      "archivo": "02_rechazo_no_es_retorno.png",
+      "ancho": 1536,
+      "alto": 1024,
+      "bytes": 1585106,
+      "sha256": "3A1676F1AEC631408C2553352ECCFDE9B8D0A35B9AADA7326AC0FD1CCE9FAD9B"
+    },
+    {
+      "archivo": "03_dos_causas_una_cantidad.png",
+      "ancho": 1536,
+      "alto": 1024,
+      "bytes": 1678683,
+      "sha256": "A9201C8FC79BA678EB4E429C0880DB6053811CE5354F568CCB56C4CB1559AD91"
+    },
+    {
+      "archivo": "04_aceptado_con_dano.png",
+      "ancho": 1536,
+      "alto": 1024,
+      "bytes": 1586783,
+      "sha256": "D41A797A8976052E92E2F131409F70DFEB431B6744EF47AABDC09C693DD23932"
+    },
+    {
+      "archivo": "05_intento_sin_receptor.png",
+      "ancho": 1536,
+      "alto": 1024,
+      "bytes": 1656815,
+      "sha256": "783784DC23F3AF44FFA6259132E5225EFD1D367BD8E018C3DE35562208E84BAF"
+    },
+    {
+      "archivo": "06_reintento_parcial.png",
+      "ancho": 1536,
+      "alto": 1024,
+      "bytes": 1619007,
+      "sha256": "CC2507A404638ED5F89A032E6EFFA510D2E52B8BCC2405D681B8D7B4962BDB18"
+    },
+    {
+      "archivo": "07_solicitud_y_confirmacion.png",
+      "ancho": 1536,
+      "alto": 1024,
+      "bytes": 1500145,
+      "sha256": "CDD47417C8191403E6AC745D91C14849C8C2D1F6F863174350F3B83B791F2AAB"
+    },
+    {
+      "archivo": "08_retorno_y_perdida.png",
+      "ancho": 1536,
+      "alto": 1024,
+      "bytes": 1516371,
+      "sha256": "09278E378964793775909E9C745D66582FD1D5BB3DF5B5F4783F8D1E2175656B"
+    },
+    {
+      "archivo": "09_cierre_con_dos_controles.png",
+      "ancho": 1536,
+      "alto": 1024,
+      "bytes": 1584578,
+      "sha256": "6DD15F497D412654120FAD4745BFDA63BBA0B73F9F49358FBD1CDAD082D257F2"
+    },
+    {
+      "archivo": "10_repeticion_y_concurrencia.png",
+      "ancho": 1536,
+      "alto": 1024,
+      "bytes": 1715074,
+      "sha256": "51CDA1E57F80C039879BBC3815B7C9D9745D1C9909EB8380A0A28511664155AF"
+    }
+  ],
+  "parche": {
+    "archivo": "codigo/logistics-persistence-pedro.patch",
+    "sha256": "A8DC7AE04EF82CF26CE91F7277D174C7AEBFA03C001A49AFE01CB588EE5F56F7"
+  },
+  "fuentes": [
+    "SourceSerif4-Regular.woff2",
+    "SourceSerif4-Semibold.woff2",
+    "SourceSans3-Regular.woff2",
+    "SourceSans3-Semibold.woff2"
+  ],
+  "verificacion": [
+    "Diez PNG inspeccionados visualmente",
+    "Cantidades y estados revisados frente al contrato",
+    "Enlaces HTML, fuentes y guias locales disponibles",
+    "Casos derivados distinguidos de pruebas exactas"
+  ]
+}
