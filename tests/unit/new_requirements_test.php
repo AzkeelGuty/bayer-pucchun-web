@@ -53,7 +53,7 @@ foreach(['/maestros/nuevo','/maestros/guardar','/maestros/editar','/maestros/act
 foreach(['Agregar uno','Importar Excel','Plantilla XLSX','data-master-delete'] as $needle){
     req(str_contains($masterTable,$needle),'Falta acción de catálogo: '.$needle);
 }
-req(str_contains($backofficeController,'$perPage=50'),'Catálogos maestros deben paginar en servidor a 50 filas.');
+req(str_contains($backofficeController,"$perPage=$key==='productos' ? 25 : 50;"),'Productos deben paginar a 25 filas y los demás catálogos a 50.');
 req(str_contains($backofficeController,"'pagination'=>["),'El controlador debe enviar metadatos de paginación.');
 req(!str_contains($backofficeController,"LIMIT 300';"),'Catálogos maestros no deben volver a cargar 300 filas por clic.');
 req(str_contains($masterTable,'catalog-pagination'),'La vista debe mostrar navegación paginada.');
