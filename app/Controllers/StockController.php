@@ -41,10 +41,24 @@ final class StockController
         return OperationalOwnershipPolicy::scope($filters);
     }
 
-    private function viewData(): array
+    private function viewData(?array $record=null): array
     {
         $m=$this->masters();
-        return ['almacenes'=>$m->almacenes(),'productos'=>$m->productos(),'unidades'=>$m->unidades(),'lotes'=>$m->lotes()];
+        $old=is_array($_SESSION['_old']??null)?$_SESSION['_old']:[];
+        $header=is_array($record['header']??null)?$record['header']:$old;
+        $details=is_array($record['details']??null)?$record['details']:(is_array($old['detalle']??null)?$old['detalle']:[]);
+        $productIds=[];$lotIds=[];
+        foreach($details as $line){
+            if(!is_array($line)) continue;
+            $productIds[]=(int)($line['producto_id']??0);
+            $lotIds[]=(int)($line['lote_id']??0);
+        }
+        return [
+            'almacenes'=>$m->almacenesByIds([(int)($header['almacen_id']??0)]),
+            'productos'=>$m->productosByIds($productIds),
+            'unidades'=>$m->unidades(),
+            'lotes'=>$m->lotesByIds($lotIds),
+        ];
     }
 
     public function index(): void
@@ -62,7 +76,7 @@ final class StockController
             'page'=>$page,
             'pages'=>$pages,
             'perPage'=>$perPage,
-            'almacenes'=>$this->masters()->almacenes(),
+            'almacenes'=>$this->masters()->almacenesByIds([(int)($filters['almacen_id']??0)]),
             'bulkCounts'=>\has_role('ADMIN','SUPERVISOR') ? [
                 'BORRADOR'=>$this->repository->countByState('BORRADOR'),
                 'VALIDADO'=>$this->repository->countByState('VALIDADO'),
@@ -75,7 +89,18 @@ final class StockController
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('stock.read');
         $id=(int)\input('id',0); $record=$this->record($id);
         $m=$this->masters();
-        \view('stock.show',['record'=>$record,'almacenes'=>\index_by($m->almacenes(),'id'),'productos'=>\index_by($m->productos(),'id'),'unidades'=>\index_by($m->unidades(),'id'),'lotes'=>\index_by($m->lotes(),'id')]);
+        $productIds=[];$lotIds=[];
+        foreach($record['details'] as $line){
+            $productIds[]=(int)($line['producto_id']??0);
+            $lotIds[]=(int)($line['lote_id']??0);
+        }
+        \view('stock.show',[
+            'record'=>$record,
+            'almacenes'=>\index_by($m->almacenesByIds([(int)$record['header']['almacen_id']]),'id'),
+            'productos'=>\index_by($m->productosByIds($productIds),'id'),
+            'unidades'=>\index_by($m->unidades(),'id'),
+            'lotes'=>\index_by($m->lotesByIds($lotIds),'id'),
+        ]);
     }
 
     public function create(): void {
@@ -89,7 +114,7 @@ final class StockController
             if($lastWarehouse>0) $_SESSION['_old']['almacen_id']=$lastWarehouse;
         }
 
-        \view('stock.form',$this->viewData()+[
+        \view('stock.form',$this->viewData(null)+[
             'defaultDate'=>date('Y-m-d'),
             'defaultIdempotency'=>'stock-'.date('Ymd-His').'-'.bin2hex(random_bytes(6)),
         ]);
@@ -101,13 +126,15 @@ final class StockController
         $id=(int)\input('id',0); $record=$this->record($id);
         if(!in_array((string)($record['header']['estado_registro']??''),['BORRADOR','OBSERVADO'],true)) throw new HttpException(409,'Solo se puede editar stock en borrador u observado.');
         $_SESSION['_old']=['fecha_stock'=>$record['header']['fecha_stock']??'','almacen_id'=>$record['header']['almacen_id']??'','idempotency_key'=>$record['header']['idempotency_key']??''];
-        \view('stock.form',$this->viewData()+['record'=>$record]);
+        \view('stock.form',$this->viewData($record)+['record'=>$record]);
     }
 
     private function normalizeDetails(array $details): array
     {
+        $productIds=[];
+        foreach($details as $line) if(is_array($line)) $productIds[]=(int)($line['producto_id']??0);
         $products=[];
-        foreach($this->masters()->productos() as $row) $products[(int)$row['id']]=$row;
+        foreach($this->masters()->productosByIds($productIds) as $row) $products[(int)$row['id']]=$row;
         $normalized=[];
         $positions=[];
 
