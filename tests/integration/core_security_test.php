@@ -210,6 +210,7 @@ try {
     // Remote lookups: authenticated, small, filtered and parent-aware.
     $lookupGuest=[];
     ensure(request('/lookups?type=productos&q=M1',$lookupGuest,null,['Accept: application/json'])['status']===302,'Guest cannot use internal lookup');
+    ensure(request('/lookups?type[]=productos&q=M1',$admin,null,['Accept: application/json'])['status']===422,'Malformed lookup parameters are rejected');
     $lookup=request('/lookups?type=productos&q=M1',$admin,null,['Accept: application/json']);
     ensure($lookup['status']===200,'Product remote lookup responds');
     $lookupData=json_decode($lookup['body'],true,512,JSON_THROW_ON_ERROR);
