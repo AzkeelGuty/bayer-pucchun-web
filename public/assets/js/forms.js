@@ -26,6 +26,7 @@
         if ([...select.options].some(function (option) { return option.value === current; })) {
             select.value = current;
         }
+        window.BP_SearchableSelects?.refresh?.(select);
     }
 
     function wireUbigeo(scope) {
@@ -69,8 +70,14 @@
             const cliente = clientes[clienteSelect.value];
             if (!cliente) return;
 
-            if (sellerSelect && (force || !sellerSelect.value)) sellerSelect.value = cliente.vendedor_sugerido_id || '';
-            if (branchSelect && (force || !branchSelect.value)) branchSelect.value = cliente.sucursal_sugerida_id || '';
+            if (sellerSelect && (force || !sellerSelect.value)) {
+                sellerSelect.value = cliente.vendedor_sugerido_id || '';
+                sellerSelect.dispatchEvent(new Event('change', {bubbles: true}));
+            }
+            if (branchSelect && (force || !branchSelect.value)) {
+                branchSelect.value = cliente.sucursal_sugerida_id || '';
+                branchSelect.dispatchEvent(new Event('change', {bubbles: true}));
+            }
 
             const geoEmpty = !depSelect?.value && !provSelect?.value && !distSelect?.value;
             if (depSelect && provSelect && distSelect && (force || geoEmpty)) {
