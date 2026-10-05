@@ -87,7 +87,7 @@ final class BackofficeController
         // Paginación real en servidor: evita traer y renderizar 300 filas en
         // cada clic. Con catálogos de miles de productos esto reduce mucho
         // el tamaño de la respuesta HTML y el trabajo del navegador.
-        $perPage=50;
+        $perPage=$key==='productos' ? 25 : 50;
         $page=max(1,(int)($_GET['page'] ?? 1));
         $totalRows=0;
         $totalPages=1;
