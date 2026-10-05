@@ -71,6 +71,21 @@ $activeTab=$requestedTab!=='' ? $requestedTab : strtolower(trim((string)($active
 if($activeTab==='' && !empty($tabs)){
     $activeTab=(string)array_key_first($tabs);
 }
+
+$paginationData=is_array($pagination??null) ? $pagination : [];
+$currentPage=max(1,(int)($paginationData['page']??1));
+$totalPages=max(1,(int)($paginationData['pages']??1));
+$totalRows=max(0,(int)($paginationData['total']??count($rows??[])));
+$perPage=max(1,(int)($paginationData['perPage']??50));
+$firstRow=$totalRows>0 ? (($currentPage-1)*$perPage)+1 : 0;
+$lastRow=$totalRows>0 ? min($totalRows,$currentPage*$perPage) : 0;
+
+$pageUrl=static function(int $page) use($base,$activeTab,$q): string {
+    $params=['tab'=>$activeTab];
+    if(trim((string)($q??''))!=='') $params['q']=(string)$q;
+    if($page>1) $params['page']=$page;
+    return url($base.'?'.http_build_query($params));
+};
 ?>
 <section class="page-header">
     <div>
@@ -153,12 +168,25 @@ if($activeTab==='' && !empty($tabs)){
                 >Limpiar</a>
             </div>
         </div>
-        <div class="form-text mt-2">La búsqueda consulta todo el catálogo y muestra hasta 300 coincidencias.</div>
+        <div class="form-text mt-2">La búsqueda consulta todo el catálogo. Para mayor velocidad se muestran <?=e((string)$perPage)?> registros por página.</div>
     </div>
 </form>
 <?php endif; ?>
 
-<div class="card data-table-card" data-live-refresh="6000" data-live-refresh-key="backoffice-data-table">
+<div class="card data-table-card"<?=$base==='/maestros'?'':' data-live-refresh="6000" data-live-refresh-key="backoffice-data-table"'?>>
+    <?php if($base==='/maestros'): ?>
+    <div class="catalog-result-bar">
+        <div>
+            <strong><?=number_format($totalRows,0,'.',',')?> registros</strong>
+            <?php if($totalRows>0): ?>
+                <span>Mostrando <?=number_format($firstRow,0,'.',',')?>–<?=number_format($lastRow,0,'.',',')?></span>
+            <?php endif; ?>
+        </div>
+        <?php if($totalPages>1): ?>
+            <span>Página <?=e((string)$currentPage)?> de <?=e((string)$totalPages)?></span>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
     <div class="card-body p-0">
         <?php if(!$rows): ?>
             <div class="empty-state"><i class="bi bi-inbox fs-3 mb-2"></i><strong>Sin información registrada.</strong><span>Los datos disponibles aparecerán aquí.</span></div>
@@ -222,4 +250,27 @@ if($activeTab==='' && !empty($tabs)){
             </div>
         <?php endif; ?>
     </div>
+    <?php if($base==='/maestros' && $totalPages>1):
+        $pageNumbers=[1,$totalPages];
+        for($p=max(1,$currentPage-2);$p<=min($totalPages,$currentPage+2);$p++) $pageNumbers[]=$p;
+        $pageNumbers=array_values(array_unique($pageNumbers));
+        sort($pageNumbers);
+        $previousPrinted=null;
+    ?>
+    <nav class="catalog-pagination" aria-label="Paginación de <?=e($title)?>">
+        <a class="btn btn-sm btn-outline-primary <?=$currentPage<=1?'disabled':''?>" href="<?=$currentPage>1?e($pageUrl($currentPage-1)):'#'?>" <?=$currentPage<=1?'aria-disabled="true" tabindex="-1"':''?>>
+            <i class="bi bi-chevron-left"></i><span>Anterior</span>
+        </a>
+        <div class="catalog-page-numbers">
+            <?php foreach($pageNumbers as $pageNumber): ?>
+                <?php if($previousPrinted!==null && $pageNumber>$previousPrinted+1): ?><span class="catalog-page-gap">…</span><?php endif; ?>
+                <a class="catalog-page-link <?=$pageNumber===$currentPage?'active':''?>" href="<?=e($pageUrl($pageNumber))?>" <?=$pageNumber===$currentPage?'aria-current="page"':''?>><?=e((string)$pageNumber)?></a>
+                <?php $previousPrinted=$pageNumber; ?>
+            <?php endforeach; ?>
+        </div>
+        <a class="btn btn-sm btn-outline-primary <?=$currentPage>=$totalPages?'disabled':''?>" href="<?=$currentPage<$totalPages?e($pageUrl($currentPage+1)):'#'?>" <?=$currentPage>=$totalPages?'aria-disabled="true" tabindex="-1"':''?>>
+            <span>Siguiente</span><i class="bi bi-chevron-right"></i>
+        </a>
+    </nav>
+    <?php endif; ?>
 </div>
