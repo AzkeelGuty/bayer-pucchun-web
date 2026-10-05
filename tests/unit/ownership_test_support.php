@@ -37,6 +37,16 @@ final class OwnershipPDO extends PDO {
         return new OwnershipRows(function(array $params) use ($query): array {
             $this->queries[] = [$query,$params];
             if (str_contains($query,'SELECT DISTINCT p.codigo')) return $this->grants[(int)$params[0]] ?? [];
+            // Lightweight lookup/catalog queries introduced for remote autocomplete.
+            if (str_contains($query,'FROM clientes c')) return [['id'=>1,'codigo'=>'CLI-1','nro_doc'=>'00000001','razon_social'=>'Cliente Fixture','label'=>'00000001 · Cliente Fixture','departamento_id'=>1,'provincia_id'=>1,'distrito_id'=>1,'vendedor_sugerido_id'=>1,'sucursal_sugerida_id'=>1,'vendedor_sugerido_label'=>'VEN-1 · Vendedor Fixture','sucursal_sugerida_label'=>'SUC-1 · Sucursal Fixture']];
+            if (str_contains($query,'FROM vendedores')) return [['id'=>1,'codigo'=>'VEN-1','nombre'=>'Vendedor Fixture','label'=>'VEN-1 · Vendedor Fixture']];
+            if (str_contains($query,'FROM sucursales')) return [['id'=>1,'codigo'=>'SUC-1','nombre'=>'Sucursal Fixture','label'=>'SUC-1 · Sucursal Fixture']];
+            if (str_contains($query,'FROM almacenes')) return [['id'=>1,'codigo'=>'ALM-1','nombre'=>'Almacén Fixture','label'=>'ALM-1 · Almacén Fixture']];
+            if (str_contains($query,'FROM productos p')) return [['id'=>1,'codigo'=>'PRD-1','nombre'=>'Producto Fixture','label'=>'PRD-1 · Producto Fixture','unidad_base_id'=>1,'unidad_label'=>'NIU · Unidad']];
+            if (str_contains($query,'FROM lotes')) return [['id'=>1,'producto_id'=>1,'codigo_lote'=>'L-1','fecha_vencimiento'=>null,'label'=>'L-1']];
+            if (str_contains($query,'FROM provincias')) return [['id'=>1,'departamento_id'=>1,'nombre'=>'Provincia Fixture']];
+            if (str_contains($query,'FROM distritos')) return [['id'=>1,'provincia_id'=>1,'nombre'=>'Distrito Fixture']];
+            if (str_contains($query,'FROM unidades_medida')) return [['id'=>1,'label'=>'NIU · Unidad']];
             // DocumentScreenService's existing list/count are inspected and evaluated over fixtures.
             if (!str_contains($query,'FROM documentos_cabecera h')) throw new RuntimeException('Unexpected query in ownership test');
             $rows = array_column(array_values($this->records),'header');
