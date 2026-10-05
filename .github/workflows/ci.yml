@@ -2,9 +2,9 @@ name: PHP CI
 
 on:
   pull_request:
-    branches: [develop, main]
+    branches: [develop, main, integration/frontend-equipo, feature/logistics-pedro-alisson]
   push:
-    branches: [develop]
+    branches: [develop, integration/frontend-equipo, 'feature/logistics-*']
 
 jobs:
   test:
@@ -62,6 +62,7 @@ jobs:
           php tests/unit/repository_ownership_test.php
           php tests/unit/guide_ownership_test.php
           php tests/unit/stock_ownership_test.php
+          php tests/unit/logistics_quantity_test.php
 
       - name: Integration tests
         run: |
@@ -72,3 +73,12 @@ jobs:
           php tests/integration/bulk_workflow_test.php
           php tests/integration/api_auth_test.php
           php tests/integration/core_security_test.php
+          php tests/integration/logistics_persistence_test.php
+          php tests/integration/logistics_incidents_test.php
+
+      - name: Logistics migration and integrity checks
+        run: |
+          php tests/qa/migration_smoke.php
+          php tests/qa/migration_007_smoke.php
+          php tests/qa/migration_007_constraints_smoke.php
+          php tests/qa/repository_007_normalizers_smoke.php
