@@ -43,7 +43,8 @@ $link=function(int $n)use($q,$state):string{
 
 <div class="card">
     <div class="card-body">
-        <p class="text-muted small"><?=e($total)?> documentos encontrados · Página <?=e($page)?> de <?=e($pages)?></p>
+        <?php $firstDoc=$total>0?(($page-1)*15)+1:0; $lastDoc=$total>0?min($total,$page*15):0; ?>
+        <p class="text-muted small"><?=e($total)?> documentos encontrados<?=$total>0?' · Mostrando '.e($firstDoc).'–'.e($lastDoc):''?> · Página <?=e($page)?> de <?=e($pages)?></p>
         <div class="table-responsive">
             <table class="table app-table align-middle">
                 <thead>
