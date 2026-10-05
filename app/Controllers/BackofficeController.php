@@ -84,12 +84,20 @@ final class BackofficeController
         $rows=[];
         $catalogNotice=null;
 
+        // Paginación real en servidor: evita traer y renderizar 300 filas en
+        // cada clic. Con catálogos de miles de productos esto reduce mucho
+        // el tamaño de la respuesta HTML y el trabajo del navegador.
+        $perPage=50;
+        $page=max(1,(int)($_GET['page'] ?? 1));
+        $totalRows=0;
+        $totalPages=1;
+
         // "Proveedores" fue agregado en la migración 004. En instalaciones
         // existentes que todavía no la ejecutaron, no debe provocar un Error 500.
         if($key==='proveedores' && !$this->tableExists('proveedores')){
             $catalogNotice='El catálogo de proveedores todavía no está inicializado en esta base de datos. Ejecute la migración 004_catalogos_masivos_busqueda.sql.';
         } else {
-            $sql=$cfg['select'];
+            $baseSql=$cfg['select'];
             $params=[];
             if($q!==''){
                 $parts=[];
@@ -97,9 +105,17 @@ final class BackofficeController
                     $parts[]=$column.' LIKE ?';
                     $params[]='%'.$q.'%';
                 }
-                $sql.=' WHERE ('.implode(' OR ',$parts).')';
+                $baseSql.=' WHERE ('.implode(' OR ',$parts).')';
             }
-            $sql.=' ORDER BY '.$cfg['order'].' LIMIT 300';
+
+            $count=\db()->prepare('SELECT COUNT(*) FROM ('.$baseSql.') catalog_count');
+            $count->execute($params);
+            $totalRows=(int)$count->fetchColumn();
+            $totalPages=max(1,(int)ceil($totalRows/$perPage));
+            if($page>$totalPages) $page=$totalPages;
+            $offset=($page-1)*$perPage;
+
+            $sql=$baseSql.' ORDER BY '.$cfg['order'].' LIMIT '.$perPage.' OFFSET '.$offset;
             $st=\db()->prepare($sql);
             $st->execute($params);
             $rows=$st->fetchAll();
@@ -107,6 +123,11 @@ final class BackofficeController
 
         $tabs=[];
         foreach($catalogs as $tabKey=>$tabCfg) $tabs[$tabKey]=$tabCfg['title'];
+
+        $masterService=new MasterCatalogService();
+        $masterAdmin=\has_role('ADMIN');
+        $masterIssue=$catalogNotice ?? $masterService->availabilityIssue($key);
+
         \view('backoffice.table',[
             'section'=>'Catálogos maestros',
             'title'=>$cfg['title'],
@@ -116,10 +137,16 @@ final class BackofficeController
             'base'=>'/maestros',
             'q'=>$q,
             'catalogNotice'=>$catalogNotice,
-            'masterMeta'=>(new MasterCatalogService())->definition($key),
-            'masterAdmin'=>\has_role('ADMIN'),
-            'masterManageIssue'=>$catalogNotice ?? (new MasterCatalogService())->availabilityIssue($key),
-            'masterManageAvailable'=>\has_role('ADMIN') && $catalogNotice===null && (new MasterCatalogService())->availabilityIssue($key)===null,
+            'masterMeta'=>$masterService->definition($key),
+            'masterAdmin'=>$masterAdmin,
+            'masterManageIssue'=>$masterIssue,
+            'masterManageAvailable'=>$masterAdmin && $masterIssue===null,
+            'pagination'=>[
+                'page'=>$page,
+                'perPage'=>$perPage,
+                'total'=>$totalRows,
+                'pages'=>$totalPages,
+            ],
         ]);
     }
 
