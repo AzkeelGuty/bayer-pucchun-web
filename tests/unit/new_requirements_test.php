@@ -32,6 +32,9 @@ $exportPresentation=$read('app/Services/ExportPresentation.php');
 $apiController=$read('app/Controllers/ApiController.php');
 $apiEvolution=$read('app/Views/backoffice/evolution.php');
 $appConfig=$read('config/app.php');
+$lookupController=$read('app/Controllers/LookupController.php');
+$masterRepo=$read('app/Repositories/MasterDataRepository.php');
+$performanceMigration=$read('database/migrations/006_performance_indexes.sql');
 req(!is_file($root.'/app/Services/OperationalNumberingService.php'),'El generador automático de correlativos debe estar eliminado.');
 
 foreach([$docController,$guideController,$docForm,$guideForm,$docJs,$formsJs] as $content){
@@ -73,6 +76,25 @@ req(str_contains($formsJs,'BP_SearchableSelects?.refresh?.(select)'),'Los cascad
 req(str_contains($masterForm,'data-search-select'),'Los formularios maestros deben buscar relaciones sin scroll largo.');
 req(str_contains($guideIndex,'Mostrando') && str_contains($stockIndex,'Mostrando'),'Guías y Stock deben mostrar rangos paginados.');
 req(str_contains($backofficeController,'$perPage=15;'),'Backoffice debe limitar las tablas a 15 filas.');
+
+req(str_contains($routes,"/lookups"),'Debe existir endpoint interno de búsquedas bajo demanda.');
+req(str_contains($lookupController,"'productos'=>") && str_contains($lookupController,"'clientes'=>"),'Lookup remoto debe cubrir productos y clientes.');
+req(str_contains($lookupController,"'provincias'=>") && str_contains($lookupController,"'distritos'=>"),'Lookup remoto debe cubrir ubigeo dependiente.');
+req(str_contains($searchableJs,'remoteCache') && str_contains($searchableJs,'fetch('),'Autocompletado debe consultar bajo demanda y reutilizar resultados.');
+req(str_contains($searchableJs,'160'),'Autocompletado remoto debe usar debounce para evitar consultas por cada tecla.');
+req(str_contains($searchableJs,'limit: Math.max(5, Math.min(20'),'Autocompletado remoto debe limitar las coincidencias.');
+req(!str_contains($guideForm,'window.BP_PRODUCTS') && !str_contains($guideForm,'window.BP_GEO'),'Guías no debe incrustar miles de productos/ubigeos en el HTML.');
+req(!str_contains($stockForm,'window.BP_PRODUCTS') && !str_contains($stockForm,'window.BP_LOTES'),'Stock no debe incrustar catálogos completos en JavaScript.');
+req(str_contains($docForm,"/lookups?type=productos") && str_contains($docForm,"/lookups?type=clientes"),'Documentos debe buscar productos y clientes en servidor.');
+req(str_contains($guideForm,"/lookups?type=productos") && str_contains($guideForm,"/lookups?type=clientes"),'Guías debe buscar productos y clientes en servidor.');
+req(str_contains($stockForm,"/lookups?type=productos") && str_contains($stockForm,"/lookups?type=almacenes"),'Stock debe buscar productos y almacenes en servidor.');
+req(str_contains($masterRepo,'productosByIds') && str_contains($masterRepo,'clientesByIds'),'Formularios deben poder cargar solamente maestros seleccionados.');
+req(!str_contains($guideController,'->productos()'),'Guías no debe cargar todos los productos al abrir/guardar.');
+req(!str_contains($read('app/Controllers/StockController.php'),'->productos()'),'Stock no debe cargar todos los productos al abrir/guardar.');
+req(str_contains($docController,'catalogsFor('),'Documentos debe usar catálogos mínimos por selección.');
+req(str_contains($masterForm,"/lookups?type=ubicaciones"),'Ubicación habitual de maestros debe buscarse bajo demanda.');
+req(str_contains($performanceMigration,'ix_productos_estado_nombre') && str_contains($performanceMigration,'ix_documentos_cliente_fecha'),'Migración 006 debe crear índices de búsqueda e historial.');
+req(str_contains($performanceMigration,"VALUES (6,'Indices de rendimiento"),'Migración 006 debe quedar registrada.');
 
 req(str_contains($exportPresentation,"\\public_path(ltrim(\$relative, '/'))"),'PDF/XLSX deben resolver logos desde la raíz pública real de cPanel.');
 req(!str_contains($exportPresentation,"base_path('public/'"),'Exportaciones no deben asumir que el Document Root es /public.');
