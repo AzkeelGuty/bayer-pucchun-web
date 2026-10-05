@@ -28,7 +28,7 @@ final class DocumentController
         OperationalPermissionPolicy::require('documents.create');
 
         $screen=new DocumentScreenService();
-        $catalogs=$screen->catalogs();
+        $catalogs=$screen->catalogsFor([],[]);
         $types=$catalogs['tipo_documento_id']??[];
         $defaultType=null;
         foreach($types as $type){
@@ -50,10 +50,10 @@ final class DocumentController
     }
     public function show(): void {
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read'); $r=$this->record((int)\input('id',0));
-        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogs(false)]);
+        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogsFor($r['header'],$r['details'])]);
     }
     private function form(array $header,array $details,bool $editing=false,array $errors=[],?array $catalogs=null): void {
-        $catalogs??=(new DocumentScreenService())->catalogs(!$editing);
+        $catalogs??=(new DocumentScreenService())->catalogsFor($header,$details);
         \view('documentos.form',compact('header','details','editing','errors','catalogs'));
     }
     private function normalizeDetails(array $details,array $catalogs): array {
@@ -100,7 +100,7 @@ final class DocumentController
         $id=(int)\input('id',0); $version=(int)\input('version',0);
         if($editing) { $r=$this->record($id); if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
         $screen=new DocumentScreenService();
-        $catalogs=$screen->catalogs(false);
+        $catalogs=$screen->catalogsFor($header,$details);
         $clients=[];
         foreach(($catalogs['cliente_id']??[]) as $row) $clients[(int)$row['id']]=$row;
         $client=$clients[(int)($header['cliente_id']??0)]??null;
