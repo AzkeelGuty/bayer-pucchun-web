@@ -49,6 +49,7 @@ final class LookupController
             ),
             'provincias'=>$this->provinces($q,$parent,$limit),
             'distritos'=>$this->districts($q,$parent,$limit),
+            'ubicaciones'=>$this->locations($q,$limit),
             'lotes'=>$this->lots($q,$parent,$limit),
             'tipos_documento'=>$this->simple(
                 "SELECT id,CONCAT(codigo,' · ',nombre) label
@@ -172,6 +173,19 @@ final class LookupController
              WHERE provincia_id=? AND nombre LIKE ?
              ORDER BY nombre LIMIT ".$limit,
             [$parent,'%'.$q.'%']
+        );
+    }
+
+    private function locations(string $q,int $limit): array
+    {
+        return $this->simple(
+            "SELECT d.id,CONCAT(dp.nombre,' · ',p.nombre,' · ',d.nombre) label
+             FROM distritos d
+             JOIN provincias p ON p.id=d.provincia_id
+             JOIN departamentos dp ON dp.id=p.departamento_id
+             WHERE d.nombre LIKE ? OR p.nombre LIKE ? OR dp.nombre LIKE ?
+             ORDER BY dp.nombre,p.nombre,d.nombre LIMIT ".$limit,
+            ['%'.$q.'%','%'.$q.'%','%'.$q.'%']
         );
     }
 
