@@ -14,12 +14,16 @@ final class BayerController
         \require_role(...AccessPolicy::PUBLISHED);
         $d = new DashboardService();
         $kpis = $d->kpis(true);
-        unset($kpis['clientes'], $kpis['productos']);
+        $distribution=[
+            ['label'=>'Documentos','value'=>$kpis['documentos']??0],
+            ['label'=>'Guías','value'=>$kpis['guias']??0],
+            ['label'=>'Stock','value'=>$kpis['stock']??0],
+        ];
         \view('dashboard.bayer.index', [
             'kpis'=>$kpis,
             'series'=>$d->salesByMonth(),
             'top'=>$d->topProducts(),
-            'distribution'=>$d->publishedDistribution(),
+            'distribution'=>$distribution,
             'lastUpdate'=>$d->lastPublishedAt(),
         ]);
     }
