@@ -44,7 +44,7 @@ try{
 
     $meta=ExportPresentation::metadata('documents',[],[],['nombre'=>'QA']);
     export_branding_assert(
-        ($meta['logo_primary_path']??null)===$absolute,
+        str_replace('\\','/',(string)($meta['logo_primary_path']??''))===str_replace('\\','/',$absolute),
         'La exportación no resolvió el logo desde BAYER_PUBLIC_ROOT/public_html.'
     );
     export_branding_assert(is_file((string)$meta['logo_primary_path']),'La ruta del logo para PDF/XLSX no existe.');

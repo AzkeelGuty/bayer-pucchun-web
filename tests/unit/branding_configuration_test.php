@@ -22,7 +22,7 @@ $_ENV['BAYER_PUBLIC_ROOT']=$overrideRoot;
 putenv('BAYER_PUBLIC_ROOT='.$overrideRoot);
 $expectedOverride=$overrideRoot.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.'branding';
 branding_test_assert(
-    public_path('uploads/branding')===$expectedOverride,
+    str_replace('\\','/',public_path('uploads/branding'))===str_replace('\\','/',$expectedOverride),
     'BAYER_PUBLIC_ROOT no está controlando la raíz pública.'
 );
 if($originalPublicRootEnv===null) unset($_ENV['BAYER_PUBLIC_ROOT']);
