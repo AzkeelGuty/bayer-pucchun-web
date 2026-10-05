@@ -149,6 +149,17 @@
         widget.wrapper.classList.toggle('has-value', Boolean(option && option.value));
     }
 
+    function refresh(select) {
+        const widget = enhanced.get(select);
+        if (!widget) {
+            enhance(select);
+            return;
+        }
+        widget.items = itemsFor(select);
+        sync(widget);
+        if (widget.menu.classList.contains('open')) render(widget);
+    }
+
     function moveActive(widget, step) {
         if (!widget.rendered.length) return;
         if (widget.activeIndex < 0) {
@@ -162,17 +173,21 @@
         });
     }
 
-    function enhance(select) {
-        if (!select || enhanced.has(select) || select.dataset.searchEnhanced === '1') return;
-        select.dataset.searchEnhanced = '1';
-
-        const items = Array.from(select.options)
+    function itemsFor(select) {
+        return Array.from(select.options)
             .filter(option => option.value !== '')
             .map(option => ({
                 value: option.value,
                 label: option.textContent.trim(),
                 search: normalize(option.textContent + ' ' + (option.dataset.search || '')),
             }));
+    }
+
+    function enhance(select) {
+        if (!select || enhanced.has(select) || select.dataset.searchEnhanced === '1') return;
+        select.dataset.searchEnhanced = '1';
+
+        const items = itemsFor(select);
 
         const wrapper = document.createElement('div');
         wrapper.className = 'incremental-select';
@@ -313,9 +328,14 @@
         setTimeout(() => {
             enhanceAll(document);
             const observer = new MutationObserver(records => {
-                records.forEach(record => record.addedNodes.forEach(node => {
-                    if (node.nodeType === 1) enhanceAll(node);
-                }));
+                records.forEach(record => {
+                    if (record.target instanceof HTMLSelectElement && enhanced.has(record.target)) {
+                        refresh(record.target);
+                    }
+                    record.addedNodes.forEach(node => {
+                        if (node.nodeType === 1) enhanceAll(node);
+                    });
+                });
             });
             observer.observe(document.body, {childList: true, subtree: true});
         }, 0);
@@ -326,5 +346,5 @@
         document.querySelectorAll('.incremental-select-menu').forEach(menu => menu.remove());
     }
 
-    window.BP_SearchableSelects = {enhance, enhanceAll, reset};
+    window.BP_SearchableSelects = {enhance, enhanceAll, refresh, reset};
 })();
