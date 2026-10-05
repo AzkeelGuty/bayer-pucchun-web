@@ -57,8 +57,8 @@ req(str_contains($backofficeController,'$perPage=15;'),'Todos los catálogos mae
 req(str_contains($backofficeController,"'pagination'=>["),'El controlador debe enviar metadatos de paginación.');
 req(!str_contains($backofficeController,"LIMIT 300';"),'Catálogos maestros no deben volver a cargar 300 filas por clic.');
 req(str_contains($masterTable,'catalog-pagination'),'La vista debe mostrar navegación paginada.');
-req(str_contains($masterTable,"$isMasterTable=($base??'')==='/maestros';"),'La paginación debe quedar aislada a Catálogos maestros.');
-req(str_contains($masterTable,"$searchQuery=$isMasterTable ? trim((string)($q??'')) : '';"),'La vista compartida no debe asumir que q existe en Publicaciones/Auditoría.');
+req(str_contains($masterTable,"\$isMasterTable=(\$base??'')==='/maestros';"),'La paginación debe quedar aislada a Catálogos maestros.');
+req(str_contains($masterTable,"\$searchQuery=\$isMasterTable ? trim((string)(\$q??'')) : '';"),'La vista compartida no debe asumir que q existe en Publicaciones/Auditoría.');
 req(str_contains($masterTable,'50 registros por página') || str_contains($masterTable,'$perPage'),'La vista debe explicar la carga paginada.');
 
 req(str_contains($exportPresentation,"\\public_path(ltrim(\$relative, '/'))"),'PDF/XLSX deben resolver logos desde la raíz pública real de cPanel.');
