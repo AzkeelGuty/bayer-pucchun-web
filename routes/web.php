@@ -1,11 +1,11 @@
 <?php
-use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController,MasterDataController};
+use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController,MasterDataController,LookupController};
 use App\Middleware\{AuthMiddleware,RoleMiddleware};
 use App\Policies\AccessPolicy;
 
 $router->before(static function (string $path): void {
     (new AuthMiddleware())->refresh();
-    if (preg_match('~^/(documentos|guias|stock|dashboard|usuarios|roles|permisos|maestros|homologaciones|validacion|publicaciones|reportes|configuracion|auditoria|evolucion)(/|$)~', $path)) {
+    if (preg_match('~^/(documentos|guias|stock|dashboard|usuarios|roles|permisos|maestros|homologaciones|validacion|publicaciones|reportes|configuracion|auditoria|evolucion|lookups)(/|$)~', $path)) {
         require_role(...AccessPolicy::INTERNAL);
     }
     if (preg_match('~^/(usuarios|roles|permisos|configuracion)(/|$)~', $path)) {
@@ -22,6 +22,7 @@ $router->get('/login',[AuthController::class,'showLogin']);
 $router->post('/login',[AuthController::class,'login']);
 $router->post('/logout',[AuthController::class,'logout'],[new AuthMiddleware()]);
 $router->get('/dashboard',[DashboardController::class,'index'],$internal);
+$router->get('/lookups',[LookupController::class,'search'],$internal);
 
 foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::class,'stock'=>StockController::class] as $path=>$controller) {
     $router->get('/'.$path,[$controller,'index'],$internal);
