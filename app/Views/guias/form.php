@@ -6,6 +6,12 @@ $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'unidad_id'
 $numberValue = (string)old('numero');
 $dateValue = (string)old('fecha');
 if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('Y-m-d'));
+$lookupClientes=e(url('/lookups?type=clientes'));
+$lookupVendedores=e(url('/lookups?type=vendedores'));
+$lookupSucursales=e(url('/lookups?type=sucursales'));
+$lookupProvincias=e(url('/lookups?type=provincias'));
+$lookupDistritos=e(url('/lookups?type=distritos'));
+$lookupProductos=e(url('/lookups?type=productos'));
 ?>
 <section class="module-header">
     <div>
@@ -38,9 +44,9 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
             </div>
             <div class="col-md-4"></div>
 
-            <?php select('cliente_id', 'Cliente', $clientes, 'id', 'label', true, 'data-role="cliente" data-search-select data-search-url="<?=e(url('/lookups?type=clientes'))?>" data-search-placeholder="Buscar por DNI/RUC o razón social..." data-search-min="1"'); ?>
-            <?php select('vendedor_id', 'Vendedor', $vendedores, 'id', 'nombre', true, 'data-search-select data-search-url="<?=e(url('/lookups?type=vendedores'))?>" data-search-placeholder="Buscar vendedor..." data-search-min="1"'); ?>
-            <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre', true, 'data-search-select data-search-url="<?=e(url('/lookups?type=sucursales'))?>" data-search-placeholder="Buscar sucursal..." data-search-min="1"'); ?>
+            <?php select('cliente_id', 'Cliente', $clientes, 'id', 'label', true, 'data-role="cliente" data-search-select data-search-url="'.$lookupClientes.'" data-search-placeholder="Buscar por DNI/RUC o razón social..." data-search-min="1"'); ?>
+            <?php select('vendedor_id', 'Vendedor', $vendedores, 'id', 'nombre', true, 'data-search-select data-search-url="'.$lookupVendedores.'" data-search-placeholder="Buscar vendedor..." data-search-min="1"'); ?>
+            <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre', true, 'data-search-select data-search-url="'.$lookupSucursales.'" data-search-placeholder="Buscar sucursal..." data-search-min="1"'); ?>
 
             <div class="col-12" data-ubigeo-scope data-destination-shell data-client-location-url="<?=e(url('/guias/cliente-ubicacion'))?>">
                 <label class="form-label mb-2">Destino de entrega</label>
@@ -73,7 +79,7 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
                 <tbody>
                     <?php foreach ($detailRows as $i => $line): ?>
                     <tr>
-                        <td><?php select_inline("detalle[$i][producto_id]", $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-url="<?=e(url('/lookups?type=productos'))?>" data-search-placeholder="Buscar por código o producto..." data-search-min="1"', 'Seleccione…', true, (string) $line['producto_id']); ?></td>
+                        <td><?php select_inline("detalle[$i][producto_id]", $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-url="'.$lookupProductos.'" data-search-placeholder="Buscar por código o producto..." data-search-min="1"', 'Seleccione…', true, (string) $line['producto_id']); ?></td>
                         <td><?php select_inline("detalle[$i][unidad_id]", $unidades, 'id', 'nombre', 'data-auto-unit aria-readonly="true" tabindex="-1"', 'Seleccione…', true, (string) $line['unidad_id']); ?></td>
                         <td><input type="number" step="1" min="1" inputmode="numeric" class="form-control form-control-sm" name="detalle[<?= $i ?>][cantidad]" value="<?= e(($line['cantidad']??'')!=='' ? format_quantity($line['cantidad']) : '') ?>" required></td>
                         <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
@@ -84,7 +90,7 @@ if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('
         </div>
         <template id="detalle-row-template">
             <tr>
-                <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-url="<?=e(url('/lookups?type=productos'))?>" data-search-placeholder="Buscar por código o producto..." data-search-min="1"'); ?></td>
+                <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-url="'.$lookupProductos.'" data-search-placeholder="Buscar por código o producto..." data-search-min="1"'); ?></td>
                 <td><?php select_inline('detalle[__IDX__][unidad_id]', $unidades, 'id', 'nombre', 'data-auto-unit aria-readonly="true" tabindex="-1"'); ?></td>
                 <td><input type="number" step="1" min="1" inputmode="numeric" class="form-control form-control-sm" name="detalle[__IDX__][cantidad]" value="1" required></td>
                 <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
