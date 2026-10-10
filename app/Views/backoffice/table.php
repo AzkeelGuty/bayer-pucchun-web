@@ -161,7 +161,7 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
         <div class="row g-2 align-items-end">
             <div class="col-12 col-lg-8">
                 <label class="form-label" for="master-search">Buscar en el catálogo</label>
-                <input class="form-control" id="master-search" name="q" value="<?=e((string)($q??''))?>" placeholder="Código, DNI/RUC, nombre o descripción..." autocomplete="off">
+                <input class="form-control" id="master-search" name="q" value="<?=e((string)($q??''))?>" placeholder="Escribe el inicio del código, DNI/RUC o nombre..." autocomplete="off">
             </div>
             <div class="col-12 col-lg-auto d-flex gap-2">
                 <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Buscar</button>
