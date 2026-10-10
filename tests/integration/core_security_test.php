@@ -225,7 +225,10 @@ try {
     ensure(($lookupData['items'][0]['meta']['unitId']??'')==='1','Product lookup includes unit metadata');
     $productPrefix=request('/lookups?type=productos&q=Pro',$admin,null,['Accept: application/json']);
     $productPrefixData=json_decode($productPrefix['body'],true,512,JSON_THROW_ON_ERROR);
-    ensure($productPrefix['status']===200 && count($productPrefixData['items']??[])===2,'Product lookup finds names by initial prefix');
+    ensure($productPrefix['status']===200 && count($productPrefixData['items']??[])===1,'Product lookup finds names by initial prefix');
+    $productCodePrefix=request('/lookups?type=productos&q=M',$admin,null,['Accept: application/json']);
+    $productCodePrefixData=json_decode($productCodePrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($productCodePrefix['status']===200 && count($productCodePrefixData['items']??[])===2,'Product lookup finds codes by initial prefix');
     $productMiddle=request('/lookups?type=productos&q=ducto',$admin,null,['Accept: application/json']);
     $productMiddleData=json_decode($productMiddle['body'],true,512,JSON_THROW_ON_ERROR);
     ensure($productMiddle['status']===200 && count($productMiddleData['items']??[])===0,'Product lookup does not scan arbitrary middle letters');
