@@ -68,14 +68,14 @@ final class LookupController
                  FROM tipos_documento
                  WHERE codigo LIKE ? OR nombre LIKE ?
                  ORDER BY codigo LIMIT ".$limit,
-                [$q.'%','%'.$q.'%']
+                [$q.'%',$q.'%']
             ),
             'unidades'=>$this->simple(
                 "SELECT id,CONCAT(codigo,' · ',nombre) label
                  FROM unidades_medida
                  WHERE codigo LIKE ? OR nombre LIKE ?
                  ORDER BY nombre LIMIT ".$limit,
-                [$q.'%','%'.$q.'%']
+                [$q.'%',$q.'%']
             ),
             default=>throw new HttpException(422,'Catálogo de búsqueda inválido.'),
         };
