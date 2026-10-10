@@ -24,7 +24,7 @@ final class BayerDataService
         $branch=trim((string)($filters['branch']??''));
         if($branch!==''){$w[]='s.codigo=?';$p[]=$branch;}
         $q=trim((string)($filters['q']??''));
-        if($q!==''){$w[]='(dc.numero LIKE ? OR c.razon_social LIKE ? OR pr.nombre LIKE ? OR pr.codigo LIKE ?)';$like='%'.$q.'%';array_push($p,$like,$like,$like,$like);}
+        if($q!==''){$w[]='(dc.numero LIKE ? OR c.razon_social LIKE ? OR pr.nombre LIKE ? OR pr.codigo LIKE ?)';$like=$q.'%';array_push($p,$like,$like,$like,$like);}
         $sql="SELECT e.ruc dealerId,e.razon_social dealerName,td.codigo documentTypeId,td.nombre documentType,dc.numero documentNumber,DATE_FORMAT(dc.fecha,'%Y-%m-%d') documentDate,v.codigo salesId,TRIM(CONCAT(v.nombres,' ',COALESCE(v.apellidos,''))) salesName,s.codigo branchId,s.nombre branchName,c.nro_doc customerId,c.razon_social customerName,pr.codigo materialId,pr.nombre materialName,um.codigo measureUnit,dd.cantidad quantity,dd.valor_unitario unitValue,pv.nombre province,dp.nombre department,ds.nombre district FROM documentos_cabecera dc JOIN tipos_documento td ON td.id=dc.tipo_documento_id JOIN clientes c ON c.id=dc.cliente_id JOIN vendedores v ON v.id=dc.vendedor_id JOIN sucursales s ON s.id=dc.sucursal_id JOIN empresas e ON e.id=s.empresa_id JOIN documentos_detalle dd ON dd.documento_id=dc.id JOIN productos pr ON pr.id=dd.producto_id JOIN unidades_medida um ON um.id=dd.unidad_id LEFT JOIN distritos ds ON ds.id=c.distrito_id LEFT JOIN provincias pv ON pv.id=c.provincia_id LEFT JOIN departamentos dp ON dp.id=c.departamento_id WHERE ".implode(' AND ',$w)." ORDER BY dc.fecha DESC,dc.id DESC".$this->limitClause($limit,$offset);
         $st=\db()->prepare($sql);$st->execute($p);return $this->normalizeQuantities($st->fetchAll());
     }
@@ -35,7 +35,7 @@ final class BayerDataService
         $branch=trim((string)($filters['branch']??''));
         if($branch!==''){$w[]='s.codigo=?';$p[]=$branch;}
         $q=trim((string)($filters['q']??''));
-        if($q!==''){$w[]='(gc.numero LIKE ? OR c.razon_social LIKE ? OR pr.nombre LIKE ? OR pr.codigo LIKE ?)';$like='%'.$q.'%';array_push($p,$like,$like,$like,$like);}
+        if($q!==''){$w[]='(gc.numero LIKE ? OR c.razon_social LIKE ? OR pr.nombre LIKE ? OR pr.codigo LIKE ?)';$like=$q.'%';array_push($p,$like,$like,$like,$like);}
         $sql="SELECT e.ruc dealerId,e.razon_social dealerName,gc.numero documentNumber,DATE_FORMAT(gc.fecha,'%Y-%m-%d') documentDate,v.codigo salesId,TRIM(CONCAT(v.nombres,' ',COALESCE(v.apellidos,''))) salesName,s.codigo branchId,s.nombre branchName,c.nro_doc customerId,c.razon_social customerName,pr.codigo materialId,pr.nombre materialName,um.codigo measureUnit,gd.cantidad quantity,pv.nombre province,dp.nombre department,ds.nombre district FROM guias_cabecera gc JOIN clientes c ON c.id=gc.cliente_id JOIN vendedores v ON v.id=gc.vendedor_id JOIN sucursales s ON s.id=gc.sucursal_id JOIN empresas e ON e.id=s.empresa_id JOIN guias_detalle gd ON gd.guia_id=gc.id JOIN productos pr ON pr.id=gd.producto_id JOIN unidades_medida um ON um.id=gd.unidad_id LEFT JOIN distritos ds ON ds.id=gc.distrito_id LEFT JOIN provincias pv ON pv.id=gc.provincia_id LEFT JOIN departamentos dp ON dp.id=gc.departamento_id WHERE ".implode(' AND ',$w)." ORDER BY gc.fecha DESC,gc.id DESC".$this->limitClause($limit,$offset);
         $st=\db()->prepare($sql);$st->execute($p);return $this->normalizeQuantities($st->fetchAll());
     }
@@ -46,7 +46,7 @@ final class BayerDataService
         $branch=trim((string)($filters['branch']??''));
         if($branch!==''){$w[]='s.codigo=?';$p[]=$branch;}
         $q=trim((string)($filters['q']??''));
-        if($q!==''){$w[]='(a.nombre LIKE ? OR pr.nombre LIKE ? OR pr.codigo LIKE ? OR l.codigo_lote LIKE ?)';$like='%'.$q.'%';array_push($p,$like,$like,$like,$like);}
+        if($q!==''){$w[]='(a.nombre LIKE ? OR pr.nombre LIKE ? OR pr.codigo LIKE ? OR l.codigo_lote LIKE ?)';$like=$q.'%';array_push($p,$like,$like,$like,$like);}
         $sql="SELECT e.ruc dealerId,e.razon_social dealerName,DATE_FORMAT(sc.fecha_stock,'%Y-%m-%d') stockDate,s.codigo branchId,s.nombre branchName,a.codigo warehouseId,a.nombre warehouseName,pr.codigo materialId,pr.nombre materialName,um.codigo measureUnit,l.codigo_lote batch,sd.cantidad quantity,DATE_FORMAT(l.fecha_vencimiento,'%Y-%m-%d') expirationDate FROM stock_cabecera sc JOIN almacenes a ON a.id=sc.almacen_id JOIN sucursales s ON s.id=a.sucursal_id JOIN empresas e ON e.id=s.empresa_id JOIN stock_detalle sd ON sd.stock_id=sc.id JOIN productos pr ON pr.id=sd.producto_id JOIN unidades_medida um ON um.id=sd.unidad_id LEFT JOIN lotes l ON l.id=sd.lote_id WHERE ".implode(' AND ',$w)." ORDER BY sc.fecha_stock DESC,sc.id DESC".$this->limitClause($limit,$offset);
         $st=\db()->prepare($sql);$st->execute($p);return $this->normalizeQuantities($st->fetchAll());
     }
@@ -97,7 +97,7 @@ final class BayerDataService
 
         $q=trim((string)($filters['q']??''));
         if($q!==''){
-            $like='%'.$q.'%';
+            $like=$q.'%';
             if(in_array($type,['documents','sales'],true)){
                 $where[]='(dc.numero LIKE ? OR c.razon_social LIKE ? OR pr.nombre LIKE ? OR pr.codigo LIKE ?)';
             }elseif(in_array($type,['guides','shipments'],true)){
