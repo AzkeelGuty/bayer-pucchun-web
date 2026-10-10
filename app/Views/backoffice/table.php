@@ -161,7 +161,7 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
         <div class="row g-2 align-items-end">
             <div class="col-12 col-lg-8">
                 <label class="form-label" for="master-search">Buscar en el catálogo</label>
-                <input class="form-control" id="master-search" name="q" value="<?=e((string)($q??''))?>" placeholder="Escribe el inicio del código, DNI/RUC o nombre..." autocomplete="off">
+                <input class="form-control" id="master-search" name="q" value="<?=e((string)($q??''))?>" placeholder="Escribe el inicio del código, DNI/RUC o nombre..." autocomplete="off" aria-describedby="master-search-help">
             </div>
             <div class="col-12 col-lg-auto d-flex gap-2">
                 <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Buscar</button>
@@ -172,7 +172,7 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
                 >Limpiar</a>
             </div>
         </div>
-        <div class="form-text mt-2">La búsqueda consulta todo el catálogo. Para mayor velocidad se muestran <?=e((string)$perPage)?> registros por página.</div>
+        <div class="form-text mt-2" id="master-search-help">La búsqueda se actualiza automáticamente mientras escribes. Para mayor velocidad se muestran <?=e((string)$perPage)?> registros por página.</div>
     </div>
 </form>
 <?php endif; ?>
