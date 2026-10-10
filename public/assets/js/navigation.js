@@ -8,6 +8,8 @@
     let controller = null;
     let navigating = false;
     let scrollTimer = null;
+    let masterSearchTimer = null;
+    let masterSearchSequence = 0;
 
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
@@ -282,6 +284,17 @@
 
             finishScroll(options.restoreScroll ?? 0);
 
+            if (options.focusSelector) {
+                const focusTarget=document.querySelector(options.focusSelector);
+                if (focusTarget instanceof HTMLInputElement) {
+                    requestAnimationFrame(() => {
+                        focusTarget.focus({preventScroll:true});
+                        const end=focusTarget.value.length;
+                        try { focusTarget.setSelectionRange(end,end); } catch (_) {}
+                    });
+                }
+            }
+
             if (window.matchMedia('(max-width: 991.98px)').matches) {
                 document.body.classList.remove('sidebar-open');
                 const toggle = document.getElementById('sidebarToggle');
@@ -315,6 +328,47 @@
 
         event.preventDefault();
         navigate(url.href, {historyMode:'push'});
+    });
+
+    document.addEventListener('input', (event) => {
+        const input=event.target;
+        if (!(input instanceof HTMLInputElement)) return;
+        if (!input.matches('[data-master-search-form] input[name="q"]')) return;
+
+        const form=input.closest('[data-master-search-form]');
+        if (!(form instanceof HTMLFormElement)) return;
+
+        masterSearchSequence += 1;
+        const sequence=masterSearchSequence;
+        if (masterSearchTimer) window.clearTimeout(masterSearchTimer);
+
+        // Si una búsqueda automática anterior sigue viajando y el usuario
+        // continúa escribiendo, se cancela para evitar pintar resultados viejos.
+        if (controller && navigating) controller.abort();
+
+        const delay=input.value.trim()==='' ? 120 : 280;
+        masterSearchTimer=window.setTimeout(() => {
+            if (sequence!==masterSearchSequence || !input.isConnected) return;
+
+            const action=new URL(form.action || location.href, location.href);
+            action.search='';
+            const data=new FormData(form);
+            for (const [key,value] of data.entries()) {
+                if (value instanceof File) continue;
+                const textValue=String(value);
+                if (key==='q' && textValue.trim()==='') continue;
+                action.searchParams.set(key,textValue);
+            }
+            action.searchParams.delete('page');
+
+            navigate(action.href,{
+                historyMode:'replace',
+                method:'GET',
+                restoreScroll:window.scrollY,
+                focusSelector:'[data-master-search-form] input[name="q"]',
+                fallback:true
+            });
+        },delay);
     });
 
     document.addEventListener('submit', (event) => {
