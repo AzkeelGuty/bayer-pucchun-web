@@ -7,7 +7,7 @@ $field=function(string $name,string $label,string $key,mixed $value,string $cata
     if($catalog){
         $searchAttrs='';
         $searchable=[
-            'cliente_id'=>['Buscar por DNI/RUC o razón social...',url('/lookups?type=clientes')],
+            'cliente_id'=>['Escribe DNI/RUC o inicio del nombre...',url('/lookups?type=clientes')],
             'vendedor_id'=>['Buscar vendedor...',url('/lookups?type=vendedores')],
             'producto_id'=>['Buscar por código o producto...',url('/lookups?type=productos')],
         ];
