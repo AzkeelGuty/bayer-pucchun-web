@@ -44,7 +44,7 @@ $lookupProductos=e(url('/lookups?type=productos'));
             </div>
             <div class="col-md-4"></div>
 
-            <?php select('cliente_id', 'Cliente', $clientes, 'id', 'label', true, 'data-role="cliente" data-search-select data-search-url="'.$lookupClientes.'" data-search-placeholder="Buscar por DNI/RUC o razón social..." data-search-min="1"'); ?>
+            <?php select('cliente_id', 'Cliente', $clientes, 'id', 'label', true, 'data-role="cliente" data-search-select data-search-url="'.$lookupClientes.'" data-search-placeholder="Escribe DNI/RUC o inicio del nombre..." data-search-min="1"'); ?>
             <?php select('vendedor_id', 'Vendedor', $vendedores, 'id', 'nombre', true, 'data-search-select data-search-url="'.$lookupVendedores.'" data-search-placeholder="Buscar vendedor..." data-search-min="1"'); ?>
             <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre', true, 'data-search-select data-search-url="'.$lookupSucursales.'" data-search-placeholder="Buscar sucursal..." data-search-min="1"'); ?>
 
