@@ -74,6 +74,10 @@ try {
     ensure($permissions->forUser(10) === [], 'Inactive role has no grants');
     $pdo->exec('UPDATE roles SET estado=1 WHERE id=10');
 
+    // Explicit grants for the existing legitimate HTTP scenarios; no implicit role bypass.
+    $pdo->exec("INSERT INTO permisos(id,codigo,nombre) VALUES(3,'documents.read','Fixture'),(4,'guides.read','Fixture'),(5,'stock.read','Fixture')");
+    $pdo->exec('INSERT INTO rol_permiso(rol_id,permiso_id) VALUES(10,3),(11,3),(11,1),(12,4),(13,5)');
+
     $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error);
     if (!$socket) throw new RuntimeException('No local port');
     $address=stream_socket_get_name($socket,false);fclose($socket);
@@ -87,7 +91,8 @@ try {
     $env['APP_URL']=$base;
     $env['APP_DEBUG']='true'; // Even with debug requested, HTTP errors must be sanitized.
     $env['SESSION_NAME']=$sessionName;
-    $env['API_ENABLED']='false';
+    $env['API_ENABLED']='true';
+    $env['API_TOKEN_TTL']='900';
     $env['SESSION_TIMEOUT']='60';
     $env['LOGIN_MAX_ATTEMPTS']='5';
     $env['LOGIN_WINDOW']='900';
@@ -96,6 +101,26 @@ try {
     if (!is_resource($server)) throw new RuntimeException('HTTP server unavailable');
     fclose($pipes[0]);
     for($i=0;$i<50;++$i){$probe=@stream_socket_client('tcp://'.$address,$e,$m,0.1);if($probe){fclose($probe);break;}usleep(100000);}
+
+    // API: primero login de usuario, luego Bearer token temporal; no usa CSRF de sesión web.
+    $apiClient=[];
+    ensure(request('/api/v1/bayer/all',$apiClient)['status']===401,'API data requires Bearer token');
+    $apiLogin=request('/api/v1/auth/login',$apiClient,[
+        'email'=>'bayer@example.invalid',
+        'password'=>$password,
+    ]);
+    ensure($apiLogin['status']===200,'API login accepts valid published-data account without web CSRF');
+    $apiPayload=json_decode($apiLogin['body'],true,512,JSON_THROW_ON_ERROR);
+    $apiToken=(string)($apiPayload['auth']['access_token']??'');
+    ensure(str_starts_with($apiToken,'puc_'),'API login returns temporary token');
+    $apiData=request('/api/v1/bayer/all',$apiClient,null,['Authorization: Bearer '.$apiToken,'Accept: application/json']);
+    ensure($apiData['status']===200 && str_contains($apiData['body'],'PUBLICADO-ONLY'),'Bearer token unlocks published API data');
+    foreach(['BORRADOR','VALIDADO','OBSERVADO','ANULADO'] as $state){
+        ensure(!str_contains($apiData['body'],$state.'-ONLY'),'API hides non-published state '.$state);
+    }
+    $apiLogout=request('/api/v1/auth/logout',$apiClient,[],['Authorization: Bearer '.$apiToken,'Accept: application/json']);
+    ensure($apiLogout['status']===200,'API logout revokes token without CSRF');
+    ensure(request('/api/v1/bayer/all',$apiClient,null,['Authorization: Bearer '.$apiToken])['status']===401,'Revoked API token cannot be reused');
 
     $guest=[];
     ensure(request('/dashboard',$guest)['status']===302,'Guest redirects to login');
@@ -168,7 +193,83 @@ try {
     ensure(request('/stock',$gerencia)['status']===200,'Gerencia query');
     ensure(request('/stock/nuevo',$gerencia)['status']===403,'Gerencia does not capture');
 
+    // Revoke and restore the persisted grant while keeping the same authenticated cookie.
+    foreach ([['/documentos',$digitador,11,3],['/guias',$supervisor,12,4],['/stock',$gerencia,13,5]] as [$path,$cookies,$roleId,$permissionId]) {
+        $sessionBefore=$cookies[$sessionName];
+        $st=$pdo->prepare('DELETE FROM rol_permiso WHERE rol_id=? AND permiso_id=?');
+        $st->execute([$roleId,$permissionId]);
+        ensure(request($path,$cookies)['status']===403,'Revoked persisted grant denied '.$path);
+        ensure($cookies[$sessionName]===$sessionBefore,'Permission denial preserves session '.$path);
+        $st=$pdo->prepare('INSERT INTO rol_permiso(rol_id,permiso_id) VALUES(?,?)');
+        $st->execute([$roleId,$permissionId]);
+        ensure(request($path,$cookies)['status']===200,'Restored grant works without login '.$path);
+    }
+
     $admin=[];loginAs('ADMIN',$admin);
+
+    // Catálogos maestros: búsqueda por prefijo y respuesta apta para actualización en vivo.
+    $masterPrefix=request('/maestros?tab=clientes&q=Cli',$admin,null,['Accept: text/html','X-Requested-With: XMLHttpRequest','X-BP-Live-Search: 1']);
+    ensure($masterPrefix['status']===200 && str_contains($masterPrefix['body'],'Cliente'),'Master live search returns matching prefix');
+    ensure(str_contains($masterPrefix['body'],'data-table-card'),'Master live search returns replaceable result card');
+    $masterMiddle=request('/maestros?tab=clientes&q=liente',$admin,null,['Accept: text/html','X-Requested-With: XMLHttpRequest','X-BP-Live-Search: 1']);
+    ensure($masterMiddle['status']===200 && str_contains($masterMiddle['body'],'Sin información registrada.'),'Master live search rejects middle substring');
+
+    // Remote lookups: authenticated, small, filtered and parent-aware.
+    $lookupGuest=[];
+    ensure(request('/lookups?type=productos&q=M1',$lookupGuest,null,['Accept: application/json'])['status']===302,'Guest cannot use internal lookup');
+    ensure(request('/lookups?type[]=productos&q=M1',$admin,null,['Accept: application/json'])['status']===422,'Malformed lookup parameters are rejected');
+    $lookup=request('/lookups?type=productos&q=M1',$admin,null,['Accept: application/json']);
+    ensure($lookup['status']===200,'Product remote lookup responds');
+    $lookupData=json_decode($lookup['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure(count($lookupData['items']??[])===1 && ($lookupData['items'][0]['value']??'')==='1','Product lookup returns matching product only');
+    ensure(($lookupData['items'][0]['meta']['unitId']??'')==='1','Product lookup includes unit metadata');
+    $productPrefix=request('/lookups?type=productos&q=Pro',$admin,null,['Accept: application/json']);
+    $productPrefixData=json_decode($productPrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($productPrefix['status']===200 && count($productPrefixData['items']??[])===1,'Product lookup finds names by initial prefix');
+    $productCodePrefix=request('/lookups?type=productos&q=M',$admin,null,['Accept: application/json']);
+    $productCodePrefixData=json_decode($productCodePrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($productCodePrefix['status']===200 && count($productCodePrefixData['items']??[])===2,'Product lookup finds codes by initial prefix');
+    $productMiddle=request('/lookups?type=productos&q=ducto',$admin,null,['Accept: application/json']);
+    $productMiddleData=json_decode($productMiddle['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($productMiddle['status']===200 && count($productMiddleData['items']??[])===0,'Product lookup does not scan arbitrary middle letters');
+
+    $sellerPrefix=request('/lookups?type=vendedores&q=Ven',$admin,null,['Accept: application/json']);
+    $sellerPrefixData=json_decode($sellerPrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($sellerPrefix['status']===200 && count($sellerPrefixData['items']??[])===1,'Seller lookup finds initial prefix');
+    $sellerMiddle=request('/lookups?type=vendedores&q=endedor',$admin,null,['Accept: application/json']);
+    $sellerMiddleData=json_decode($sellerMiddle['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($sellerMiddle['status']===200 && count($sellerMiddleData['items']??[])===0,'Seller lookup rejects middle substring');
+
+    $branchPrefix=request('/lookups?type=sucursales&q=Suc',$admin,null,['Accept: application/json']);
+    $branchPrefixData=json_decode($branchPrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($branchPrefix['status']===200 && count($branchPrefixData['items']??[])===1,'Branch lookup finds initial prefix');
+    $branchMiddle=request('/lookups?type=sucursales&q=ucursal',$admin,null,['Accept: application/json']);
+    $branchMiddleData=json_decode($branchMiddle['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($branchMiddle['status']===200 && count($branchMiddleData['items']??[])===0,'Branch lookup rejects middle substring');
+
+    $warehousePrefix=request('/lookups?type=almacenes&q=Alm',$admin,null,['Accept: application/json']);
+    $warehousePrefixData=json_decode($warehousePrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($warehousePrefix['status']===200 && count($warehousePrefixData['items']??[])===2,'Warehouse lookup finds initial prefix');
+    $warehouseMiddle=request('/lookups?type=almacenes&q=lmacen',$admin,null,['Accept: application/json']);
+    $warehouseMiddleData=json_decode($warehouseMiddle['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($warehouseMiddle['status']===200 && count($warehouseMiddleData['items']??[])===0,'Warehouse lookup rejects middle substring');
+    $clientLookup=request('/lookups?type=clientes&q=0000',$admin,null,['Accept: application/json']);
+    $clientData=json_decode($clientLookup['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($clientLookup['status']===200 && count($clientData['items']??[])<=15,'Client lookup is limited and searchable');
+
+    $clientPrefix=request('/lookups?type=clientes&q=Cli',$admin,null,['Accept: application/json']);
+    $clientPrefixData=json_decode($clientPrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($clientPrefix['status']===200 && count($clientPrefixData['items']??[])===1,'Client lookup finds names by initial prefix');
+    $clientMiddle=request('/lookups?type=clientes&q=liente',$admin,null,['Accept: application/json']);
+    $clientMiddleData=json_decode($clientMiddle['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($clientMiddle['status']===200 && count($clientMiddleData['items']??[])===0,'Client lookup does not scan arbitrary middle letters');
+    $provinceLookup=request('/lookups?type=provincias&q=P&parent=1',$admin,null,['Accept: application/json']);
+    $provinceData=json_decode($provinceLookup['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($provinceLookup['status']===200 && count($provinceData['items']??[])===1 && ($provinceData['items'][0]['label']??'')==='P1','Province lookup respects department parent');
+    $lotLookup=request('/lookups?type=lotes&q=L1&parent=1',$admin,null,['Accept: application/json']);
+    $lotData=json_decode($lotLookup['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($lotLookup['status']===200 && count($lotData['items']??[])===1 && ($lotData['items'][0]['value']??'')==='1','Lot lookup respects product parent');
+
     $pdo->exec('RENAME TABLE documentos_detalle TO documentos_detalle_unavailable');
     $response=request('/documentos',$admin,null,['Accept: application/json']);
     ensure($response['status']===500 && !str_contains($response['body'],'SQLSTATE') && !str_contains($response['body'],'SELECT'),'500 sanitized despite debug');

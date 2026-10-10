@@ -2,22 +2,77 @@
 declare(strict_types=1);
 namespace App\Services;
 
+use App\Repositories\MasterDataRepository;
+
 /** Document screen adapter for Schema v2; does not create master records. */
 final class DocumentScreenService
 {
-    public function catalogs(): array
+    public function catalogs(bool $withNextNumbers=true): array
     {
         $queries = [
-            'tipo_documento_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM tipos_documento ORDER BY codigo',
-            'cliente_id'=>'SELECT id,CONCAT(nro_doc," · ",razon_social) label FROM clientes ORDER BY razon_social',
+            'tipo_documento_id'=>'SELECT id,codigo,CONCAT(codigo," · ",nombre) label FROM tipos_documento ORDER BY codigo',
+            'cliente_id'=>'SELECT c.id,CONCAT(c.nro_doc," · ",c.razon_social) label,
+                COALESCE(
+                    (SELECT h.vendedor_id FROM documentos_cabecera h WHERE h.cliente_id=c.id ORDER BY h.fecha DESC,h.id DESC LIMIT 1),
+                    (SELECT g.vendedor_id FROM guias_cabecera g WHERE g.cliente_id=c.id ORDER BY g.fecha DESC,g.id DESC LIMIT 1)
+                ) vendedor_sugerido_id,
+                COALESCE(
+                    (SELECT h.sucursal_id FROM documentos_cabecera h WHERE h.cliente_id=c.id ORDER BY h.fecha DESC,h.id DESC LIMIT 1),
+                    (SELECT g.sucursal_id FROM guias_cabecera g WHERE g.cliente_id=c.id ORDER BY g.fecha DESC,g.id DESC LIMIT 1)
+                ) sucursal_sugerida_id
+                FROM clientes c ORDER BY c.razon_social',
             'vendedor_id'=>'SELECT id,CONCAT(codigo," · ",nombres," ",COALESCE(apellidos,"")) label FROM vendedores WHERE estado=1 ORDER BY nombres',
             'sucursal_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM sucursales WHERE estado=1 ORDER BY nombre',
-            'producto_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM productos WHERE estado=1 ORDER BY nombre',
+            'producto_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label,unidad_base_id FROM productos WHERE estado=1 ORDER BY nombre',
             'unidad_id'=>'SELECT id,CONCAT(codigo," · ",nombre) label FROM unidades_medida ORDER BY nombre',
         ];
         $result=[];
         foreach($queries as $key=>$sql) $result[$key]=\db()->query($sql)->fetchAll();
         return $result;
+    }
+
+    /**
+     * Catálogos mínimos para una pantalla concreta.
+     * Evita descargar todos los clientes/productos: solo conserva las opciones ya seleccionadas.
+     */
+    public function catalogsFor(array $header=[],array $details=[]): array
+    {
+        $m=new MasterDataRepository();
+        $productIds=[];$unitIds=[];
+        foreach($details as $line){
+            if(!is_array($line)) continue;
+            $productIds[]=(int)($line['producto_id']??0);
+            $unitIds[]=(int)($line['unidad_id']??0);
+        }
+        $products=$m->productosByIds($productIds);
+        foreach($products as $product) $unitIds[]=(int)($product['unidad_base_id']??0);
+
+        return [
+            'tipo_documento_id'=>\db()->query("SELECT id,codigo,CONCAT(codigo,' · ',nombre) label
+                FROM tipos_documento
+                WHERE codigo IN ('FAC','BOL')
+                ORDER BY FIELD(codigo,'FAC','BOL')")->fetchAll(),
+            'cliente_id'=>$m->clientesByIds([(int)($header['cliente_id']??0)]),
+            'vendedor_id'=>$m->vendedoresByIds([(int)($header['vendedor_id']??0)]),
+            'sucursal_id'=>array_map(static fn(array $row):array=>[
+                'id'=>$row['id'],
+                'label'=>$row['nombre'],
+            ],$m->sucursales()),
+            'producto_id'=>$products,
+            'unidad_id'=>$this->unitsByIds($unitIds),
+        ];
+    }
+
+    private function unitsByIds(array $ids): array
+    {
+        $ids=array_values(array_unique(array_filter(array_map('intval',$ids),static fn(int $id):bool=>$id>0)));
+        if(!$ids){
+            return \db()->query('SELECT id,CONCAT(codigo," · ",nombre) label FROM unidades_medida ORDER BY nombre')->fetchAll();
+        }
+        $ph=implode(',',array_fill(0,count($ids),'?'));
+        $st=\db()->prepare('SELECT id,CONCAT(codigo," · ",nombre) label FROM unidades_medida WHERE id IN ('.$ph.') ORDER BY nombre');
+        $st->execute($ids);
+        return $st->fetchAll();
     }
 
     public function listing(array $query): array
@@ -31,9 +86,10 @@ final class DocumentScreenService
         if($state!=='') { $where[]='h.estado_registro=?'; $params[]=$state; }
         $joins=' FROM documentos_cabecera h JOIN clientes c ON c.id=h.cliente_id JOIN vendedores v ON v.id=h.vendedor_id JOIN sucursales s ON s.id=h.sucursal_id WHERE '.implode(' AND ',$where);
         $st=\db()->prepare('SELECT COUNT(*)'.$joins); $st->execute($params); $total=(int)$st->fetchColumn();
-        $pages=max(1,(int)ceil($total/10));
+        $perPage=15;
+        $pages=max(1,(int)ceil($total/$perPage));
         $page=min($pages,max(1,(int)(is_scalar($query['page']??1)?($query['page']??1):1)));
-        $st=\db()->prepare('SELECT h.*,c.razon_social cliente,v.nombres vendedor,s.nombre sucursal,(SELECT SUM(d.cantidad) FROM documentos_detalle d WHERE d.documento_id=h.id) cantidad'.$joins.' ORDER BY h.fecha DESC,h.id DESC LIMIT 10 OFFSET '.(($page-1)*10));
+        $st=\db()->prepare('SELECT h.*,c.razon_social cliente,v.nombres vendedor,s.nombre sucursal,(SELECT SUM(d.cantidad) FROM documentos_detalle d WHERE d.documento_id=h.id) cantidad'.$joins.' ORDER BY h.fecha DESC,h.id DESC LIMIT '.$perPage.' OFFSET '.(($page-1)*$perPage));
         $st->execute($params);
         return ['rows'=>$st->fetchAll(),'q'=>$q,'state'=>$state,'total'=>$total,'page'=>$page,'pages'=>$pages];
     }
@@ -54,9 +110,13 @@ final class DocumentScreenService
             foreach(['producto_id','unidad_id'] as $key) {
                 if(!is_scalar($line[$key]??null)||!in_array((string)$line[$key],array_map('strval',array_column($catalogs[$key],'id')),true)) $errors["details.$i.$key"]='VAL-003: selecciona una opción vigente.';
             }
-            foreach(['cantidad'=>3,'valor_unitario'=>2] as $key=>$precision) {
-                $value=$line[$key]??($key==='valor_unitario'?'0':'');
-                if(!is_scalar($value)||!preg_match('/^\d{1,'.(14-$precision).'}(\.\d{1,'.$precision.'})?$/D',(string)$value)||($key==='cantidad'&&(float)$value<=0)) $errors["details.$i.$key"]='VAL-002: usa un decimal válido'.($key==='cantidad'?' mayor que cero.':'.');
+            $quantity=$line['cantidad']??'';
+            if(\quantity_integer_value($quantity,false)===null){
+                $errors["details.$i.cantidad"]='VAL-002: ingresa una cantidad entera mayor que cero.';
+            }
+            $unitValue=$line['valor_unitario']??'0';
+            if(!is_scalar($unitValue)||!preg_match('/^\d{1,12}(\.\d{1,2})?$/D',(string)$unitValue)){
+                $errors["details.$i.valor_unitario"]='VAL-002: usa un valor unitario válido con hasta 2 decimales.';
             }
         }
         return $errors;

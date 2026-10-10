@@ -1,11 +1,11 @@
 <?php
-use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController};
+use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController,MasterDataController,LookupController};
 use App\Middleware\{AuthMiddleware,RoleMiddleware};
 use App\Policies\AccessPolicy;
 
 $router->before(static function (string $path): void {
     (new AuthMiddleware())->refresh();
-    if (preg_match('~^/(documentos|guias|stock|dashboard|usuarios|roles|permisos|maestros|homologaciones|validacion|publicaciones|reportes|configuracion|auditoria|evolucion)(/|$)~', $path)) {
+    if (preg_match('~^/(documentos|guias|stock|dashboard|usuarios|roles|permisos|maestros|homologaciones|validacion|publicaciones|reportes|configuracion|auditoria|evolucion|lookups)(/|$)~', $path)) {
         require_role(...AccessPolicy::INTERNAL);
     }
     if (preg_match('~^/(usuarios|roles|permisos|configuracion)(/|$)~', $path)) {
@@ -22,6 +22,7 @@ $router->get('/login',[AuthController::class,'showLogin']);
 $router->post('/login',[AuthController::class,'login']);
 $router->post('/logout',[AuthController::class,'logout'],[new AuthMiddleware()]);
 $router->get('/dashboard',[DashboardController::class,'index'],$internal);
+$router->get('/lookups',[LookupController::class,'search'],$internal);
 
 foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::class,'stock'=>StockController::class] as $path=>$controller) {
     $router->get('/'.$path,[$controller,'index'],$internal);
@@ -31,13 +32,23 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
     $router->post('/'.$path.'/actualizar',[$controller,'update'],$capture);
     $router->post('/'.$path.'/eliminar',[$controller,'destroy'],$capture);
     $router->post('/'.$path.'/estado',[$controller,'changeStatus'],$review);
+    $router->post('/'.$path.'/estado-masivo',[$controller,'bulkStatus'],$review);
 }
 
 $router->get('/documentos/ver',[DocumentController::class,'show'],$internal);
 $router->get('/guias/ver',[GuideController::class,'show'],$internal);
+$router->post('/guias/cliente-ubicacion',[GuideController::class,'saveClientLocation'],$capture);
 $router->get('/stock/ver',[StockController::class,'show'],$internal);
 
 $router->get('/maestros',[BackofficeController::class,'masters'],$internal);
+$router->get('/maestros/nuevo',[MasterDataController::class,'create'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/guardar',[MasterDataController::class,'store'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/maestros/editar',[MasterDataController::class,'edit'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/actualizar',[MasterDataController::class,'update'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/eliminar',[MasterDataController::class,'destroy'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/maestros/importar',[MasterDataController::class,'importPage'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/importar',[MasterDataController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/maestros/plantilla',[MasterDataController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/homologaciones',[BackofficeController::class,'homologations'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/validacion',[BackofficeController::class,'validation'],[new RoleMiddleware(['ADMIN','SUPERVISOR'])]);
 $router->get('/publicaciones',[BackofficeController::class,'publications'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
@@ -57,6 +68,10 @@ $router->get('/bayer/datos',[BayerController::class,'data'],$published);
 $router->get('/bayer/exportaciones',[BayerController::class,'exports'],$published);
 $router->get('/bayer/descargas',[BayerController::class,'downloads'],$published);
 $router->get('/export',[ExportController::class,'export'],$published);
+$router->postApi('/api/v1/auth/login',[ApiController::class,'login']);
+$router->postApi('/api/v1/auth/logout',[ApiController::class,'logout']);
+$router->get('/api/v1/bayer',[ApiController::class,'info']);
+$router->get('/api/v1/bayer/all',[ApiController::class,'all']);
 $router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
 $router->get('/api/v1/bayer/shipments',[ApiController::class,'shipments']);
 $router->get('/api/v1/bayer/inventory',[ApiController::class,'inventory']);

@@ -23,6 +23,8 @@ try {
     $upgrade->pdo->exec("INSERT INTO stock_detalle(stock_id,producto_id,unidad_id,cantidad) VALUES(2,2,1,4)");
     $before = $upgrade->pdo->query('SELECT * FROM documentos_cabecera')->fetch();
     $upgrade->load('database/migrations/002_schema_v2.sql');
+    $upgrade->load('database/migrations/004_catalogos_masivos_busqueda.sql');
+    $upgrade->load('database/migrations/005_api_tokens.sql');
     $after = $upgrade->pdo->query('SELECT * FROM documentos_cabecera')->fetch();
     ensure(array_intersect_key($after, $before) === $before, 'Upgrade preserves original header values');
     ensure($after['updated_at'] === null && $after['validated_by'] === null && (int) $after['version'] === 1, 'Do not invent historical audit data');
@@ -45,6 +47,21 @@ try {
         ensure($normalize($a) === $normalize($b), "Clean and upgraded table differ: $table\n$a\n$b");
     }
     rejects(fn() => $upgrade->load('database/migrations/002_schema_v2.sql'), PDOException::class, 1644);
+
+    // Performance migration is additive and idempotent; it is applied after the
+    // clean-vs-upgraded structural parity check because it is a post-v2 tuning layer.
+    $upgrade->load('database/migrations/006_performance_indexes.sql');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM schema_migrations WHERE version=6")->fetchColumn()===1,'Performance migration registered');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='productos' AND INDEX_NAME='ix_productos_estado_nombre'")->fetchColumn()===3,'Product autocomplete index created');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='documentos_cabecera' AND INDEX_NAME='ix_documentos_cliente_fecha'")->fetchColumn()===3,'Client history lookup index created');
+    $upgrade->load('database/migrations/006_performance_indexes.sql');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM schema_migrations WHERE version=6")->fetchColumn()===1,'Performance migration can be re-run safely');
+
+    $upgrade->load('database/migrations/007_document_types.sql');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM tipos_documento WHERE codigo IN ('FAC','BOL')")->fetchColumn()===2,'Factura y Boleta disponibles');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM schema_migrations WHERE version=7")->fetchColumn()===1,'Document type migration registered');
+    $upgrade->load('database/migrations/007_document_types.sql');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM tipos_documento WHERE codigo IN ('FAC','BOL')")->fetchColumn()===2,'Document type migration can be re-run safely');
 
     // Check constraints directly through SQL so passing repository validation cannot hide a broken schema.
     foreach (['INVALIDO', 'borrador'] as $state) {

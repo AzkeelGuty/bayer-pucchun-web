@@ -24,9 +24,9 @@ final class ExportController
             $value=trim((string)\input($key,''));
             if($value!=='') $filters[$key]=$value;
         }
-        $rows=(new BayerDataService())->dataset($type,$filters);
+        $count=(new BayerDataService())->countDataset($type,$filters);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['success'=>true,'count'=>count($rows)],JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success'=>true,'count'=>$count],JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -46,7 +46,7 @@ final class ExportController
         }
 
         $started=microtime(true);
-        $rows=(new BayerDataService())->dataset($type,$filters);
+        $rows=(new BayerDataService())->completeDataset($type,$filters);
         $generatedAt=date('Y-m-d H:i:s');
         $meta=ExportPresentation::metadata($type,$filters,$rows,(array)\auth_user(),$generatedAt);
 

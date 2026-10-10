@@ -14,12 +14,16 @@ final class BayerController
         \require_role(...AccessPolicy::PUBLISHED);
         $d = new DashboardService();
         $kpis = $d->kpis(true);
-        unset($kpis['clientes'], $kpis['productos']);
+        $distribution=[
+            ['label'=>'Documentos','value'=>$kpis['documentos']??0],
+            ['label'=>'Guías','value'=>$kpis['guias']??0],
+            ['label'=>'Stock','value'=>$kpis['stock']??0],
+        ];
         \view('dashboard.bayer.index', [
             'kpis'=>$kpis,
             'series'=>$d->salesByMonth(),
             'top'=>$d->topProducts(),
-            'distribution'=>$d->publishedDistribution(),
+            'distribution'=>$distribution,
             'lastUpdate'=>$d->lastPublishedAt(),
         ]);
     }
@@ -30,12 +34,20 @@ final class BayerController
         $type = $this->type();
         $filters = $this->filters();
         $service = new BayerDataService();
-        $rows = $service->dataset($type,$filters);
+        $perPage=15;
+        $total=$service->countDataset($type,$filters);
+        $pages=max(1,(int)ceil($total/$perPage));
+        $page=min($pages,max(1,(int)($_GET['page']??1)));
+        $rows=$service->dataset($type,$filters,$perPage,($page-1)*$perPage);
         \view('dashboard.bayer.data', [
             'rows'=>$rows,
             'type'=>$type,
             'filters'=>$filters,
             'branches'=>$service->branches(),
+            'total'=>$total,
+            'page'=>$page,
+            'pages'=>$pages,
+            'perPage'=>$perPage,
         ]);
     }
 
@@ -49,9 +61,19 @@ final class BayerController
     {
         \require_role(...AccessPolicy::PUBLISHED);
         $user=(int)\auth_user()['id'];
-        $st=\db()->prepare("SELECT id,tipo_dataset,formato,record_count,resultado,generated_at,nombre_archivo FROM exportaciones WHERE usuario_id=? ORDER BY generated_at DESC LIMIT 200");
+        $perPage=15;
+        $count=\db()->prepare('SELECT COUNT(*) FROM exportaciones WHERE usuario_id=?');
+        $count->execute([$user]);
+        $total=(int)$count->fetchColumn();
+        $pages=max(1,(int)ceil($total/$perPage));
+        $page=min($pages,max(1,(int)($_GET['page']??1)));
+        $offset=($page-1)*$perPage;
+        $st=\db()->prepare("SELECT id,tipo_dataset,formato,record_count,resultado,generated_at,nombre_archivo FROM exportaciones WHERE usuario_id=? ORDER BY generated_at DESC,id DESC LIMIT ".$perPage." OFFSET ".$offset);
         $st->execute([$user]);
-        \view('dashboard.bayer.downloads',['rows'=>$st->fetchAll()]);
+        \view('dashboard.bayer.downloads',[
+            'rows'=>$st->fetchAll(),
+            'total'=>$total,'page'=>$page,'pages'=>$pages,'perPage'=>$perPage,
+        ]);
     }
 
     private function type(): string
