@@ -86,6 +86,10 @@
                 value: String(option.value),
                 label: option.textContent.trim(),
                 search: normalize(option.textContent + ' ' + (option.dataset.search || '')),
+                prefixes: String(option.textContent || '')
+                    .split('·')
+                    .map(part => normalize(part))
+                    .filter(Boolean),
                 meta: {...option.dataset},
             }));
     }
@@ -156,7 +160,7 @@
 
         const allMatches = widget.remoteUrl
             ? widget.items
-            : widget.items.filter(item => item.search.includes(term));
+            : widget.items.filter(item => (item.prefixes || []).some(prefix => prefix.startsWith(term)));
         const matches = allMatches.slice(0, widget.limit);
         widget.rendered = matches;
 
