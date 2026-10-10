@@ -42,7 +42,7 @@ $lastGuide=$total>0 ? min($total,$page*$perPage) : 0;
         </div>
         <div class="col-6 col-md-3">
             <label class="form-label" for="guia-sucursal">Sucursal</label>
-            <select class="form-select" id="guia-sucursal" name="sucursal_id" data-search-select data-search-url="<?=e(url('/lookups?type=sucursales'))?>" data-search-placeholder="Buscar sucursal..." data-search-min="1">
+            <select class="form-select" id="guia-sucursal" name="sucursal_id" data-search-select data-search-url="<?=e(url('/lookups?type=sucursales'))?>" data-search-placeholder="Escribe código o inicio de la sucursal..." data-search-min="1">
                 <option value="">Todas</option>
                 <?php foreach ($sucursales as $s): ?>
                     <option value="<?= $s['id'] ?>" <?= (string) ($filters['sucursal_id'] ?? '') === (string) $s['id'] ? 'selected' : '' ?>><?= e($s['nombre']) ?></option>
