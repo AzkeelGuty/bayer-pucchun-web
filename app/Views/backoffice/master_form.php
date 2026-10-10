@@ -29,7 +29,7 @@ $title=($editing?'Editar ':'Nuevo ').mb_strtolower((string)$meta['title']);
             <div class="master-field">
                 <label class="form-label" for="<?=e($inputId)?>"><?=e($field['label'])?><?=$required?' *':''?></label>
                 <?php if($type==='select'): ?>
-                    <select class="form-select" id="<?=e($inputId)?>" name="record[<?=e($name)?>]" <?=$required?'required':''?> <?=isset($field['source'])?'data-search-select data-search-placeholder="Buscar '.e(mb_strtolower((string)$field['label'])).'..." data-search-min="1"':''?> <?=($field['source']??'')==='distritos'?'data-search-url="'.e(url('/lookups?type=ubicaciones')).'"':''?>>
+                    <select class="form-select" id="<?=e($inputId)?>" name="record[<?=e($name)?>]" <?=$required?'required':''?> <?=isset($field['source'])?'data-search-select data-search-placeholder="Escribe inicio de '.e(mb_strtolower((string)$field['label'])).'..." data-search-min="1"':''?> <?=($field['source']??'')==='distritos'?'data-search-url="'.e(url('/lookups?type=ubicaciones')).'"':''?>>
                         <?php if(!$required): ?><option value="">Sin asignar</option><?php endif; ?>
                         <?php if(isset($field['options'])): ?>
                             <?php foreach($field['options'] as $optionValue=>$optionLabel): ?>
