@@ -219,6 +219,13 @@ try {
     $clientLookup=request('/lookups?type=clientes&q=0000',$admin,null,['Accept: application/json']);
     $clientData=json_decode($clientLookup['body'],true,512,JSON_THROW_ON_ERROR);
     ensure($clientLookup['status']===200 && count($clientData['items']??[])<=15,'Client lookup is limited and searchable');
+
+    $clientPrefix=request('/lookups?type=clientes&q=Cli',$admin,null,['Accept: application/json']);
+    $clientPrefixData=json_decode($clientPrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($clientPrefix['status']===200 && count($clientPrefixData['items']??[])===1,'Client lookup finds names by initial prefix');
+    $clientMiddle=request('/lookups?type=clientes&q=liente',$admin,null,['Accept: application/json']);
+    $clientMiddleData=json_decode($clientMiddle['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($clientMiddle['status']===200 && count($clientMiddleData['items']??[])===0,'Client lookup does not scan arbitrary middle letters');
     $provinceLookup=request('/lookups?type=provincias&q=P&parent=1',$admin,null,['Accept: application/json']);
     $provinceData=json_decode($provinceLookup['body'],true,512,JSON_THROW_ON_ERROR);
     ensure($provinceLookup['status']===200 && count($provinceData['items']??[])===1 && ($provinceData['items'][0]['label']??'')==='P1','Province lookup respects department parent');
