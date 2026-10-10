@@ -30,6 +30,10 @@ final class LookupController
         $parent=ctype_digit((string)$rawParent)?(int)$rawParent:0;
         $limit=ctype_digit((string)$rawLimit)?(int)$rawLimit:15;
         $limit=max(5,min(20,$limit));
+        $chars=mb_strlen($q);
+        if($chars<=1) $limit=min($limit,8);
+        elseif($chars===2) $limit=min($limit,12);
+        else $limit=min($limit,15);
 
         $items=match($type){
             'clientes'=>$this->clients($q,$limit),
@@ -53,7 +57,7 @@ final class LookupController
                  FROM almacenes
                  WHERE estado=1 AND (codigo LIKE ? OR nombre LIKE ?)
                  ORDER BY nombre LIMIT ".$limit,
-                [$q.'%','%'.$q.'%']
+                [$q.'%',$q.'%']
             ),
             'provincias'=>$this->provinces($q,$parent,$limit),
             'distritos'=>$this->districts($q,$parent,$limit),
@@ -215,7 +219,7 @@ final class LookupController
              FROM lotes
              WHERE estado=1 AND producto_id=? AND codigo_lote LIKE ?
              ORDER BY codigo_lote LIMIT ".$limit,
-            [$parent,'%'.$q.'%']
+            [$parent,$q.'%']
         );
     }
 
