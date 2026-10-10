@@ -37,6 +37,7 @@ $masterRepo=$read('app/Repositories/MasterDataRepository.php');
 $performanceMigration=$read('database/migrations/006_performance_indexes.sql');
 $documentTypeMigration=$read('database/migrations/007_document_types.sql');
 $documentScreen=$read('app/Services/DocumentScreenService.php');
+$bayerDataService=$read('app/Services/BayerDataService.php');
 req(!is_file($root.'/app/Services/OperationalNumberingService.php'),'El generador automático de correlativos debe estar eliminado.');
 
 foreach([$docController,$guideController,$docForm,$guideForm,$docJs,$formsJs] as $content){
@@ -70,9 +71,9 @@ req(str_contains($masterTable,'catalog-pagination'),'La vista debe mostrar naveg
 req(str_contains($masterTable,"\$isMasterTable=(\$base??'')==='/maestros';"),'La paginación debe quedar aislada a Catálogos maestros.');
 req(str_contains($masterTable,"\$searchQuery=\$isMasterTable ? trim((string)(\$q??'')) : '';"),'La vista compartida no debe asumir que q existe en Publicaciones/Auditoría.');
 req(str_contains($masterTable,'50 registros por página') || str_contains($masterTable,'$perPage'),'La vista debe explicar la carga paginada.');
-req(str_contains($guideForm,'Buscar departamento...') && str_contains($guideForm,'Buscar provincia...') && str_contains($guideForm,'Buscar distrito...'),'Guías debe usar buscadores autocompletables para el ubigeo.');
-req(str_contains($guideForm,'Buscar vendedor...') && str_contains($guideForm,'Buscar sucursal...'),'Guías debe permitir buscar vendedor y sucursal.');
-req(str_contains($stockForm,'Buscar almacén...') && str_contains($stockForm,'Buscar lote...'),'Stock debe usar autocompletado para almacén y lote.');
+req(str_contains($guideForm,'Escribe inicio del departamento...') && str_contains($guideForm,'Escribe inicio de la provincia...') && str_contains($guideForm,'Escribe inicio del distrito...'),'Guías debe usar buscadores autocompletables por prefijo para el ubigeo.');
+req(str_contains($guideForm,'Escribe código o inicio del vendedor...') && str_contains($guideForm,'Escribe código o inicio de la sucursal...'),'Guías debe permitir buscar vendedor y sucursal por prefijo.');
+req(str_contains($stockForm,'Escribe código o inicio del almacén...') && str_contains($stockForm,'Escribe inicio del lote...'),'Stock debe usar autocompletado por prefijo para almacén y lote.');
 req(str_contains($searchableJs,'function refresh(select)'),'Los selects buscables deben refrescar opciones dinámicas.');
 req(str_contains($formsJs,'BP_SearchableSelects?.refresh?.(select)'),'Los cascados de ubigeo/lote deben sincronizar el buscador.');
 req(str_contains($masterForm,'data-search-select'),'Los formularios maestros deben buscar relaciones sin scroll largo.');
@@ -85,6 +86,11 @@ req(str_contains($lookupController,"'provincias'=>") && str_contains($lookupCont
 req(str_contains($searchableJs,'remoteCache') && str_contains($searchableJs,'fetch('),'Autocompletado debe consultar bajo demanda y reutilizar resultados.');
 req(str_contains($searchableJs,'160'),'Autocompletado remoto debe usar debounce para evitar consultas por cada tecla.');
 req(str_contains($searchableJs,'limit: Math.max(5, Math.min(20'),'Autocompletado remoto debe limitar las coincidencias.');
+req(str_contains($searchableJs,'prefix.startsWith(term)'),'Selects locales deben filtrar únicamente por inicio.');
+req(str_contains($lookupController,'if($chars<=1) $limit=min($limit,8);'),'Una sola letra debe devolver un máximo pequeño de coincidencias.');
+req(!str_contains($lookupController,"'%'.\$q.'%'"),'Lookups remotos no deben buscar substrings intermedios.');
+req(!str_contains($backofficeController,"'%'.\$q.'%'"),'Catálogos maestros deben buscar por prefijo.');
+req(!str_contains($bayerDataService,"'%'.\$q.'%'"),'Portal Bayer debe buscar por prefijo.');
 req(!str_contains($guideForm,'window.BP_PRODUCTS') && !str_contains($guideForm,'window.BP_GEO'),'Guías no debe incrustar miles de productos/ubigeos en el HTML.');
 req(!str_contains($stockForm,'window.BP_PRODUCTS') && !str_contains($stockForm,'window.BP_LOTES'),'Stock no debe incrustar catálogos completos en JavaScript.');
 req(str_contains($docForm,"/lookups?type=productos") && str_contains($docForm,"/lookups?type=clientes"),'Documentos debe buscar productos y clientes en servidor.');
