@@ -84,6 +84,17 @@ final class LookupController
 
     private function clients(string $q,int $limit): array
     {
+        // Búsqueda incremental por prefijo:
+        // "b" devuelve clientes que comienzan con B, no nombres que tengan una
+        // "b" en cualquier parte. Para números se prioriza DNI/RUC/código.
+        $numeric=preg_match('/^\\d+$/D',$q)===1;
+        $where=$numeric
+            ? '(c.nro_doc LIKE ? OR c.codigo LIKE ?)'
+            : 'c.razon_social LIKE ?';
+        $params=$numeric
+            ? [$q.'%',$q.'%']
+            : [$q.'%'];
+
         $sql="SELECT
                 c.id,
                 CONCAT(c.nro_doc,' · ',c.razon_social) label,
@@ -101,13 +112,11 @@ final class LookupController
               LEFT JOIN departamentos dp ON dp.id=c.departamento_id
               LEFT JOIN provincias p ON p.id=c.provincia_id
               LEFT JOIN distritos ds ON ds.id=c.distrito_id
-              WHERE c.nro_doc LIKE ? OR c.codigo LIKE ? OR c.razon_social LIKE ?
-              ORDER BY
-                CASE WHEN c.nro_doc LIKE ? OR c.codigo LIKE ? THEN 0 ELSE 1 END,
-                c.razon_social
+              WHERE ".$where."
+              ORDER BY c.razon_social,c.id
               LIMIT ".$limit;
         $st=$this->pdo->prepare($sql);
-        $st->execute([$q.'%',$q.'%','%'.$q.'%',$q.'%',$q.'%']);
+        $st->execute($params);
         $rows=$st->fetchAll(PDO::FETCH_ASSOC);
 
         $sellerIds=[];$branchIds=[];
