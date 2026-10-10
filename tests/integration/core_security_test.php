@@ -216,6 +216,33 @@ try {
     $lookupData=json_decode($lookup['body'],true,512,JSON_THROW_ON_ERROR);
     ensure(count($lookupData['items']??[])===1 && ($lookupData['items'][0]['value']??'')==='1','Product lookup returns matching product only');
     ensure(($lookupData['items'][0]['meta']['unitId']??'')==='1','Product lookup includes unit metadata');
+    $productPrefix=request('/lookups?type=productos&q=Pro',$admin,null,['Accept: application/json']);
+    $productPrefixData=json_decode($productPrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($productPrefix['status']===200 && count($productPrefixData['items']??[])===2,'Product lookup finds names by initial prefix');
+    $productMiddle=request('/lookups?type=productos&q=ducto',$admin,null,['Accept: application/json']);
+    $productMiddleData=json_decode($productMiddle['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($productMiddle['status']===200 && count($productMiddleData['items']??[])===0,'Product lookup does not scan arbitrary middle letters');
+
+    $sellerPrefix=request('/lookups?type=vendedores&q=Ven',$admin,null,['Accept: application/json']);
+    $sellerPrefixData=json_decode($sellerPrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($sellerPrefix['status']===200 && count($sellerPrefixData['items']??[])===1,'Seller lookup finds initial prefix');
+    $sellerMiddle=request('/lookups?type=vendedores&q=endedor',$admin,null,['Accept: application/json']);
+    $sellerMiddleData=json_decode($sellerMiddle['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($sellerMiddle['status']===200 && count($sellerMiddleData['items']??[])===0,'Seller lookup rejects middle substring');
+
+    $branchPrefix=request('/lookups?type=sucursales&q=Suc',$admin,null,['Accept: application/json']);
+    $branchPrefixData=json_decode($branchPrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($branchPrefix['status']===200 && count($branchPrefixData['items']??[])===1,'Branch lookup finds initial prefix');
+    $branchMiddle=request('/lookups?type=sucursales&q=ucursal',$admin,null,['Accept: application/json']);
+    $branchMiddleData=json_decode($branchMiddle['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($branchMiddle['status']===200 && count($branchMiddleData['items']??[])===0,'Branch lookup rejects middle substring');
+
+    $warehousePrefix=request('/lookups?type=almacenes&q=Alm',$admin,null,['Accept: application/json']);
+    $warehousePrefixData=json_decode($warehousePrefix['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($warehousePrefix['status']===200 && count($warehousePrefixData['items']??[])===2,'Warehouse lookup finds initial prefix');
+    $warehouseMiddle=request('/lookups?type=almacenes&q=lmacen',$admin,null,['Accept: application/json']);
+    $warehouseMiddleData=json_decode($warehouseMiddle['body'],true,512,JSON_THROW_ON_ERROR);
+    ensure($warehouseMiddle['status']===200 && count($warehouseMiddleData['items']??[])===0,'Warehouse lookup rejects middle substring');
     $clientLookup=request('/lookups?type=clientes&q=0000',$admin,null,['Accept: application/json']);
     $clientData=json_decode($clientLookup['body'],true,512,JSON_THROW_ON_ERROR);
     ensure($clientLookup['status']===200 && count($clientData['items']??[])<=15,'Client lookup is limited and searchable');
