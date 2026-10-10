@@ -42,7 +42,7 @@ $lastStock=$total>0 ? min($total,$page*$perPage) : 0;
         </div>
         <div class="col-6 col-md-3">
             <label class="form-label" for="stock-almacen">Almacén</label>
-            <select class="form-select" id="stock-almacen" name="almacen_id" data-search-select data-search-url="<?=e(url('/lookups?type=almacenes'))?>" data-search-placeholder="Buscar almacén..." data-search-min="1">
+            <select class="form-select" id="stock-almacen" name="almacen_id" data-search-select data-search-url="<?=e(url('/lookups?type=almacenes'))?>" data-search-placeholder="Escribe código o inicio del almacén..." data-search-min="1">
                 <option value="">Todos</option>
                 <?php foreach ($almacenes as $a): ?>
                     <option value="<?= $a['id'] ?>" <?= (string) ($filters['almacen_id'] ?? '') === (string) $a['id'] ? 'selected' : '' ?>><?= e($a['nombre']) ?></option>
