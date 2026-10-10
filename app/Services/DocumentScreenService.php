@@ -48,10 +48,16 @@ final class DocumentScreenService
         foreach($products as $product) $unitIds[]=(int)($product['unidad_base_id']??0);
 
         return [
-            'tipo_documento_id'=>\db()->query('SELECT id,codigo,CONCAT(codigo," · ",nombre) label FROM tipos_documento ORDER BY codigo')->fetchAll(),
+            'tipo_documento_id'=>\db()->query("SELECT id,codigo,CONCAT(codigo,' · ',nombre) label
+                FROM tipos_documento
+                WHERE codigo IN ('FAC','BOL')
+                ORDER BY FIELD(codigo,'FAC','BOL')")->fetchAll(),
             'cliente_id'=>$m->clientesByIds([(int)($header['cliente_id']??0)]),
             'vendedor_id'=>$m->vendedoresByIds([(int)($header['vendedor_id']??0)]),
-            'sucursal_id'=>$m->sucursalesByIds([(int)($header['sucursal_id']??0)]),
+            'sucursal_id'=>array_map(static fn(array $row):array=>[
+                'id'=>$row['id'],
+                'label'=>$row['nombre'],
+            ],$m->sucursales()),
             'producto_id'=>$products,
             'unidad_id'=>$this->unitsByIds($unitIds),
         ];
