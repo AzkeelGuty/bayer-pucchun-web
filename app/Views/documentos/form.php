@@ -8,8 +8,8 @@ $field=function(string $name,string $label,string $key,mixed $value,string $cata
         $searchAttrs='';
         $searchable=[
             'cliente_id'=>['Escribe DNI/RUC o inicio del nombre...',url('/lookups?type=clientes')],
-            'vendedor_id'=>['Buscar vendedor...',url('/lookups?type=vendedores')],
-            'producto_id'=>['Buscar por código o producto...',url('/lookups?type=productos')],
+            'vendedor_id'=>['Escribe código o inicio del vendedor...',url('/lookups?type=vendedores')],
+            'producto_id'=>['Escribe código o inicio del producto...',url('/lookups?type=productos')],
         ];
         if(isset($searchable[$catalog])){
             [$placeholder,$remote]=$searchable[$catalog];
