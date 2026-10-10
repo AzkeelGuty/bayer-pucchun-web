@@ -35,6 +35,8 @@ $appConfig=$read('config/app.php');
 $lookupController=$read('app/Controllers/LookupController.php');
 $masterRepo=$read('app/Repositories/MasterDataRepository.php');
 $performanceMigration=$read('database/migrations/006_performance_indexes.sql');
+$documentTypeMigration=$read('database/migrations/007_document_types.sql');
+$documentScreen=$read('app/Services/DocumentScreenService.php');
 req(!is_file($root.'/app/Services/OperationalNumberingService.php'),'El generador automático de correlativos debe estar eliminado.');
 
 foreach([$docController,$guideController,$docForm,$guideForm,$docJs,$formsJs] as $content){
@@ -86,6 +88,12 @@ req(str_contains($searchableJs,'limit: Math.max(5, Math.min(20'),'Autocompletado
 req(!str_contains($guideForm,'window.BP_PRODUCTS') && !str_contains($guideForm,'window.BP_GEO'),'Guías no debe incrustar miles de productos/ubigeos en el HTML.');
 req(!str_contains($stockForm,'window.BP_PRODUCTS') && !str_contains($stockForm,'window.BP_LOTES'),'Stock no debe incrustar catálogos completos en JavaScript.');
 req(str_contains($docForm,"/lookups?type=productos") && str_contains($docForm,"/lookups?type=clientes"),'Documentos debe buscar productos y clientes en servidor.');
+req(!str_contains($docForm,"/lookups?type=sucursales"),'Sucursal en Documentos debe ser lista directa, no autocompletado remoto.');
+req(!str_contains($docForm,"'tipo_documento_id'=>['Buscar tipo de documento"),'Tipo de documento debe ser lista directa, no buscador.');
+req(str_contains($documentScreen,"WHERE codigo IN ('FAC','BOL')"),'Documentos debe mostrar únicamente Factura y Boleta.');
+req(str_contains($documentScreen,'$m->sucursales()'),'Documentos debe cargar las sucursales activas para el selector directo.');
+req(str_contains($documentTypeMigration,"('FAC','Factura','01')") && str_contains($documentTypeMigration,"('BOL','Boleta','03')"),'Migración 007 debe asegurar Factura y Boleta.');
+req(str_contains($documentTypeMigration,"VALUES (7,'Factura y Boleta"),'Migración 007 debe quedar registrada.');
 req(str_contains($guideForm,"/lookups?type=productos") && str_contains($guideForm,"/lookups?type=clientes"),'Guías debe buscar productos y clientes en servidor.');
 req(str_contains($stockForm,"/lookups?type=productos") && str_contains($stockForm,"/lookups?type=almacenes"),'Stock debe buscar productos y almacenes en servidor.');
 req(str_contains($masterRepo,'productosByIds') && str_contains($masterRepo,'clientesByIds'),'Formularios deben poder cargar solamente maestros seleccionados.');
