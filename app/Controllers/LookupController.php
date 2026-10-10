@@ -39,14 +39,14 @@ final class LookupController
                  FROM vendedores
                  WHERE estado=1 AND (codigo LIKE ? OR nombres LIKE ? OR apellidos LIKE ?)
                  ORDER BY nombres LIMIT ".$limit,
-                [$q.'%','%'.$q.'%','%'.$q.'%']
+                [$q.'%',$q.'%',$q.'%']
             ),
             'sucursales'=>$this->simple(
                 "SELECT id,CONCAT(codigo,' · ',nombre) label
                  FROM sucursales
                  WHERE estado=1 AND (codigo LIKE ? OR nombre LIKE ?)
                  ORDER BY nombre LIMIT ".$limit,
-                [$q.'%','%'.$q.'%']
+                [$q.'%',$q.'%']
             ),
             'almacenes'=>$this->simple(
                 "SELECT id,CONCAT(codigo,' · ',nombre) label
@@ -160,7 +160,7 @@ final class LookupController
              ORDER BY CASE WHEN p.codigo LIKE ? THEN 0 ELSE 1 END,p.nombre
              LIMIT ".$limit
         );
-        $st->execute([$q.'%','%'.$q.'%',$q.'%']);
+        $st->execute([$q.'%',$q.'%',$q.'%']);
         return array_map(static fn(array $row):array=>[
             'value'=>(string)$row['id'],
             'label'=>(string)$row['label'],
@@ -178,7 +178,7 @@ final class LookupController
             "SELECT id,nombre label FROM provincias
              WHERE departamento_id=? AND nombre LIKE ?
              ORDER BY nombre LIMIT ".$limit,
-            [$parent,'%'.$q.'%']
+            [$parent,$q.'%']
         );
     }
 
@@ -189,7 +189,7 @@ final class LookupController
             "SELECT id,nombre label FROM distritos
              WHERE provincia_id=? AND nombre LIKE ?
              ORDER BY nombre LIMIT ".$limit,
-            [$parent,'%'.$q.'%']
+            [$parent,$q.'%']
         );
     }
 
@@ -202,7 +202,7 @@ final class LookupController
              JOIN departamentos dp ON dp.id=p.departamento_id
              WHERE d.nombre LIKE ? OR p.nombre LIKE ? OR dp.nombre LIKE ?
              ORDER BY dp.nombre,p.nombre,d.nombre LIMIT ".$limit,
-            ['%'.$q.'%','%'.$q.'%','%'.$q.'%']
+            [$q.'%',$q.'%',$q.'%']
         );
     }
 
