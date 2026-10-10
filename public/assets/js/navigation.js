@@ -10,6 +10,7 @@
     let scrollTimer = null;
     let masterSearchTimer = null;
     let masterSearchSequence = 0;
+    let masterSearchController = null;
 
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
@@ -330,6 +331,73 @@
         navigate(url.href, {historyMode:'push'});
     });
 
+    const liveMasterSearch = async (form,input,sequence) => {
+        const action=new URL(form.action || location.href, location.href);
+        action.search='';
+        const data=new FormData(form);
+        for (const [key,value] of data.entries()) {
+            if (value instanceof File) continue;
+            const textValue=String(value);
+            if (key==='q' && textValue.trim()==='') continue;
+            action.searchParams.set(key,textValue);
+        }
+        action.searchParams.delete('page');
+
+        masterSearchController?.abort();
+        masterSearchController=new AbortController();
+        const localController=masterSearchController;
+        const currentCard=document.querySelector('.data-table-card');
+        if (currentCard) currentCard.setAttribute('aria-busy','true');
+
+        try {
+            const response=await fetch(action.href,{
+                credentials:'same-origin',
+                cache:'no-store',
+                signal:localController.signal,
+                headers:{
+                    'Accept':HTML_ACCEPT,
+                    'X-Requested-With':'XMLHttpRequest',
+                    'X-BP-Live-Search':'1',
+                    'Cache-Control':'no-cache'
+                }
+            });
+            if (!response.ok) throw new Error('No se pudo actualizar la búsqueda.');
+            const html=await response.text();
+            if (sequence!==masterSearchSequence || localController!==masterSearchController) return;
+
+            const freshDoc=new DOMParser().parseFromString(html,'text/html');
+            const freshCard=freshDoc.querySelector('.data-table-card');
+            const liveCard=document.querySelector('.data-table-card');
+            if (!freshCard || !liveCard) throw new Error('No se encontró la tabla de resultados.');
+
+            liveCard.replaceWith(freshCard);
+            const clear=form.querySelector('[data-master-search-clear]');
+            clear?.classList.toggle('d-none',input.value.trim()==='');
+
+            try {
+                history.replaceState({
+                    ...(history.state || {}),
+                    bpSoftNavigation:true,
+                    scrollY:Math.max(0,Math.round(window.scrollY || 0))
+                },'',action.href);
+            } catch (_) {}
+
+            input.focus({preventScroll:true});
+            const end=input.value.length;
+            try { input.setSelectionRange(end,end); } catch (_) {}
+        } catch (error) {
+            if (error?.name==='AbortError') return;
+            console.error('Búsqueda automática:',error);
+            const card=document.querySelector('.data-table-card');
+            card?.removeAttribute('aria-busy');
+        } finally {
+            if (localController===masterSearchController) {
+                document.querySelector('.data-table-card')?.removeAttribute('aria-busy');
+                masterSearchController=null;
+            }
+        }
+    };
+
     document.addEventListener('input', (event) => {
         const input=event.target;
         if (!(input instanceof HTMLInputElement)) return;
@@ -341,33 +409,14 @@
         masterSearchSequence += 1;
         const sequence=masterSearchSequence;
         if (masterSearchTimer) window.clearTimeout(masterSearchTimer);
+        masterSearchController?.abort();
 
-        // Si una búsqueda automática anterior sigue viajando y el usuario
-        // continúa escribiendo, se cancela para evitar pintar resultados viejos.
-        if (controller && navigating) controller.abort();
-
-        const delay=input.value.trim()==='' ? 120 : 280;
+        // Respuesta visual casi inmediata, pero con una pausa mínima que evita
+        // enviar una consulta por cada pulsación cuando el usuario escribe rápido.
+        const delay=input.value.trim()==='' ? 60 : 110;
         masterSearchTimer=window.setTimeout(() => {
             if (sequence!==masterSearchSequence || !input.isConnected) return;
-
-            const action=new URL(form.action || location.href, location.href);
-            action.search='';
-            const data=new FormData(form);
-            for (const [key,value] of data.entries()) {
-                if (value instanceof File) continue;
-                const textValue=String(value);
-                if (key==='q' && textValue.trim()==='') continue;
-                action.searchParams.set(key,textValue);
-            }
-            action.searchParams.delete('page');
-
-            navigate(action.href,{
-                historyMode:'replace',
-                method:'GET',
-                restoreScroll:window.scrollY,
-                focusSelector:'[data-master-search-form] input[name="q"]',
-                fallback:true
-            });
+            liveMasterSearch(form,input,sequence);
         },delay);
     });
 
