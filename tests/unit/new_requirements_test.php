@@ -71,9 +71,12 @@ req(!str_contains($backofficeController,"LIMIT 300';"),'Catálogos maestros no d
 req(str_contains($masterTable,'catalog-pagination'),'La vista debe mostrar navegación paginada.');
 req(str_contains($masterTable,'La búsqueda se actualiza automáticamente mientras escribes.'),'Catálogos maestros debe explicar la búsqueda automática.');
 req(str_contains($navigationJs,"[data-master-search-form] input[name=\"q\"]"),'La búsqueda maestra debe reaccionar al escribir.');
-req(str_contains($navigationJs,"historyMode:'replace'"),'La búsqueda automática no debe llenar el historial del navegador.');
-req(str_contains($navigationJs,"focusSelector:'[data-master-search-form] input[name=\"q\"]'"),'La búsqueda automática debe devolver el foco al campo.');
-req(str_contains($navigationJs,'const delay=input.value.trim()===\'\' ? 120 : 280;'),'La búsqueda automática debe usar debounce.');
+req(str_contains($navigationJs,'liveMasterSearch'),'La búsqueda maestra debe actualizar resultados sin navegación completa.');
+req(str_contains($navigationJs,"freshDoc.querySelector('.data-table-card')"),'La búsqueda en vivo debe reemplazar solamente la tabla de resultados.');
+req(str_contains($navigationJs,'history.replaceState'),'La búsqueda automática no debe llenar el historial del navegador.');
+req(str_contains($navigationJs,'input.focus({preventScroll:true})'),'La búsqueda automática debe mantener el foco en el campo.');
+req(str_contains($navigationJs,"const delay=input.value.trim()==='' ? 60 : 110;"),'La búsqueda automática debe usar debounce corto de tiempo real.');
+req(str_contains($navigationJs,'masterSearchController?.abort()'),'La búsqueda automática debe cancelar consultas anteriores.');
 req(str_contains($masterTable,"\$isMasterTable=(\$base??'')==='/maestros';"),'La paginación debe quedar aislada a Catálogos maestros.');
 req(str_contains($masterTable,"\$searchQuery=\$isMasterTable ? trim((string)(\$q??'')) : '';"),'La vista compartida no debe asumir que q existe en Publicaciones/Auditoría.');
 req(str_contains($masterTable,'50 registros por página') || str_contains($masterTable,'$perPage'),'La vista debe explicar la carga paginada.');
