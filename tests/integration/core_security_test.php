@@ -207,6 +207,13 @@ try {
 
     $admin=[];loginAs('ADMIN',$admin);
 
+    // Catálogos maestros: búsqueda por prefijo y respuesta apta para actualización en vivo.
+    $masterPrefix=request('/maestros?tab=clientes&q=Cli',$admin,null,['Accept: text/html','X-Requested-With: XMLHttpRequest','X-BP-Live-Search: 1']);
+    ensure($masterPrefix['status']===200 && str_contains($masterPrefix['body'],'Cliente'),'Master live search returns matching prefix');
+    ensure(str_contains($masterPrefix['body'],'data-table-card'),'Master live search returns replaceable result card');
+    $masterMiddle=request('/maestros?tab=clientes&q=liente',$admin,null,['Accept: text/html','X-Requested-With: XMLHttpRequest','X-BP-Live-Search: 1']);
+    ensure($masterMiddle['status']===200 && str_contains($masterMiddle['body'],'Sin información registrada.'),'Master live search rejects middle substring');
+
     // Remote lookups: authenticated, small, filtered and parent-aware.
     $lookupGuest=[];
     ensure(request('/lookups?type=productos&q=M1',$lookupGuest,null,['Accept: application/json'])['status']===302,'Guest cannot use internal lookup');
