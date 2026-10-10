@@ -57,6 +57,12 @@ try {
     $upgrade->load('database/migrations/006_performance_indexes.sql');
     ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM schema_migrations WHERE version=6")->fetchColumn()===1,'Performance migration can be re-run safely');
 
+    $upgrade->load('database/migrations/007_document_types.sql');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM tipos_documento WHERE codigo IN ('FAC','BOL')")->fetchColumn()===2,'Factura y Boleta disponibles');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM schema_migrations WHERE version=7")->fetchColumn()===1,'Document type migration registered');
+    $upgrade->load('database/migrations/007_document_types.sql');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM tipos_documento WHERE codigo IN ('FAC','BOL')")->fetchColumn()===2,'Document type migration can be re-run safely');
+
     // Check constraints directly through SQL so passing repository validation cannot hide a broken schema.
     foreach (['INVALIDO', 'borrador'] as $state) {
         rejects(fn() => $upgrade->pdo->exec("UPDATE documentos_cabecera SET estado_registro='$state' WHERE id=1"), PDOException::class);
