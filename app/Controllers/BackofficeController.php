@@ -103,7 +103,7 @@ final class BackofficeController
                 $parts=[];
                 foreach($cfg['search'] as $column){
                     $parts[]=$column.' LIKE ?';
-                    $params[]='%'.$q.'%';
+                    $params[]=$q.'%';
                 }
                 $baseSql.=' WHERE ('.implode(' OR ',$parts).')';
             }
