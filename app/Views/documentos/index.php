@@ -1,8 +1,8 @@
 <?php
 require_once base_path('app/Views/components/workflow_control.php');
 require_once base_path('app/Views/components/bulk_workflow.php');
-$link=function(int $n)use($q,$state):string{
-    return url('/documentos?'.http_build_query(['q'=>$q,'state'=>$state,'page'=>$n]));
+$link=function(int $n)use($q,$state,$docState):string{
+    return url('/documentos?'.http_build_query(['q'=>$q,'state'=>$state,'doc_state'=>$docState,'page'=>$n]));
 };
 ?>
 <section class="module-header">
@@ -25,16 +25,24 @@ $link=function(int $n)use($q,$state):string{
             <label class="form-label" for="doc-search">Buscar documento</label>
             <input class="form-control" id="doc-search" name="q" value="<?=e($q)?>" placeholder="Número, cliente, vendedor o sucursal">
         </div>
-        <div class="col-12 col-md-3">
-            <label class="form-label" for="doc-state">Estado</label>
+        <div class="col-12 col-md-2">
+            <label class="form-label" for="doc-state">Estado del flujo</label>
             <select class="form-select" id="doc-state" name="state">
-                <option value="">Todos los estados</option>
+                <option value="">Todos</option>
                 <?php foreach(['BORRADOR','VALIDADO','OBSERVADO','PUBLICADO','ANULADO'] as $s): ?>
                     <option value="<?=e($s)?>" <?=$state===$s?'selected':''?>><?=e($s)?></option>
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-12 col-md-3 d-flex gap-2">
+        <div class="col-12 col-md-2">
+            <label class="form-label" for="doc-commercial-state">Comprobante</label>
+            <select class="form-select" id="doc-commercial-state" name="doc_state">
+                <option value="">Todos</option>
+                <option value="VIGENTE" <?=$docState==='VIGENTE'?'selected':''?>>Vigente</option>
+                <option value="ANULADO" <?=$docState==='ANULADO'?'selected':''?>>Anulado</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
             <button class="btn btn-primary">Buscar</button>
             <a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Limpiar</a>
         </div>
@@ -48,7 +56,7 @@ $link=function(int $n)use($q,$state):string{
         <div class="table-responsive">
             <table class="table app-table align-middle">
                 <thead>
-                    <tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Sucursal</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr>
+                    <tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Sucursal</th><th>Cantidad</th><th>Comprobante</th><th>Estado del flujo</th><th>Acciones</th></tr>
                 </thead>
                 <tbody>
                 <?php foreach($rows as $r): ?>
@@ -58,6 +66,7 @@ $link=function(int $n)use($q,$state):string{
                         <td><?=e($r['cliente'])?></td>
                         <td><?=e($r['sucursal'])?></td>
                         <td><?=e(format_quantity($r['cantidad']))?></td>
+                        <td><span class="badge-status status-<?=($r['estado_comprobante']??'VIGENTE')==='ANULADO'?'anulado':'publicado'?>"><?=e($r['estado_comprobante']??'VIGENTE')?></span></td>
                         <td><span class="badge-status status-<?=e(strtolower($r['estado_registro']))?>"><?=e($r['estado_registro'])?></span></td>
                         <td>
                             <div class="d-flex gap-2 align-items-center flex-wrap">
@@ -72,9 +81,9 @@ $link=function(int $n)use($q,$state):string{
                 <?php endforeach; ?>
 
                 <?php if(!$rows): ?>
-                    <tr><td colspan="7"><div class="empty-state">
+                    <tr><td colspan="8"><div class="empty-state">
                         <strong>No se encontraron documentos</strong>
-                        <span><?=$q!==''||$state!==''?'Prueba otros filtros o limpia la búsqueda.':'Los nuevos registros aparecerán aquí.'?></span>
+                        <span><?=$q!==''||$state!==''||$docState!==''?'Prueba otros filtros o limpia la búsqueda.':'Los nuevos registros aparecerán aquí.'?></span>
                     </div></td></tr>
                 <?php endif; ?>
                 </tbody>
