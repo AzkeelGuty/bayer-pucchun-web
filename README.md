@@ -116,3 +116,7 @@ feature/* -> Pull Request -> develop -> pruebas -> Pull Request -> main
 ## Nota de alcance
 
 La solución actual es una plataforma de gestión de información / Data Hub preparada para una futura integración con ERP. La integración automática con ERP es evolución futura y no reemplaza el control de validación, publicación y auditoría.
+
+
+### Migración de comprobantes
+Ejecutar `database/migrations/008_estado_comprobante.sql` para agregar el estado comercial VIGENTE/ANULADO e incorporar Factura, Boleta, Nota de crédito y Nota de débito.
