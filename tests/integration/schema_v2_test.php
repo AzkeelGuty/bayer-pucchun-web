@@ -25,6 +25,7 @@ try {
     $upgrade->load('database/migrations/002_schema_v2.sql');
     $upgrade->load('database/migrations/004_catalogos_masivos_busqueda.sql');
     $upgrade->load('database/migrations/005_api_tokens.sql');
+    $upgrade->load('database/migrations/008_estado_comprobante.sql');
     $after = $upgrade->pdo->query('SELECT * FROM documentos_cabecera')->fetch();
     ensure(array_intersect_key($after, $before) === $before, 'Upgrade preserves original header values');
     ensure($after['updated_at'] === null && $after['validated_by'] === null && (int) $after['version'] === 1, 'Do not invent historical audit data');
@@ -63,10 +64,19 @@ try {
     $upgrade->load('database/migrations/007_document_types.sql');
     ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM tipos_documento WHERE codigo IN ('FAC','BOL')")->fetchColumn()===2,'Document type migration can be re-run safely');
 
+    $upgrade->load('database/migrations/008_estado_comprobante.sql');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM schema_migrations WHERE version=8")->fetchColumn()===1,'Voucher status migration registered');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='documentos_cabecera' AND COLUMN_NAME='estado_comprobante'")->fetchColumn()===1,'Voucher status column exists');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM tipos_documento WHERE codigo IN ('FAC','BOL','NCR','NDB')")->fetchColumn()===4,'Commercial document types available');
+    ensure((string)$upgrade->pdo->query("SELECT estado_comprobante FROM documentos_cabecera WHERE id=1")->fetchColumn()==='VIGENTE','Legacy document defaults to VIGENTE');
+    $upgrade->load('database/migrations/008_estado_comprobante.sql');
+    ensure((int)$upgrade->pdo->query("SELECT COUNT(*) FROM schema_migrations WHERE version=8")->fetchColumn()===1,'Voucher status migration can be re-run safely');
+
     // Check constraints directly through SQL so passing repository validation cannot hide a broken schema.
     foreach (['INVALIDO', 'borrador'] as $state) {
         rejects(fn() => $upgrade->pdo->exec("UPDATE documentos_cabecera SET estado_registro='$state' WHERE id=1"), PDOException::class);
     }
+    rejects(fn() => $upgrade->pdo->exec("UPDATE documentos_cabecera SET estado_comprobante='INVALIDO' WHERE id=1"), PDOException::class);
     rejects(fn() => $upgrade->pdo->exec('UPDATE documentos_cabecera SET version=0 WHERE id=1'), PDOException::class);
     rejects(fn() => $upgrade->pdo->exec('UPDATE documentos_cabecera SET updated_by=999 WHERE id=1'), PDOException::class, 1452);
     rejects(fn() => $upgrade->pdo->exec('UPDATE documentos_detalle SET cantidad=0'), PDOException::class);
