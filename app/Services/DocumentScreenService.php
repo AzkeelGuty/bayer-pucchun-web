@@ -50,8 +50,8 @@ final class DocumentScreenService
         return [
             'tipo_documento_id'=>\db()->query("SELECT id,codigo,CONCAT(codigo,' · ',nombre) label
                 FROM tipos_documento
-                WHERE codigo IN ('FAC','BOL')
-                ORDER BY FIELD(codigo,'FAC','BOL')")->fetchAll(),
+                WHERE codigo IN ('FAC','BOL','NCR','NDB')
+                ORDER BY FIELD(codigo,'FAC','BOL','NCR','NDB')")->fetchAll(),
             'cliente_id'=>$m->clientesByIds([(int)($header['cliente_id']??0)]),
             'vendedor_id'=>$m->vendedoresByIds([(int)($header['vendedor_id']??0)]),
             'sucursal_id'=>array_map(static fn(array $row):array=>[
@@ -80,10 +80,13 @@ final class DocumentScreenService
         $q=is_string($query['q']??null)?trim($query['q']):'';
         $state=is_string($query['state']??null)?$query['state']:'';
         if(!in_array($state,['BORRADOR','VALIDADO','PUBLICADO','OBSERVADO','ANULADO'],true)) $state='';
+        $docState=is_string($query['doc_state']??null)?strtoupper(trim($query['doc_state'])):'';
+        if(!in_array($docState,['VIGENTE','ANULADO'],true)) $docState='';
         $where=['1=1']; $params=[];
         if(\has_role('DIGITADOR') && !\has_role('ADMIN','SUPERVISOR','GERENCIA')) { $where[]='h.created_by=?'; $params[]=(int)\auth_user()['id']; }
         if($q!=='') { $where[]='(h.numero LIKE ? OR c.razon_social LIKE ? OR v.nombres LIKE ? OR s.nombre LIKE ?)'; for($i=0;$i<4;$i++) $params[]='%'.$q.'%'; }
         if($state!=='') { $where[]='h.estado_registro=?'; $params[]=$state; }
+        if($docState!=='') { $where[]='h.estado_comprobante=?'; $params[]=$docState; }
         $joins=' FROM documentos_cabecera h JOIN clientes c ON c.id=h.cliente_id JOIN vendedores v ON v.id=h.vendedor_id JOIN sucursales s ON s.id=h.sucursal_id WHERE '.implode(' AND ',$where);
         $st=\db()->prepare('SELECT COUNT(*)'.$joins); $st->execute($params); $total=(int)$st->fetchColumn();
         $perPage=15;
@@ -91,7 +94,7 @@ final class DocumentScreenService
         $page=min($pages,max(1,(int)(is_scalar($query['page']??1)?($query['page']??1):1)));
         $st=\db()->prepare('SELECT h.*,c.razon_social cliente,v.nombres vendedor,s.nombre sucursal,(SELECT SUM(d.cantidad) FROM documentos_detalle d WHERE d.documento_id=h.id) cantidad'.$joins.' ORDER BY h.fecha DESC,h.id DESC LIMIT '.$perPage.' OFFSET '.(($page-1)*$perPage));
         $st->execute($params);
-        return ['rows'=>$st->fetchAll(),'q'=>$q,'state'=>$state,'total'=>$total,'page'=>$page,'pages'=>$pages];
+        return ['rows'=>$st->fetchAll(),'q'=>$q,'state'=>$state,'docState'=>$docState,'total'=>$total,'page'=>$page,'pages'=>$pages];
     }
 
     public function validate(array $header,array $details,array $catalogs): array
@@ -99,6 +102,10 @@ final class DocumentScreenService
         $errors=[];
         foreach(['tipo_documento_id','cliente_id','vendedor_id','sucursal_id'] as $key) {
             if(!is_scalar($header[$key]??null) || !in_array((string)$header[$key],array_map('strval',array_column($catalogs[$key],'id')),true)) $errors['header.'.$key]='VAL-003: selecciona un registro vigente del catálogo.';
+        }
+        $voucherState=is_scalar($header['estado_comprobante']??null)?strtoupper(trim((string)$header['estado_comprobante'])):'';
+        if(!in_array($voucherState,['VIGENTE','ANULADO'],true)){
+            $errors['header.estado_comprobante']='VAL-003: selecciona si el comprobante está vigente o anulado.';
         }
         $number=$header['numero']??'';
         if(!is_string($number)||trim($number)===''||strlen(trim($number))>25) $errors['header.numero']='VAL-001: ingresa un número de hasta 25 bytes.';
