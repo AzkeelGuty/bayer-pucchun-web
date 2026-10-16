@@ -37,6 +37,7 @@ Para una instalación existente se debe ejecutar una vez:
 
 ```text
 database/migrations/005_api_tokens.sql
+database/migrations/008_estado_comprobante.sql
 ```
 
 La API ya no utiliza un token fijo compartido en `.env`. Cada token se genera después de validar un usuario real del sistema, se almacena únicamente como hash SHA-256, tiene vencimiento y puede revocarse.
@@ -163,6 +164,7 @@ Los cuatro endpoints de datos aceptan:
 | `to` | Fecha final, inclusiva | `2026-09-30` |
 | `branch` | Código de sucursal | `PUC-CHI` |
 | `q` | Búsqueda por documento, cliente o producto según dataset | `maiz` |
+| `document_status` | Estado comercial del comprobante. Solo afecta `sales`: `VIGENTE` o `ANULADO` | `ANULADO` |
 
 Ejemplo:
 
@@ -213,6 +215,7 @@ Ejemplo simplificado de `GET /api/v1/bayer/sales`:
       "dealerName": "Pucchún Agro S.A.C.",
       "documentTypeId": "FAC",
       "documentType": "Factura",
+      "documentStatus": "VIGENTE",
       "documentNumber": "F001-000125",
       "documentDate": "2026-09-05",
       "salesId": "VEN-001",
@@ -297,7 +300,8 @@ Los errores también se devuelven en JSON y contienen un `requestId` para trazab
 
 ## Seguridad y trazabilidad
 
-- La API nunca devuelve BORRADOR, VALIDADO, OBSERVADO o ANULADO; solo `PUBLICADO`.
+- La API solo expone registros cuyo **estado del flujo interno** es `PUBLICADO`.
+- En documentos/ventas, `documentStatus` es independiente del flujo y puede ser `VIGENTE` o `ANULADO`; un comprobante anulado se conserva para trazabilidad y no se elimina.
 - El token no se registra en logs ni auditoría.
 - Cada llamada genera un `requestId`.
 - El consumo queda registrado en `bitacora_acceso` con IP, agente de usuario y tipo de llamada.
@@ -307,3 +311,19 @@ Los errores también se devuelven en JSON y contienen un `requestId` para trazab
 ## Automatización del lado de Bayer
 
 Bayer puede ejecutar estas consultas desde un proceso programado en su ERP, middleware, ETL, Power Automate, servicio Windows, cron o cualquier cliente HTTP. No es necesario que un usuario abra el portal ni presione un botón de descarga.
+
+
+## Estado comercial de comprobantes
+
+Desde la migración `008_estado_comprobante.sql`, los documentos separan dos conceptos:
+
+- `estado_registro`: flujo interno del ERP (`BORRADOR`, `VALIDADO`, `OBSERVADO`, `PUBLICADO`);
+- `estado_comprobante`: situación comercial del comprobante (`VIGENTE` o `ANULADO`).
+
+La API publica el segundo concepto como `documentStatus`. De esta forma, Bayer puede recibir un comprobante anulado sin perderlo de la trazabilidad, siempre que el registro siga publicado dentro del flujo interno.
+
+La misma migración asegura los tipos:
+- `FAC` / SUNAT 01 — Factura;
+- `BOL` / SUNAT 03 — Boleta;
+- `NCR` / SUNAT 07 — Nota de crédito;
+- `NDB` / SUNAT 08 — Nota de débito.
