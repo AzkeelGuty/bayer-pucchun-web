@@ -50,6 +50,16 @@ $correcting=$editing && (($header['estado_registro']??'')==='OBSERVADO');
     <div class="form-text">Ingrese el número real del documento. El sistema no genera correlativos.</div>
 </div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[fecha]','Fecha','header.fecha',$header['fecha']??'','','date'); ?></div>
+<div class="col-12 col-md-6 col-xl-4">
+    <?php $voucherError=$errors['header.estado_comprobante']??''; $voucherState=(string)($header['estado_comprobante']??'VIGENTE'); ?>
+    <label class="form-label" for="doc-estado-comprobante">Estado del comprobante</label>
+    <select class="form-select<?=$voucherError?' is-invalid':''?>" id="doc-estado-comprobante" name="header[estado_comprobante]" required aria-invalid="<?=$voucherError?'true':'false'?>">
+        <option value="VIGENTE" <?=$voucherState==='VIGENTE'?'selected':''?>>Vigente</option>
+        <option value="ANULADO" <?=$voucherState==='ANULADO'?'selected':''?>>Anulado</option>
+    </select>
+    <div class="form-text">Indica la situación comercial del comprobante. No reemplaza el estado de validación/publicación del ERP.</div>
+    <?php if($voucherError): ?><div class="invalid-feedback"><?=e($voucherError)?></div><?php endif; ?>
+</div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[cliente_id]','Cliente','header.cliente_id',$header['cliente_id']??'','cliente_id'); ?></div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[vendedor_id]','Vendedor','header.vendedor_id',$header['vendedor_id']??'','vendedor_id'); ?></div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[sucursal_id]','Sucursal','header.sucursal_id',$header['sucursal_id']??'','sucursal_id'); ?></div>
