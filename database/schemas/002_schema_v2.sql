@@ -197,6 +197,7 @@ CREATE TABLE documentos_cabecera (
     cliente_id BIGINT NOT NULL,
     vendedor_id BIGINT NOT NULL,
     sucursal_id INT NOT NULL,
+    estado_comprobante ENUM('VIGENTE','ANULADO') NOT NULL DEFAULT 'VIGENTE',
     estado_registro VARCHAR(20) NOT NULL DEFAULT 'BORRADOR',
     created_by BIGINT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -228,6 +229,7 @@ CREATE TABLE documentos_cabecera (
     CONSTRAINT ck_documentos_version CHECK (version >= 1),
     CONSTRAINT ck_documentos_fecha CHECK (fecha >= '1000-01-01' AND DAYOFMONTH(fecha) >= 1),
     INDEX ix_documentos_estado_fecha (estado_registro,fecha,id),
+    INDEX ix_documentos_comprobante_fecha (estado_comprobante,fecha,id),
     INDEX ix_documentos_ubicacion_fecha (sucursal_id,fecha,id)
 ) ENGINE=InnoDB;
 
