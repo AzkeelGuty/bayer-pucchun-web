@@ -107,7 +107,7 @@ final class ApiController
                     '/api/v1/bayer/shipments',
                     '/api/v1/bayer/inventory',
                 ],
-                'optionalFilters'=>['from','to','branch','q'],
+                'optionalFilters'=>['from','to','branch','q','document_status'],
                 'quantityModel'=>[
                     'quantity'=>'Número entero de productos o presentaciones.',
                     'quantityUnit'=>'NIU',
@@ -254,6 +254,16 @@ final class ApiController
             if($value==='') continue;
             if(mb_strlen($value)>100) throw new \InvalidArgumentException('Filtro demasiado largo.');
             $filters[$key]=$value;
+        }
+
+        $rawStatus=$_GET['document_status']??'';
+        if(!is_string($rawStatus)) throw new \InvalidArgumentException('Estado de comprobante inválido.');
+        $documentStatus=strtoupper(trim($rawStatus));
+        if($documentStatus!==''){
+            if(!in_array($documentStatus,['VIGENTE','ANULADO'],true)){
+                throw new \InvalidArgumentException('document_status debe ser VIGENTE o ANULADO.');
+            }
+            $filters['document_status']=$documentStatus;
         }
 
         return $filters;
