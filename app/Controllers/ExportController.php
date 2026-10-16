@@ -20,7 +20,7 @@ final class ExportController
         $type=(string)\input('type','documents');
         if(!in_array($type,['documents','guides','stock'],true)) throw new HttpException(422,'Dataset inválido.');
         $filters=[];
-        foreach(['from','to','branch','q'] as $key){
+        foreach(['from','to','branch','q','document_status'] as $key){
             $value=trim((string)\input($key,''));
             if($value!=='') $filters[$key]=$value;
         }
