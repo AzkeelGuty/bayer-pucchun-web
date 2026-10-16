@@ -62,6 +62,9 @@ try {
         if ($state === 'OBSERVADO') $docs->markObserved($id,2,$ids['SUPERVISOR'],'Fixture');
         if ($state === 'ANULADO') $docs->markCancelled($id,3,$ids['SUPERVISOR'],'Fixture');
     }
+    $commercialId=$docs->create([...docHeader('COMMERCIAL-ANULADO'),'estado_comprobante'=>'ANULADO'],lines(),$ids['ADMIN']);
+    $docs->markValidated($commercialId,1,$ids['SUPERVISOR']);
+    $docs->markPublished($commercialId,2,$ids['SUPERVISOR']);
     $pdo->exec("UPDATE productos SET nombre='</script><script>alert(1)</script>' WHERE id=1");
     $permissions = new App\Services\PermissionService($pdo);
     ensure($permissions->forUser($ids['ADMIN']) === [], 'No implicit ADMIN grants');
@@ -115,9 +118,13 @@ try {
     ensure(str_starts_with($apiToken,'puc_'),'API login returns temporary token');
     $apiData=request('/api/v1/bayer/all',$apiClient,null,['Authorization: Bearer '.$apiToken,'Accept: application/json']);
     ensure($apiData['status']===200 && str_contains($apiData['body'],'PUBLICADO-ONLY'),'Bearer token unlocks published API data');
+    ensure(str_contains($apiData['body'],'COMMERCIAL-ANULADO') && str_contains($apiData['body'],'"documentStatus": "ANULADO"'),'API exposes commercial status for published vouchers');
     foreach(['BORRADOR','VALIDADO','OBSERVADO','ANULADO'] as $state){
         ensure(!str_contains($apiData['body'],$state.'-ONLY'),'API hides non-published state '.$state);
     }
+    $apiCancelled=request('/api/v1/bayer/sales?document_status=ANULADO',$apiClient,null,['Authorization: Bearer '.$apiToken,'Accept: application/json']);
+    ensure($apiCancelled['status']===200 && str_contains($apiCancelled['body'],'COMMERCIAL-ANULADO') && !str_contains($apiCancelled['body'],'PUBLICADO-ONLY'),'API filters commercial ANULADO vouchers');
+    ensure(request('/api/v1/bayer/sales?document_status=INVALIDO',$apiClient,null,['Authorization: Bearer '.$apiToken,'Accept: application/json'])['status']===422,'API rejects invalid commercial status filter');
     $apiLogout=request('/api/v1/auth/logout',$apiClient,[],['Authorization: Bearer '.$apiToken,'Accept: application/json']);
     ensure($apiLogout['status']===200,'API logout revokes token without CSRF');
     ensure(request('/api/v1/bayer/all',$apiClient,null,['Authorization: Bearer '.$apiToken])['status']===401,'Revoked API token cannot be reused');
