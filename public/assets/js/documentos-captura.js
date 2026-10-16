@@ -1,14 +1,113 @@
-document.addEventListener('DOMContentLoaded', () => {
+(() => {
+    const init = () => {
     const form = document.querySelector('[data-documents-form]');
     if (form) {
         const body = form.querySelector('[data-details-body]');
         const add = form.querySelector('[data-add-detail]');
         const template = body.querySelector('[data-detail-row]').cloneNode(true);
+
+        // Si la búsqueda incremental alcanzó a mejorar la fila antes de cargar este
+        // script (posible durante navegación interna), conservar una plantilla limpia.
+        template.querySelectorAll('.incremental-select').forEach(wrapper => {
+            const nativeSelect = wrapper.querySelector('select.incremental-select-native');
+            if (!nativeSelect) return;
+            nativeSelect.classList.remove('incremental-select-native');
+            nativeSelect.removeAttribute('aria-hidden');
+            nativeSelect.removeAttribute('tabindex');
+            nativeSelect.removeAttribute('data-search-enhanced');
+            wrapper.replaceWith(nativeSelect);
+        });
+
+        const client = form.querySelector('[name="header[cliente_id]"]');
+        const seller = form.querySelector('[name="header[vendedor_id]"]');
+        const branch = form.querySelector('[name="header[sucursal_id]"]');
+        const applyClientSuggestions = (force = false) => {
+            if (!client) return;
+            const option = client.selectedOptions?.[0];
+            if (!option || !option.value) {
+                if (force) {
+                    if (seller) seller.value = '';
+                    if (branch) branch.value = '';
+                }
+                return;
+            }
+
+            const sellerId = option.dataset.sellerId || '';
+            const branchId = option.dataset.branchId || '';
+
+            if (seller && (force || !seller.value)) {
+                window.BP_SearchableSelects?.setOption?.(seller, sellerId ? {
+                    value: sellerId,
+                    label: option.dataset.sellerLabel || sellerId,
+                    meta: {}
+                } : null);
+            }
+            if (branch && (force || !branch.value)) {
+                window.BP_SearchableSelects?.setOption?.(branch, branchId ? {
+                    value: branchId,
+                    label: option.dataset.branchLabel || branchId,
+                    meta: {}
+                } : null);
+            }
+        };
+
+        const applyProductUnit = (row, force = false) => {
+            if (!row) return;
+            const product = row.querySelector('select[name$="[producto_id]"]');
+            const unit = row.querySelector('select[name$="[unidad_id]"]');
+            if (!product || !unit) return;
+
+            unit.classList.add('auto-unit-select');
+            unit.setAttribute('aria-readonly', 'true');
+            unit.tabIndex = -1;
+
+            if (!force && unit.value) return;
+            const option = product.selectedOptions?.[0];
+            const unitId = option?.dataset.unitId || '';
+            const unitLabel = option?.dataset.unitLabel || unitId;
+            if (window.BP_SearchableSelects?.setOption) {
+                window.BP_SearchableSelects.setOption(unit, unitId ? {
+                    value: unitId,
+                    label: unitLabel,
+                    meta: {}
+                } : null, false);
+            } else {
+                unit.value = unitId;
+            }
+        };
+
+        const mergeDuplicateProducts = () => {
+            const seen = new Map();
+            [...body.querySelectorAll('[data-detail-row]')].forEach(row => {
+                if (!row.isConnected) return;
+                const product = row.querySelector('select[name$="[producto_id]"]');
+                if (!product?.value) return;
+
+                if (!seen.has(product.value)) {
+                    seen.set(product.value, row);
+                    return;
+                }
+
+                const first = seen.get(product.value);
+                const firstQty = first.querySelector('input[name$="[cantidad]"]');
+                const rowQty = row.querySelector('input[name$="[cantidad]"]');
+                const a = Math.max(1, Number.parseInt(firstQty?.value || '1', 10) || 1);
+                const b = Math.max(1, Number.parseInt(rowQty?.value || '1', 10) || 1);
+                if (firstQty) firstQty.value = String(a + b);
+                row.remove();
+                firstQty?.focus({preventScroll: true});
+            });
+            refresh();
+        };
+
         const refresh = () => {
             const count = body.querySelectorAll('[data-detail-row]').length;
             body.querySelectorAll('[data-remove-detail]').forEach(button => button.disabled = count === 1);
             add.disabled = count >= 200;
-            form.querySelector('[data-detail-feedback]').textContent = `${count} ${count === 1 ? 'producto' : 'productos'}. Máximo 200 líneas.`;
+            const feedback = form.querySelector('[data-detail-feedback]');
+            if (feedback) {
+                feedback.textContent = `${count} ${count === 1 ? 'producto' : 'productos'}. Máximo 200 líneas.`;
+            }
         };
         add.addEventListener('click', () => {
             if (body.children.length >= 200) return;
@@ -21,11 +120,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 field.name = field.name.replace(/details\[\d+\]/, `details[${index}]`);
                 field.id = field.id.replace(/details-\d+-/, `details-${index}-`);
                 row.querySelectorAll('label').forEach(label => { if(label.htmlFor === oldId) label.htmlFor = field.id; });
-                field.value = field.name.endsWith('[valor_unitario]') ? '0' : '';
+                if (field.name.endsWith('[cantidad]')) field.value = '1';
+                else if (field.name.endsWith('[valor_unitario]')) field.value = '0';
+                else field.value = '';
                 field.classList.remove('is-invalid'); field.setAttribute('aria-invalid','false'); field.removeAttribute('aria-describedby');
             });
             body.appendChild(row); refresh(); row.querySelector('select').focus();
         });
+        if (client) {
+            client.addEventListener('change', () => applyClientSuggestions(true));
+            applyClientSuggestions(false);
+        }
+
+        body.querySelectorAll('[data-detail-row]').forEach(row => applyProductUnit(row, false));
+        body.addEventListener('change', event => {
+            const product = event.target.closest('select[name$="[producto_id]"]');
+            if (!product) return;
+            applyProductUnit(product.closest('[data-detail-row]'), true);
+            mergeDuplicateProducts();
+        });
+
         body.addEventListener('click', event => {
             const button = event.target.closest('[data-remove-detail]');
             if (!button || body.children.length <= 1) return;
@@ -34,9 +148,9 @@ document.addEventListener('DOMContentLoaded', () => {
             row.remove(); refresh(); focusRow?.querySelector('select').focus();
         });
         form.addEventListener('submit', () => {
+            mergeDuplicateProducts();
             const save = form.querySelector('[data-save]'); save.disabled = true; save.textContent = 'Guardando…';
         });
-        window.addEventListener('pageshow', () => { const save=form.querySelector('[data-save]');save.disabled=false;save.textContent='Guardar borrador'; });
         refresh(); document.querySelector('[data-error-summary]')?.focus();
     }
     const dialog = document.querySelector('[data-workflow-dialog]');
@@ -51,4 +165,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
         dialog.querySelector('[data-close-dialog]').addEventListener('click', () => dialog.close());
     }
-});
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init, {once:true});
+    } else {
+        init();
+    }
+})();

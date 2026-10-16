@@ -57,9 +57,18 @@ final class WorkflowService
 
             if($owns) $pdo->commit();
             return $newVersion;
+        } catch (HttpException $error) {
+            if($owns && $pdo->inTransaction()) $pdo->rollBack();
+            throw $error;
         } catch (RuntimeException $error) {
             if($owns && $pdo->inTransaction()) $pdo->rollBack();
-            throw new HttpException(409, 'El registro cambió mientras lo revisaba. Actualice la página e intente nuevamente.');
+            // Compatibility with persistState(): only its explicit concurrency failure is a 409.
+            // PDOException and unrelated runtime failures must reach the sanitized 500 handler.
+            if (get_class($error) === RuntimeException::class
+                && $error->getMessage() === 'Registro inexistente, estado de origen distinto o version desactualizada.') {
+                throw new HttpException(409, 'El registro cambió mientras lo revisaba. Actualice la página e intente nuevamente.');
+            }
+            throw $error;
         } catch (\InvalidArgumentException $error) {
             if($owns && $pdo->inTransaction()) $pdo->rollBack();
             throw new HttpException(422, $error->getMessage());
@@ -67,6 +76,44 @@ final class WorkflowService
             if($owns && $pdo->inTransaction()) $pdo->rollBack();
             throw $error;
         }
+    }
+
+    public function bulkTransition(
+        OperationalRepository $repository,
+        string $target,
+        int $actorId
+    ): array {
+        $source=match($target){
+            'VALIDADO'=>'BORRADOR',
+            'PUBLICADO'=>'VALIDADO',
+            default=>throw new HttpException(422,'Acción masiva no permitida.'),
+        };
+
+        $success=0;
+        $failed=0;
+        foreach($repository->workflowCandidates($source) as $candidate){
+            try{
+                $this->transition(
+                    $repository,
+                    (int)$candidate['id'],
+                    (int)$candidate['version'],
+                    $target,
+                    $actorId
+                );
+                $success++;
+            }catch(HttpException $error){
+                // Un registro que cambió mientras se procesaba no bloquea el resto.
+                $failed++;
+                \log_event('bulk_workflow_skip',[
+                    'module'=>$this->module($repository),
+                    'id'=>(int)$candidate['id'],
+                    'target'=>$target,
+                    'status'=>$error->status,
+                ]);
+            }
+        }
+
+        return ['success'=>$success,'failed'=>$failed,'source'=>$source,'target'=>$target];
     }
 
     private function module(OperationalRepository $repository): string

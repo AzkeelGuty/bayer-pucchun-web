@@ -47,14 +47,20 @@ abstract class OperationalRepository
         [$header, $details] = $this->normalize($header, $details);
         return $this->atomic(function () use ($id, $expectedVersion, $header, $details, $actorId): int {
             $current = $this->lockedHeader($id);
-            if (!$current || $current['estado_registro'] !== 'BORRADOR' || (int) $current['version'] !== $expectedVersion) {
-                throw new RuntimeException('Registro inexistente, fuera de BORRADOR o version desactualizada.');
+            $editableStates = ['BORRADOR', 'OBSERVADO'];
+            if (!$current || !in_array((string) $current['estado_registro'], $editableStates, true) || (int) $current['version'] !== $expectedVersion) {
+                throw new RuntimeException('Registro inexistente, fuera de edición o version desactualizada.');
             }
             $this->checkReferences($header, $details);
             $assignments = implode(',', array_map(static fn(string $field): string => "$field=?", array_keys($header)));
-            $sql = 'UPDATE ' . static::HEADER . " SET $assignments,updated_by=?,updated_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=? AND version=? AND estado_registro='BORRADOR'";
+            // Corregir un OBSERVADO lo devuelve automáticamente a BORRADOR; el motivo
+            // histórico permanece registrado en validaciones.
+            $sql = 'UPDATE ' . static::HEADER . " SET $assignments,estado_registro='BORRADOR',observation_reason=NULL,updated_by=?,updated_at=CURRENT_TIMESTAMP,version=version+1 WHERE id=? AND version=? AND estado_registro IN ('BORRADOR','OBSERVADO')";
             $this->execute('DELETE FROM ' . static::DETAIL . ' WHERE ' . static::PARENT_KEY . '=?', [$id]);
-            $this->execute($sql, [...array_values($header), $actorId, $id, $expectedVersion]);
+            $statement = $this->execute($sql, [...array_values($header), $actorId, $id, $expectedVersion]);
+            if ($statement->rowCount() !== 1) {
+                throw new RuntimeException('Registro inexistente, fuera de edición o version desactualizada.');
+            }
             $this->insertDetails($id, $details);
             return $expectedVersion + 1;
         });
@@ -139,6 +145,46 @@ abstract class OperationalRepository
         return $version + 1;
     }
 
+    public function countByState(string $state): int
+    {
+        if(!in_array($state,['BORRADOR','VALIDADO','PUBLICADO','OBSERVADO','ANULADO'],true)){
+            throw new InvalidArgumentException('Estado no admitido.');
+        }
+        $statement=$this->execute('SELECT COUNT(*) FROM '.static::HEADER.' WHERE estado_registro=?',[$state]);
+        return (int)$statement->fetchColumn();
+    }
+
+    public function countFiltered(array $filters=[]): int
+    {
+        $fields = ['estado_registro' => 'estado_registro', 'fecha_desde' => static::DATE_FIELD,
+            'fecha_hasta' => static::DATE_FIELD, static::LOCATION_FIELD => static::LOCATION_FIELD, 'created_by' => 'created_by'];
+        if (array_diff(array_keys($filters), array_keys($fields))) {
+            throw new InvalidArgumentException('Filtro no admitido.');
+        }
+        $where=[];
+        $values=[];
+        foreach($filters as $key=>$value){
+            if($key==='created_by') $value=self::positiveId($value);
+            $operator=$key==='fecha_desde'?'>=':($key==='fecha_hasta'?'<=':'=');
+            $where[]=$fields[$key].$operator.'?';
+            $values[]=$value;
+        }
+        $sql='SELECT COUNT(*) FROM '.static::HEADER;
+        if($where) $sql.=' WHERE '.implode(' AND ',$where);
+        return (int)$this->execute($sql,$values)->fetchColumn();
+    }
+
+    public function workflowCandidates(string $state): array
+    {
+        if(!in_array($state,['BORRADOR','VALIDADO'],true)){
+            throw new InvalidArgumentException('Estado masivo no admitido.');
+        }
+        return $this->execute(
+            'SELECT id,version FROM '.static::HEADER.' WHERE estado_registro=? ORDER BY id',
+            [$state]
+        )->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     protected function normalize(array $header, array $details): array
     {
         $allowed = [...static::HEADER_FIELDS, ...static::OPTIONAL_FIELDS];
@@ -183,7 +229,7 @@ abstract class OperationalRepository
                 } elseif (str_ends_with($field, '_id')) {
                     $line[$field] = self::positiveId($value);
                 } elseif ($field === 'cantidad') {
-                    $line[$field] = self::decimal($value, 3, static::HEADER === 'stock_cabecera');
+                    $line[$field] = self::quantity($value, static::HEADER === 'stock_cabecera');
                 } elseif ($field === 'valor_unitario') {
                     $line[$field] = self::decimal($value ?? 0, 2, true);
                 }
@@ -200,6 +246,38 @@ abstract class OperationalRepository
             throw new InvalidArgumentException('Identificador/version debe ser un entero positivo.');
         }
         return $id;
+    }
+
+    private static function quantity(mixed $value, bool $allowZero): string
+    {
+        if ((!is_string($value) && !is_int($value)) || is_bool($value)) {
+            throw new InvalidArgumentException($allowZero
+                ? 'La cantidad debe ser un número entero igual o mayor que cero.'
+                : 'La cantidad debe ser un número entero mayor que cero.');
+        }
+
+        $raw=trim((string)$value);
+        if(!preg_match('/^\\d+(?:\\.0{1,3})?$/D',$raw)){
+            throw new InvalidArgumentException($allowZero
+                ? 'La cantidad debe ser un número entero igual o mayor que cero.'
+                : 'La cantidad debe ser un número entero mayor que cero.');
+        }
+
+        $whole=explode('.',$raw,2)[0];
+        $whole=ltrim($whole,'0');
+        if($whole==='') $whole='0';
+        if(strlen($whole)>11){
+            throw new InvalidArgumentException('Cantidad fuera de rango.');
+        }
+
+        $quantity=(int)$whole;
+        if($allowZero ? $quantity<0 : $quantity<1){
+            throw new InvalidArgumentException($allowZero
+                ? 'La cantidad debe ser un número entero igual o mayor que cero.'
+                : 'La cantidad debe ser un número entero mayor que cero.');
+        }
+
+        return (string)$quantity.'.000';
     }
 
     private static function decimal(mixed $value, int $scale, bool $allowZero): string
@@ -294,13 +372,16 @@ abstract class OperationalRepository
             throw new InvalidArgumentException('Paginacion invalida: limite entre 1 y 300; offset no negativo.');
         }
         $fields = ['estado_registro' => 'h.estado_registro', 'fecha_desde' => 'h.' . static::DATE_FIELD,
-            'fecha_hasta' => 'h.' . static::DATE_FIELD, static::LOCATION_FIELD => 'h.' . static::LOCATION_FIELD];
+            'fecha_hasta' => 'h.' . static::DATE_FIELD, static::LOCATION_FIELD => 'h.' . static::LOCATION_FIELD, 'created_by' => 'h.created_by'];
         if (array_diff(array_keys($filters), array_keys($fields))) {
             throw new InvalidArgumentException('Filtro no admitido.');
         }
         $where = [];
         $values = [];
         foreach ($filters as $key => $value) {
+            if ($key === 'created_by') {
+                $value = self::positiveId($value);
+            }
             $operator = $key === 'fecha_desde' ? '>=' : ($key === 'fecha_hasta' ? '<=' : '=');
             $where[] = $fields[$key] . $operator . '?';
             $values[] = $value;

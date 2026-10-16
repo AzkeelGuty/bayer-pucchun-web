@@ -1,5 +1,26 @@
 <?php
 function base_path(string $path = ''): string { return dirname(__DIR__, 2) . ($path ? DIRECTORY_SEPARATOR . ltrim($path, '/\\') : ''); }
+function public_path(string $path = ''): string {
+    $configured = trim((string) env('BAYER_PUBLIC_ROOT', ''));
+    if ($configured !== '') {
+        $root = rtrim($configured, '/\\');
+    } else {
+        $projectPublic = base_path('public');
+        $script = trim((string) ($_SERVER['SCRIPT_FILENAME'] ?? ''));
+        $documentRoot = trim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''));
+        $scriptDir = $script !== '' ? realpath(dirname($script)) : false;
+        $docRoot = $documentRoot !== '' ? realpath($documentRoot) : false;
+
+        // En cPanel el front controller puede vivir físicamente en public_html
+        // mientras el backend está fuera del Document Root. Si index.php está
+        // directamente en el Document Root, esa es la carpeta pública real.
+        $root = ($scriptDir !== false && $docRoot !== false && $scriptDir === $docRoot)
+            ? $docRoot
+            : $projectPublic;
+    }
+
+    return $root . ($path ? DIRECTORY_SEPARATOR . ltrim($path, '/\\') : '');
+}
 function load_env(string $file): void {
     if (!is_file($file)) return;
     foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -27,7 +48,34 @@ function db(): PDO {
     return $pdo;
 }
 function e(mixed $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+function quantity_integer_value(mixed $value, bool $allowZero=false): ?int {
+    if ((!is_string($value) && !is_int($value)) || is_bool($value)) return null;
+    $raw=trim((string)$value);
+    if (!preg_match('/^\d+(?:\.0{1,3})?$/D',$raw)) return null;
+    $whole=explode('.',$raw,2)[0];
+    $whole=ltrim($whole,'0');
+    if ($whole==='') $whole='0';
+    if (strlen($whole)>11) return null;
+    $quantity=(int)$whole;
+    if ($allowZero ? $quantity<0 : $quantity<1) return null;
+    return $quantity;
+}
+function format_quantity(mixed $value): string {
+    $integer=quantity_integer_value($value,true);
+    if ($integer!==null) return (string)$integer;
+    if (!is_scalar($value)) return '—';
+    $raw=trim((string)$value);
+    if ($raw==='') return '—';
+    if (preg_match('/^\d+\.\d+$/D',$raw)) return rtrim(rtrim($raw,'0'),'.');
+    return $raw;
+}
 function url(string $path=''): string { $base=config('app.url',''); return $base . '/' . ltrim($path,'/'); }
+function asset_url(string $path): string {
+    $relative=ltrim($path,'/');
+    $absolute=public_path($relative);
+    $version=is_file($absolute) ? (string)@filemtime($absolute) : (string)time();
+    return url('/'.$relative).'?v='.rawurlencode($version);
+}
 function redirect(string $path): never { header('Location: '.url($path)); exit; }
 function request_method(): string { return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET'); }
 function input(string $key, mixed $default=null): mixed { return $_POST[$key] ?? $_GET[$key] ?? $default; }
@@ -72,6 +120,11 @@ function branding(): array
         'sidebar_color' => '#0A2F55',
         'background_color' => '#F4F7FB',
         'sidebar_theme' => 'dark',
+        'ui_density' => 'comfortable',
+        'corner_style' => 'rounded',
+        'shadow_style' => 'soft',
+        'sidebar_size' => 'normal',
+        'topbar_style' => 'glass',
         'logo_primary' => null,
         'logo_partner' => null,
         'favicon' => null,
@@ -113,8 +166,18 @@ function branding(): array
         }
     }
 
-    if (!in_array($brand['sidebar_theme'], ['dark','light'], true)) {
-        $brand['sidebar_theme'] = $defaults['sidebar_theme'];
+    $appearance = [
+        'sidebar_theme'=>['dark','light'],
+        'ui_density'=>['comfortable','compact'],
+        'corner_style'=>['rounded','balanced','square'],
+        'shadow_style'=>['soft','minimal','none'],
+        'sidebar_size'=>['normal','compact'],
+        'topbar_style'=>['glass','solid'],
+    ];
+    foreach($appearance as $key=>$allowed){
+        if(!is_string($brand[$key]) || !in_array($brand[$key],$allowed,true)){
+            $brand[$key]=$defaults[$key];
+        }
     }
 
     foreach (['logo_primary','logo_partner','favicon'] as $key) {
@@ -129,7 +192,7 @@ function branding_logo_url(string $key): ?string
     $brand = branding();
     $relative = $brand[$key] ?? null;
     if (!is_string($relative) || $relative === '') return null;
-    $absolute = base_path('public/' . ltrim($relative, '/'));
+    $absolute = public_path(ltrim($relative, '/'));
     return is_file($absolute) ? url('/' . ltrim($relative, '/')) : null;
 }
 

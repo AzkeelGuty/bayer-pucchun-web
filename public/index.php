@@ -1,15 +1,37 @@
 <?php
-// Buffer rendering so failures never leave a partial page containing internal output.
+// Front controller compatible con Document Root = /public y con cPanel /public_html.
 $initialBufferLevel = ob_get_level();
 ob_start();
 try {
-    require dirname(__DIR__) . '/config/bootstrap.php';
+    $publicParent = dirname(__DIR__);
+    $projectRoot = $publicParent;
+
+    if (!is_file($projectRoot . '/config/bootstrap.php')) {
+        $configuredRoot = trim((string)(getenv('BAYER_APP_ROOT') ?: ''));
+        $candidates = array_filter([
+            $configuredRoot,
+            $publicParent . '/bayer-pucchun-web',
+        ]);
+        $projectRoot = '';
+        foreach ($candidates as $candidate) {
+            $candidate = rtrim((string)$candidate, '/\\');
+            if ($candidate !== '' && is_file($candidate . '/config/bootstrap.php')) {
+                $projectRoot = $candidate;
+                break;
+            }
+        }
+        if ($projectRoot === '') {
+            throw new RuntimeException('No se encontró la raíz privada de la aplicación.');
+        }
+    }
+
+    require $projectRoot . '/config/bootstrap.php';
     header('Cache-Control: no-store');
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: strict-origin-when-cross-origin');
-    require dirname(__DIR__) . '/routes/Router.php';
+    require $projectRoot . '/routes/Router.php';
     $router = new App\Routes\Router();
-    require dirname(__DIR__) . '/routes/web.php';
+    require $projectRoot . '/routes/web.php';
     $router->dispatch(request_method(), $_SERVER['REQUEST_URI'] ?? '/');
     ob_end_flush();
 } catch (Throwable $error) {

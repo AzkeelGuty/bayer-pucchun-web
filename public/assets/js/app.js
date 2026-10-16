@@ -1,3 +1,4 @@
+// Dashboard assets: mantener colores diferenciados y comportamiento visual vigente.
 (() => {
     const body = document.body;
     const toggle = document.getElementById('sidebarToggle');
@@ -265,6 +266,178 @@
         if (!document.hidden) liveElements.forEach((element) => refreshLiveElement(element));
     });
 
+    /*
+     * Búsqueda incremental de Catálogos maestros.
+     * Actualiza solo la tabla, conserva el foco y no obliga a pulsar Enter.
+     */
+    let masterSearchTimer = null;
+    let masterSearchController = null;
+
+    const runMasterSearch = async (input) => {
+        const form = input.closest('[data-master-search-form]');
+        if (!form || !input.isConnected) return;
+
+        const table = document.querySelector('[data-live-refresh-key="backoffice-data-table"]');
+        if (!table) return;
+
+        const url = new URL(form.action || window.location.href, window.location.href);
+        const tab = form.querySelector('input[name="tab"]')?.value || '';
+        const query = input.value.trim();
+
+        if (tab) url.searchParams.set('tab', tab);
+        if (query) url.searchParams.set('q', query);
+        else url.searchParams.delete('q');
+
+        if (masterSearchController) masterSearchController.abort();
+        masterSearchController = new AbortController();
+        const controller = masterSearchController;
+
+        form.classList.add('is-searching');
+        table.setAttribute('aria-busy', 'true');
+
+        try {
+            const response = await fetch(url.href, {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'text/html,application/xhtml+xml',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            if (!response.ok) return;
+
+            const html = await response.text();
+            if (controller !== masterSearchController) return;
+
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const fresh = doc.querySelector('[data-live-refresh-key="backoffice-data-table"]');
+            if (!fresh) return;
+
+            table.innerHTML = fresh.innerHTML;
+            table.dataset.liveUpdatedAt = new Date().toISOString();
+
+            const clear = form.querySelector('[data-master-search-clear]');
+            if (clear) clear.classList.toggle('d-none', query === '');
+
+            try {
+                const state = {...(history.state || {}), bpSoftNavigation: true, scrollY: Math.round(window.scrollY || 0)};
+                history.replaceState(state, '', url.href);
+            } catch (_) {}
+        } catch (error) {
+            if (error?.name !== 'AbortError') console.error('Búsqueda incremental:', error);
+        } finally {
+            if (controller === masterSearchController) {
+                table.removeAttribute('aria-busy');
+                form.classList.remove('is-searching');
+            }
+        }
+    };
+
+    document.addEventListener('input', (event) => {
+        const input = event.target.closest?.('#master-search');
+        if (!input || !input.closest('[data-master-search-form]')) return;
+        if (event.isComposing) return;
+
+        if (masterSearchTimer) window.clearTimeout(masterSearchTimer);
+        masterSearchTimer = window.setTimeout(() => runMasterSearch(input), 220);
+    });
+
+    document.addEventListener('click', (event) => {
+        const clear = event.target.closest?.('[data-master-search-clear]');
+        if (!clear) return;
+        const form = clear.closest('[data-master-search-form]');
+        const input = form?.querySelector('#master-search');
+        if (!form || !input) return;
+
+        event.preventDefault();
+        input.value = '';
+        input.focus({preventScroll:true});
+        if (masterSearchTimer) window.clearTimeout(masterSearchTimer);
+        runMasterSearch(input);
+    });
+
+    /*
+     * Diálogo de observación.
+     * Se usa en Documentos, Guías y Stock para evitar popovers dentro de tablas.
+     */
+    if (!window.BP_WORKFLOW_DIALOG_BOUND) {
+        window.BP_WORKFLOW_DIALOG_BOUND = true;
+
+        const resetWorkflowDialog = (dialog) => {
+            const reason = dialog?.querySelector('[data-workflow-dialog-reason]');
+            const counter = dialog?.querySelector('[data-workflow-reason-count]');
+            if (reason) {
+                reason.value = '';
+                reason.setCustomValidity('');
+            }
+            if (counter) counter.textContent = '0';
+        };
+
+        const closeWorkflowDialog = (dialog) => {
+            if (!dialog) return;
+            resetWorkflowDialog(dialog);
+            if (dialog.open) dialog.close();
+        };
+
+        document.addEventListener('click', (event) => {
+            const opener = event.target.closest?.('[data-workflow-dialog-open]');
+            if (opener) {
+                event.preventDefault();
+                const id = opener.getAttribute('data-workflow-dialog-open');
+                const dialog = id ? document.getElementById(id) : null;
+                if (!(dialog instanceof HTMLDialogElement)) return;
+
+                document.querySelectorAll('dialog[data-workflow-dialog][open]').forEach((openDialog) => {
+                    if (openDialog !== dialog) closeWorkflowDialog(openDialog);
+                });
+
+                resetWorkflowDialog(dialog);
+                if (!dialog.open) dialog.showModal();
+                window.setTimeout(() => dialog.querySelector('[data-workflow-dialog-reason]')?.focus(), 30);
+                return;
+            }
+
+            const closer = event.target.closest?.('[data-workflow-dialog-close]');
+            if (closer) {
+                event.preventDefault();
+                closeWorkflowDialog(closer.closest('dialog[data-workflow-dialog]'));
+                return;
+            }
+
+            const dialog = event.target.closest?.('dialog[data-workflow-dialog]');
+            if (dialog && event.target === dialog) {
+                closeWorkflowDialog(dialog);
+            }
+        });
+
+        document.addEventListener('input', (event) => {
+            const reason = event.target.closest?.('[data-workflow-dialog-reason]');
+            if (!reason) return;
+            const counter = reason.closest('dialog[data-workflow-dialog]')?.querySelector('[data-workflow-reason-count]');
+            if (counter) counter.textContent = String(reason.value.length);
+        });
+
+        document.addEventListener('submit', (event) => {
+            const form = event.target.closest?.('.workflow-dialog-form');
+            if (!form) return;
+            const reason = form.querySelector('[data-workflow-dialog-reason]');
+            if (!reason) return;
+
+            const value = reason.value.trim();
+            if (value.length < 3) {
+                event.preventDefault();
+                reason.setCustomValidity('Escribe un motivo de observación claro.');
+                reason.reportValidity();
+                reason.focus();
+            } else {
+                reason.setCustomValidity('');
+            }
+        }, true);
+    }
+
     if (!window.dashboardData || typeof Chart === 'undefined') return;
 
     const series = window.dashboardData.series || [];
@@ -355,6 +528,15 @@
 
     const topCanvas = document.getElementById('topChart');
     if (topCanvas) {
+        const topColors = top.map((_, index) => {
+            const palette = ['#075b9f','#f59e0b','#7c3aed','#d92d20','#0891b2','#c2410c','#4f46e5','#be185d','#65a30d','#0f766e'];
+            if (index < palette.length) return palette[index];
+
+            // Si aparecen más productos, generamos tonos distintos para evitar barras repetidas.
+            const hue = Math.round((index * 137.508) % 360);
+            return `hsl(${hue} 68% 44%)`;
+        });
+
         new Chart(topCanvas, {
             type: 'bar',
             data: {
@@ -362,7 +544,7 @@
                 datasets: [{
                     label: 'Cantidad',
                     data: top.map(item => Number(item.cantidad)),
-                    backgroundColor: green,
+                    backgroundColor: topColors,
                     borderRadius: 8,
                     borderSkipped: false
                 }]
@@ -380,3 +562,27 @@
         });
     }
 })();
+
+
+// Confirmación centralizada para acciones masivas de workflow.
+document.addEventListener('submit', function (event) {
+    const form = event.target.closest?.('[data-bulk-workflow]');
+    if (!form) return;
+    const label = form.dataset.bulkLabel || 'procesar todos los registros';
+    if (!window.confirm('¿Confirmas que deseas ' + label + '? Esta acción se aplicará a todos los registros elegibles del módulo.')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+}, true);
+
+
+// Confirmación para borrado de catálogos maestros.
+document.addEventListener('submit', function (event) {
+    const form = event.target.closest?.('[data-master-delete]');
+    if (!form) return;
+    const label = form.dataset.masterLabel || 'este registro';
+    if (!window.confirm('¿Eliminar "' + label + '"? Esta acción no se puede deshacer. Si el registro está en uso, el sistema impedirá eliminarlo.')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+}, true);

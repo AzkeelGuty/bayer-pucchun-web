@@ -1,0 +1,43 @@
+/* Portal Bayer: tablas de consulta y trazabilidad */
+.portal-delivery-toolbar{gap:16px;align-items:center}
+.delivery-export{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.delivery-export-label{font-size:.72rem;font-weight:800;color:var(--bp-muted);text-transform:uppercase;letter-spacing:.05em}
+.published-data-card{overflow:hidden;border-color:#cfe0eb}
+.published-table-shell{overflow:auto;max-height:calc(100vh - 355px);min-height:190px}
+.published-table-portal{min-width:1440px;font-size:.9rem}
+.published-table-portal thead th{
+    position:sticky;top:0;z-index:2;
+    background:#eaf3f9!important;color:var(--bp-navy);
+    padding:13px 14px;white-space:nowrap;
+    font-size:.76rem;text-transform:uppercase!important;letter-spacing:.03em;
+    border-bottom:1px solid #cbdde9
+}
+.published-table-portal tbody tr:nth-child(even){background:#fbfdfe}
+.published-table-portal tbody tr:hover{background:#f2f8fc}
+.published-table-portal td{padding:13px 14px;border-color:#e5edf3;vertical-align:middle}
+.published-cell{white-space:nowrap;color:#29465e}
+.published-cell-long{min-width:150px;max-width:230px;white-space:normal;line-height:1.35;color:#17324d}
+.published-cell-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:inherit;color:#365a72}
+.published-cell-number{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:#183e59}
+.published-cell-date{font-variant-numeric:tabular-nums}
+.published-table-footnote{display:flex;align-items:center;gap:8px;padding:9px 14px;border-top:1px solid #e3edf3;background:#f8fbfd;color:#70879a;font-size:.68rem}
+.published-table-footnote .bi{color:var(--bp-blue)}
+.portal-history-card{overflow:hidden}
+.portal-history-table{min-width:920px}
+.portal-history-table thead th{text-transform:none!important;letter-spacing:.01em;white-space:nowrap}
+.portal-history-table td{padding:.76rem .8rem}
+.portal-history-date,.portal-dataset-pill,.portal-file-name,.portal-result{display:inline-flex;align-items:center;gap:7px}
+.portal-history-date{white-space:nowrap;color:#405d73;font-variant-numeric:tabular-nums}
+.portal-history-date .bi,.portal-file-name .bi{color:#7190a7}
+.portal-dataset-pill{padding:5px 8px;border-radius:8px;background:#eef5fa;color:#31536c;font-size:.72rem;font-weight:750;white-space:nowrap}
+.portal-dataset-pill .bi{color:var(--bp-blue)}
+.portal-file-name{max-width:300px;color:#36536b}
+.portal-file-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.portal-result{padding:5px 8px;border-radius:999px;font-size:.7rem;font-weight:800;white-space:nowrap}
+.portal-result-ok{background:#e8f7ef;color:#0d7a4c}
+.portal-result-neutral{background:#eef3f7;color:#50677a}
+@media(max-width:767.98px){
+    .portal-delivery-toolbar{align-items:flex-start}
+    .delivery-export{width:100%;justify-content:flex-start}
+    .published-table-shell{max-height:none}
+}

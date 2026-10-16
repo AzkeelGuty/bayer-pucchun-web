@@ -10,6 +10,7 @@ final class ExportPresentation
         'dealerName' => 'Empresa',
         'documentTypeId' => 'Cód. tipo doc.',
         'documentType' => 'Tipo de documento',
+        'documentStatus' => 'Estado del comprobante',
         'documentNumber' => 'N.º documento',
         'documentDate' => 'Fecha documento',
         'salesId' => 'Cód. vendedor',
@@ -21,7 +22,7 @@ final class ExportPresentation
         'materialId' => 'Cód. producto',
         'materialName' => 'Producto',
         'measureUnit' => 'Unidad',
-        'quantity' => 'Cantidad',
+        'quantity' => 'Cantidad de productos',
         'unitValue' => 'Valor unitario',
         'province' => 'Provincia',
         'department' => 'Departamento',
@@ -63,7 +64,7 @@ final class ExportPresentation
     {
         if ($value === null || $value === '') return '—';
         if ($key === 'quantity') {
-            return number_format((float)$value, 3, '.', ',');
+            return \format_quantity($value);
         }
         if ($key === 'unitValue') {
             return number_format((float)$value, 2, '.', ',');
@@ -79,6 +80,7 @@ final class ExportPresentation
             'to' => 'Hasta',
             'branch' => 'Sucursal',
             'q' => 'Búsqueda',
+            'document_status' => 'Estado del comprobante',
         ];
         $parts = [];
         foreach ($filters as $key => $value) {
@@ -92,7 +94,7 @@ final class ExportPresentation
     {
         $available = array_flip(self::keys($rows));
         $preferred = match ($type) {
-            'documents', 'sales' => ['documentNumber','documentDate','customerName','salesName','branchName','materialName','measureUnit','quantity','unitValue','district','province','department'],
+            'documents', 'sales' => ['documentNumber','documentDate','documentStatus','customerName','salesName','branchName','materialName','measureUnit','quantity','unitValue','district','province','department'],
             'guides', 'shipments' => ['documentNumber','documentDate','customerName','salesName','branchName','materialName','measureUnit','quantity','district','province','department'],
             'stock', 'inventory' => ['stockDate','branchName','warehouseName','materialName','measureUnit','batch','quantity','expirationDate'],
             default => self::keys($rows),
@@ -105,7 +107,9 @@ final class ExportPresentation
         $brand = \branding();
         $logoPath = static function (mixed $relative): ?string {
             if (!is_string($relative) || trim($relative) === '') return null;
-            $absolute = \base_path('public/' . ltrim($relative, '/'));
+            // Los logos se guardan en la raíz pública real. En cPanel puede ser
+            // public_html (BAYER_PUBLIC_ROOT), no necesariamente <proyecto>/public.
+            $absolute = \public_path(ltrim($relative, '/'));
             return is_file($absolute) ? $absolute : null;
         };
 
