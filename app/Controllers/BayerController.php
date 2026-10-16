@@ -109,6 +109,14 @@ final class BayerController
                 $out[$key]=$value;
             }
         }
+
+        $status=$_GET['document_status']??'';
+        if(!is_string($status)) throw new HttpException(422,'Estado de comprobante inválido.');
+        $status=strtoupper(trim($status));
+        if($status!==''){
+            if(!in_array($status,['VIGENTE','ANULADO'],true)) throw new HttpException(422,'Estado de comprobante inválido.');
+            $out['document_status']=$status;
+        }
         return $out;
     }
 }
