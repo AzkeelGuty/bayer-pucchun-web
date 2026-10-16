@@ -36,7 +36,7 @@ final class DocumentController
         }
         if($defaultType===null && $types) $defaultType=$types[0];
 
-        $header=['fecha'=>date('Y-m-d'),'numero'=>''];
+        $header=['fecha'=>date('Y-m-d'),'numero'=>'','estado_comprobante'=>'VIGENTE'];
         if(is_array($defaultType)){
             $header['tipo_documento_id']=$defaultType['id']??'';
         }
@@ -96,6 +96,9 @@ final class DocumentController
     public function update(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $this->save(true); }
     private function save(bool $editing): void {
         $header=is_array($_POST['header']??null)?$_POST['header']:[];
+        $header['estado_comprobante']=is_scalar($header['estado_comprobante']??null)
+            ? strtoupper(trim((string)$header['estado_comprobante']))
+            : 'VIGENTE';
         $details=is_array($_POST['details']??null)?array_values($_POST['details']):[];
         $id=(int)\input('id',0); $version=(int)\input('version',0);
         if($editing) { $r=$this->record($id); if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
@@ -115,7 +118,7 @@ final class DocumentController
             if($duplicate&&(!$editing||(int)$duplicate['header']['id']!==$id)) $errors['header.numero']='VAL-004: ya existe ese número para el tipo seleccionado.';
         }
         if($errors) { http_response_code(422); $this->form(array_merge($header,['id'=>$id,'version'=>$version]),$details,$editing,$errors); return; }
-        $header=array_intersect_key($header,array_flip(['tipo_documento_id','numero','fecha','cliente_id','vendedor_id','sucursal_id']));
+        $header=array_intersect_key($header,array_flip(['tipo_documento_id','numero','fecha','cliente_id','vendedor_id','sucursal_id','estado_comprobante']));
         $lines=[]; foreach($details as $line) $lines[]=array_intersect_key($line+['valor_unitario'=>'0'],array_flip(['producto_id','unidad_id','cantidad','valor_unitario']));
         try {
             if($editing) $this->repository->updateDraft($id,$version,$header,$lines,(int)\auth_user()['id']);
@@ -140,6 +143,28 @@ final class DocumentController
             throw new HttpException(409,'No se pudo eliminar. Actualice la página y verifique que siga en borrador.');
         }
         \redirect('/documentos');
+    }
+
+    public function changeVoucherStatus(): void {
+        \require_role('ADMIN','SUPERVISOR');
+        OperationalPermissionPolicy::require('documents.read');
+        $id=(int)\input('id',0);
+        $version=(int)\input('version',0);
+        $status=strtoupper(trim((string)\input('estado_comprobante','')));
+        $this->record($id);
+        try{
+            $this->repository->updateVoucherStatus($id,$version,$status,(int)\auth_user()['id']);
+        }catch(\InvalidArgumentException $error){
+            throw new HttpException(422,$error->getMessage());
+        }catch(\RuntimeException $error){
+            if($error->getMessage()==='Registro inexistente, estado de origen distinto o version desactualizada.'){
+                throw new HttpException(409,'El documento cambió. Actualice la página e intente nuevamente.');
+            }
+            throw $error;
+        }
+        \audit('documentos','estado_comprobante_'.strtolower($status),$id);
+        \flash('success','Estado del comprobante actualizado a '.$status.'.');
+        \redirect('/documentos/ver?id='.$id);
     }
 
     public function bulkStatus(): void {
