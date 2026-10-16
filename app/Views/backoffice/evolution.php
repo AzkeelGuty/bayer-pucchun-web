@@ -22,7 +22,7 @@ $ttlHours = max(1, (int)round(((int)$apiTokenTtl) / 3600));
                     <div><strong>Autenticación:</strong> Usuario + Bearer temporal</div>
                     <div><strong>Almacén de tokens:</strong> <?= $apiStorageReady ? 'Listo' : 'Pendiente' ?></div>
                     <div><strong>Duración del token:</strong> <?=e((string)$ttlHours)?> h</div>
-                    <div><strong>Datos expuestos:</strong> Solo PUBLICADOS</div>
+                    <div><strong>Datos expuestos:</strong> Flujo PUBLICADO; comprobante VIGENTE o ANULADO</div>
                     <div><strong>Formato:</strong> JSON</div>
                 </div>
                 <?php if(!$apiReady): ?>
