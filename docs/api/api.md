@@ -13,6 +13,7 @@ En instalaciones existentes ejecutar primero:
 
 ```text
 database/migrations/005_api_tokens.sql
+database/migrations/008_estado_comprobante.sql
 ```
 
 ## Flujo de autenticación
@@ -36,3 +37,16 @@ No se usa un `API_TOKEN` fijo en el archivo `.env`.
 - `GET /api/v1/bayer/inventory?from=YYYY-MM-DD&to=YYYY-MM-DD`
 
 La cantidad se interpreta como **conteo entero de productos/presentaciones**. La especificación completa, filtros, ejemplos y códigos HTTP están en `docs/API_REST_BAYER.md`.
+
+
+## Estado del comprobante
+
+Los documentos publicados incluyen `documentStatus` con valores `VIGENTE` o `ANULADO`. Este campo es independiente del estado del flujo interno del ERP.
+
+Filtro opcional para documentos/ventas:
+
+```text
+GET /api/v1/bayer/sales?document_status=ANULADO
+```
+
+La migración `008_estado_comprobante.sql` también incorpora Factura (01), Boleta (03), Nota de crédito (07) y Nota de débito (08).
