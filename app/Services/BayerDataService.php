@@ -23,9 +23,14 @@ final class BayerDataService
         $p=[];$w=$this->dateFilter($filters,$p,'dc','fecha');
         $branch=trim((string)($filters['branch']??''));
         if($branch!==''){$w[]='s.codigo=?';$p[]=$branch;}
+        $documentStatus=strtoupper(trim((string)($filters['document_status']??'')));
+        if($documentStatus!==''){
+            if(!in_array($documentStatus,['VIGENTE','ANULADO'],true)) throw new \InvalidArgumentException('Estado de comprobante inválido.');
+            $w[]='dc.estado_comprobante=?';$p[]=$documentStatus;
+        }
         $q=trim((string)($filters['q']??''));
         if($q!==''){$w[]='(dc.numero LIKE ? OR c.razon_social LIKE ? OR pr.nombre LIKE ? OR pr.codigo LIKE ?)';$like=$q.'%';array_push($p,$like,$like,$like,$like);}
-        $sql="SELECT e.ruc dealerId,e.razon_social dealerName,td.codigo documentTypeId,td.nombre documentType,dc.numero documentNumber,DATE_FORMAT(dc.fecha,'%Y-%m-%d') documentDate,v.codigo salesId,TRIM(CONCAT(v.nombres,' ',COALESCE(v.apellidos,''))) salesName,s.codigo branchId,s.nombre branchName,c.nro_doc customerId,c.razon_social customerName,pr.codigo materialId,pr.nombre materialName,um.codigo measureUnit,dd.cantidad quantity,dd.valor_unitario unitValue,pv.nombre province,dp.nombre department,ds.nombre district FROM documentos_cabecera dc JOIN tipos_documento td ON td.id=dc.tipo_documento_id JOIN clientes c ON c.id=dc.cliente_id JOIN vendedores v ON v.id=dc.vendedor_id JOIN sucursales s ON s.id=dc.sucursal_id JOIN empresas e ON e.id=s.empresa_id JOIN documentos_detalle dd ON dd.documento_id=dc.id JOIN productos pr ON pr.id=dd.producto_id JOIN unidades_medida um ON um.id=dd.unidad_id LEFT JOIN distritos ds ON ds.id=c.distrito_id LEFT JOIN provincias pv ON pv.id=c.provincia_id LEFT JOIN departamentos dp ON dp.id=c.departamento_id WHERE ".implode(' AND ',$w)." ORDER BY dc.fecha DESC,dc.id DESC".$this->limitClause($limit,$offset);
+        $sql="SELECT e.ruc dealerId,e.razon_social dealerName,td.codigo documentTypeId,td.nombre documentType,dc.estado_comprobante documentStatus,dc.numero documentNumber,DATE_FORMAT(dc.fecha,'%Y-%m-%d') documentDate,v.codigo salesId,TRIM(CONCAT(v.nombres,' ',COALESCE(v.apellidos,''))) salesName,s.codigo branchId,s.nombre branchName,c.nro_doc customerId,c.razon_social customerName,pr.codigo materialId,pr.nombre materialName,um.codigo measureUnit,dd.cantidad quantity,dd.valor_unitario unitValue,pv.nombre province,dp.nombre department,ds.nombre district FROM documentos_cabecera dc JOIN tipos_documento td ON td.id=dc.tipo_documento_id JOIN clientes c ON c.id=dc.cliente_id JOIN vendedores v ON v.id=dc.vendedor_id JOIN sucursales s ON s.id=dc.sucursal_id JOIN empresas e ON e.id=s.empresa_id JOIN documentos_detalle dd ON dd.documento_id=dc.id JOIN productos pr ON pr.id=dd.producto_id JOIN unidades_medida um ON um.id=dd.unidad_id LEFT JOIN distritos ds ON ds.id=c.distrito_id LEFT JOIN provincias pv ON pv.id=c.provincia_id LEFT JOIN departamentos dp ON dp.id=c.departamento_id WHERE ".implode(' AND ',$w)." ORDER BY dc.fecha DESC,dc.id DESC".$this->limitClause($limit,$offset);
         $st=\db()->prepare($sql);$st->execute($p);return $this->normalizeQuantities($st->fetchAll());
     }
 
@@ -94,6 +99,12 @@ final class BayerDataService
 
         $branch=trim((string)($filters['branch']??''));
         if($branch!==''){ $where[]='s.codigo=?'; $params[]=$branch; }
+
+        $documentStatus=strtoupper(trim((string)($filters['document_status']??'')));
+        if($documentStatus!=='' && in_array($type,['documents','sales'],true)){
+            if(!in_array($documentStatus,['VIGENTE','ANULADO'],true)) throw new \InvalidArgumentException('Estado de comprobante inválido.');
+            $where[]='dc.estado_comprobante=?'; $params[]=$documentStatus;
+        }
 
         $q=trim((string)($filters['q']??''));
         if($q!==''){
