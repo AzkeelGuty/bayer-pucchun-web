@@ -73,8 +73,9 @@ $ttlHours = max(1, (int)round(((int)$apiTokenTtl) / 3600));
                 </div>
                 <hr>
                 <p class="mb-2"><strong>Filtros opcionales:</strong></p>
-                <code>?from=2026-09-01&amp;to=2026-09-30&amp;branch=PUC-CHI&amp;q=maiz</code>
-                <p class="text-muted small mt-2 mb-0">El cliente puede consumir la API desde su ERP, middleware, ETL, Power Automate, servicio Windows o cualquier cliente HTTP.</p>
+                <code>?from=2026-09-01&amp;to=2026-09-30&amp;branch=PUC-CHI&amp;q=maiz&amp;document_status=VIGENTE</code>
+                <p class="text-muted small mt-2 mb-0"><code>document_status</code> aplica a documentos/ventas y admite <strong>VIGENTE</strong> o <strong>ANULADO</strong>.</p>
+                <p class="text-muted small mt-2 mb-0">El cliente puede consumir la API desde su ERP, middleware, ETL, Power Automate, servicio Windows o cualquier cliente HTTP. Los comprobantes publicados incluyen un estado comercial independiente del flujo interno.</p>
             </div>
         </div>
     </div>
