@@ -150,3 +150,7 @@ php scripts/maintenance/audit_quantities.php
 ```
 
 El comando es de solo lectura. Si responde `OK`, no existen cantidades fraccionarias históricas. Si lista registros, deben revisarse con la fuente original; el sistema no redondea ni modifica automáticamente datos anteriores.
+
+
+### Migración de comprobantes
+Ejecutar `database/migrations/008_estado_comprobante.sql` para agregar el estado comercial VIGENTE/ANULADO e incorporar Factura, Boleta, Nota de crédito y Nota de débito.
