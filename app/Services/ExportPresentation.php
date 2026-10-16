@@ -10,6 +10,7 @@ final class ExportPresentation
         'dealerName' => 'Empresa',
         'documentTypeId' => 'Cód. tipo doc.',
         'documentType' => 'Tipo de documento',
+        'documentStatus' => 'Estado del comprobante',
         'documentNumber' => 'N.º documento',
         'documentDate' => 'Fecha documento',
         'salesId' => 'Cód. vendedor',
@@ -79,6 +80,7 @@ final class ExportPresentation
             'to' => 'Hasta',
             'branch' => 'Sucursal',
             'q' => 'Búsqueda',
+            'document_status' => 'Estado del comprobante',
         ];
         $parts = [];
         foreach ($filters as $key => $value) {
@@ -92,7 +94,7 @@ final class ExportPresentation
     {
         $available = array_flip(self::keys($rows));
         $preferred = match ($type) {
-            'documents', 'sales' => ['documentNumber','documentDate','customerName','salesName','branchName','materialName','measureUnit','quantity','unitValue','district','province','department'],
+            'documents', 'sales' => ['documentNumber','documentDate','documentStatus','customerName','salesName','branchName','materialName','measureUnit','quantity','unitValue','district','province','department'],
             'guides', 'shipments' => ['documentNumber','documentDate','customerName','salesName','branchName','materialName','measureUnit','quantity','district','province','department'],
             'stock', 'inventory' => ['stockDate','branchName','warehouseName','materialName','measureUnit','batch','quantity','expirationDate'],
             default => self::keys($rows),
