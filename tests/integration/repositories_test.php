@@ -149,6 +149,10 @@ try {
     $version = $documents->markPublished($docId, $version, 2);
     rejects(fn() => $documents->returnToDraft($docId, $version, 2), RuntimeException::class);
     rejects(fn() => $documents->updateDraft($docId, $version, docHeader(), lines(), 1), RuntimeException::class);
+    rejects(fn() => $documents->updateVoucherStatus($docId,$version,'INVALIDO',2), InvalidArgumentException::class);
+    $version = $documents->updateVoucherStatus($docId,$version,'ANULADO',2);
+    $voucherRecord=$documents->find($docId)['header'];
+    ensure($voucherRecord['estado_registro']==='PUBLICADO' && $voucherRecord['estado_comprobante']==='ANULADO','Commercial cancellation does not remove published workflow state');
     $version = $documents->markCancelled($docId, $version, 2, 'Anulacion documentada');
     $record = $documents->find($docId)['header'];
     ensure($record['estado_registro'] === 'ANULADO' && $record['cancellation_reason'] === 'Anulacion documentada', 'Logical cancellation');
