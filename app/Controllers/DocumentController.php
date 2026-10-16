@@ -183,6 +183,9 @@ final class DocumentController
     public function changeStatus(): void {
         \require_role('ADMIN','SUPERVISOR');
         $status=OperationalPermissionPolicy::workflow(\input('status',''));
+        if($status==='ANULADO'){
+            throw new HttpException(422,'Para anular comercialmente un comprobante use el campo Estado del comprobante; el flujo publicado se conserva para trazabilidad.');
+        }
         $id=(int)\input('id');
         $version=(int)\input('version');
         $reason=trim((string)\input('reason',''));
