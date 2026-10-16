@@ -11,6 +11,19 @@ class DocumentRepository extends OperationalRepository
     protected const HEADER_FIELDS = ['tipo_documento_id', 'numero', 'fecha', 'cliente_id', 'vendedor_id', 'sucursal_id', 'estado_comprobante'];
     protected const DETAIL_FIELDS = ['producto_id', 'unidad_id', 'cantidad', 'valor_unitario'];
 
+    protected function normalize(array $header, array $details): array
+    {
+        $status=is_scalar($header['estado_comprobante']??null)
+            ? strtoupper(trim((string)$header['estado_comprobante']))
+            : 'VIGENTE';
+        if($status==='') $status='VIGENTE';
+        if(!in_array($status,['VIGENTE','ANULADO'],true)){
+            throw new \InvalidArgumentException('Estado de comprobante inválido.');
+        }
+        $header['estado_comprobante']=$status;
+        return parent::normalize($header,$details);
+    }
+
     public function findByNumber(int $typeId, string $number): ?array
     {
         $id = $this->execute('SELECT id FROM documentos_cabecera WHERE tipo_documento_id=? AND numero=?', [$typeId, $number])->fetchColumn();
