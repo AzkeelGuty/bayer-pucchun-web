@@ -44,4 +44,10 @@ $css=$read('public/assets/css/app.css');
 foreach(['btn-app-blue','btn-app-green','btn-app-amber','btn-app-red'] as $selector)
     checkActionUi(str_contains($css,'.btn.'.$selector),'Color '.$selector.' disponible');
 
+checkActionUi(str_contains($read('app/Helpers/functions.php'),'function can_workflow_permission('),'Vista comprueba permisos efectivos');
+checkActionUi(str_contains($read('app/Views/components/bulk_workflow.php'),'can_workflow_permission('),'Acción masiva exige permiso efectivo');
+checkActionUi(str_contains($read('app/Views/components/workflow_control.php'),'can_workflow_permission('),'Control de aprobación usa permisos efectivos');
+checkActionUi(str_contains($read('public/assets/js/app.js'),'Control de acciones supervisadas'),'Selección de observar requiere motivo mediante JS');
+checkActionUi(str_contains($read('database/migrations/011_permisos_flujo_aprobacion.sql'),'publications.publish'),'Migración asigna privilegios de publicación');
+
 echo 'WORKFLOW UI ACTIONS OK ('.$GLOBALS['actionUiChecks'].' checks)'.PHP_EOL;
