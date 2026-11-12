@@ -11,6 +11,16 @@ class GuideRepository extends OperationalRepository
     protected const HEADER_FIELDS = ['numero', 'fecha', 'cliente_id', 'vendedor_id', 'sucursal_id'];
     protected const OPTIONAL_FIELDS = ['departamento_id', 'provincia_id', 'distrito_id'];
 
+
+    /** Una guía nueva recibe un número interno, independiente de la emisión GRE. */
+    public function createAutoNumbered(array $header,array $details,int $actorId): int
+    {
+        return $this->atomic(function () use($header,$details,$actorId): int {
+            $header['numero']=(new \App\Services\InternalNumberingService($this->pdo))->nextGuide();
+            return parent::create($header,$details,$actorId);
+        });
+    }
+
     public function findBySourceDocument(int $documentId): ?int
     {
         if($documentId<1) return null;
