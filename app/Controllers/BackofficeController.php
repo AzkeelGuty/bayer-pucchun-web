@@ -13,7 +13,8 @@ final class BackofficeController
     public function masters(): void
     {
         \require_role('ADMIN');
-        $key=(string)($_GET['tab'] ?? 'clientes');
+        $rawTab=$_GET['tab']??'clientes';
+        $key=is_string($rawTab)?$rawTab:'clientes';
         $catalogs=[
             'clientes'=>[
                 'title'=>'Clientes',
@@ -78,7 +79,8 @@ final class BackofficeController
         ];
         if(!isset($catalogs[$key])) throw new HttpException(404,'Catálogo no encontrado.');
 
-        $q=trim((string)($_GET['q'] ?? ''));
+        $rawQuery=$_GET['q']??'';
+        $q=is_scalar($rawQuery)?trim((string)$rawQuery):'';
         if(mb_strlen($q)>80) $q=mb_substr($q,0,80);
         $cfg=$catalogs[$key];
         $rows=[];
@@ -177,7 +179,8 @@ final class BackofficeController
     public function homologations(): void
     {
         \require_role('ADMIN');
-        $key=(string)($_GET['tab'] ?? 'productos');
+        $rawTab=$_GET['tab']??'productos';
+        $key=is_string($rawTab)?$rawTab:'productos';
         $maps=[
             'productos'=>['Productos Bayer',"SELECT h.id,p.nombre partner,pr.codigo codigo_interno,pr.nombre producto,h.material_id codigo_bayer,h.material_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_productos_bayer h JOIN partners p ON p.id=h.partner_id JOIN productos pr ON pr.id=h.producto_id"],
             'clientes'=>['Clientes Bayer',"SELECT h.id,p.nombre partner,c.nro_doc codigo_interno,c.razon_social cliente,h.customer_id codigo_bayer,h.customer_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_clientes h JOIN partners p ON p.id=h.partner_id JOIN clientes c ON c.id=h.cliente_id"],
@@ -188,7 +191,8 @@ final class BackofficeController
         ];
         if(!isset($maps[$key])) throw new HttpException(404,'Homologación no encontrada.');
         [$title,$sql]=$maps[$key];
-        $q=is_scalar($_GET['q']??'')?trim((string)$_GET['q']):'';
+        $rawQuery=$_GET['q']??'';
+        $q=is_scalar($rawQuery)?trim((string)$rawQuery):'';
         if(mb_strlen($q)>80) $q=mb_substr($q,0,80);
         $source=' FROM ('.$sql.') hx';
         $params=[];
