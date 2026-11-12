@@ -1,5 +1,5 @@
 <?php
-use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController,MasterDataController,LookupController};
+use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController,MasterDataController,HomologationController,LookupController};
 use App\Middleware\{AuthMiddleware,RoleMiddleware};
 use App\Policies\AccessPolicy;
 
@@ -52,6 +52,14 @@ $router->get('/maestros/importar',[MasterDataController::class,'importPage'],[ne
 $router->post('/maestros/importar',[MasterDataController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/maestros/plantilla',[MasterDataController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/homologaciones',[BackofficeController::class,'homologations'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/homologaciones/nuevo',[HomologationController::class,'create'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/homologaciones/editar',[HomologationController::class,'edit'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/homologaciones/guardar',[HomologationController::class,'store'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/homologaciones/actualizar',[HomologationController::class,'update'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/homologaciones/desactivar',[HomologationController::class,'deactivate'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/homologaciones/importar',[HomologationController::class,'importPage'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/homologaciones/importar',[HomologationController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/homologaciones/plantilla',[HomologationController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/validacion',[BackofficeController::class,'validation'],[new RoleMiddleware(['ADMIN','SUPERVISOR'])]);
 $router->get('/publicaciones',[BackofficeController::class,'publications'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
 $router->get('/reportes',[BackofficeController::class,'reports'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
