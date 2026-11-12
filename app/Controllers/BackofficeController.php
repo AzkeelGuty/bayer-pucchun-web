@@ -180,7 +180,7 @@ final class BackofficeController
         $key=(string)($_GET['tab'] ?? 'productos');
         $maps=[
             'productos'=>['Productos Bayer',"SELECT h.id,p.nombre partner,pr.codigo codigo_interno,pr.nombre producto,h.material_id codigo_bayer,h.material_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_productos_bayer h JOIN partners p ON p.id=h.partner_id JOIN productos pr ON pr.id=h.producto_id"],
-            'clientes'=>['Clientes Bayer',"SELECT h.id,p.nombre partner,c.nro_doc documento,c.razon_social cliente,h.customer_id codigo_bayer,h.customer_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_clientes h JOIN partners p ON p.id=h.partner_id JOIN clientes c ON c.id=h.cliente_id"],
+            'clientes'=>['Clientes Bayer',"SELECT h.id,p.nombre partner,c.nro_doc codigo_interno,c.razon_social cliente,h.customer_id codigo_bayer,h.customer_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_clientes h JOIN partners p ON p.id=h.partner_id JOIN clientes c ON c.id=h.cliente_id"],
             'unidades'=>['Unidades Bayer',"SELECT h.id,p.nombre partner,u.codigo codigo_interno,u.nombre unidad,h.external_unit_code codigo_bayer,h.external_unit_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_unidades h JOIN partners p ON p.id=h.partner_id JOIN unidades_medida u ON u.id=h.unidad_id"],
             'sucursales'=>['Sucursales Bayer',"SELECT h.id,p.nombre partner,s.codigo codigo_interno,s.nombre sucursal,h.branch_id codigo_bayer,h.branch_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_sucursales h JOIN partners p ON p.id=h.partner_id JOIN sucursales s ON s.id=h.sucursal_id"],
             'almacenes'=>['Almacenes Bayer',"SELECT h.id,p.nombre partner,a.codigo codigo_interno,a.nombre almacen,h.warehouse_id codigo_bayer,h.warehouse_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_almacenes h JOIN partners p ON p.id=h.partner_id JOIN almacenes a ON a.id=h.almacen_id"],
@@ -188,8 +188,32 @@ final class BackofficeController
         ];
         if(!isset($maps[$key])) throw new HttpException(404,'Homologación no encontrada.');
         [$title,$sql]=$maps[$key];
-        [$rows,$pagination]=$this->paginateSql($sql,'ORDER BY id DESC');
-        \view('backoffice.table',['section'=>'Homologaciones Bayer','title'=>$title,'rows'=>$rows,'tabs'=>array_map(fn($v)=>$v[0],$maps),'active'=>$key,'base'=>'/homologaciones','pagination'=>$pagination]);
+        $q=is_scalar($_GET['q']??'')?trim((string)$_GET['q']):'';
+        if(mb_strlen($q)>80) $q=mb_substr($q,0,80);
+        $source=' FROM ('.$sql.') hx';
+        $params=[];
+        if($q!==''){
+            $source.=' WHERE (partner LIKE ? OR codigo_interno LIKE ? OR codigo_bayer LIKE ? OR nombre_bayer LIKE ?)';
+            $params=array_fill(0,4,$q.'%');
+        }
+        $db=\db();
+        $st=$db->prepare('SELECT COUNT(*)'.$source);
+        $st->execute($params);
+        $total=(int)$st->fetchColumn();
+        $perPage=15;
+        $pages=max(1,(int)ceil($total/$perPage));
+        $page=min($pages,max(1,(int)($_GET['page']??1)));
+        $offset=($page-1)*$perPage;
+        $st=$db->prepare('SELECT *'.$source.' ORDER BY id DESC LIMIT '.$perPage.' OFFSET '.$offset);
+        $st->execute($params);
+        $rows=$st->fetchAll();
+        $pagination=['page'=>$page,'perPage'=>$perPage,'total'=>$total,'pages'=>$pages];
+        \view('backoffice.table',[
+            'section'=>'Homologaciones Bayer','title'=>$title,'rows'=>$rows,
+            'tabs'=>array_map(fn($v)=>$v[0],$maps),'active'=>$key,
+            'base'=>'/homologaciones','pagination'=>$pagination,'q'=>$q,
+            'homologationManageAvailable'=>true,
+        ]);
     }
 
     public function validation(): void
