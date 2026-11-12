@@ -38,9 +38,9 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
                 <?php endforeach; ?>
             </select>
             <?php if($needsReason): ?>
-                <input name="reason" class="form-control form-control-sm" maxlength="500" placeholder="Motivo si aplica" data-workflow-reason>
+                <input name="reason" class="form-control form-control-sm" maxlength="500" placeholder="Motivo obligatorio para observar" data-workflow-reason <?=$default==='OBSERVADO'?'required':''?>>
             <?php endif; ?>
-            <button class="btn btn-app-action btn-app-blue btn-with-icon" type="submit">
+            <button class="btn btn-app-action <?=$default==='PUBLICADO'?'btn-app-green':($default==='OBSERVADO'?'btn-app-amber':'btn-app-blue')?> btn-with-icon" type="submit">
                 <i class="bi bi-check2-circle"></i><span>Aplicar</span>
             </button>
         </form>
