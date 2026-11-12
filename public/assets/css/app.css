@@ -1249,7 +1249,12 @@ body.bp-soft-navigating .app-main{cursor:progress}
 .module-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 .bulk-workflow-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .bulk-workflow-actions form{margin:0}
-.bulk-workflow-actions .btn:disabled{opacity:.5;cursor:not-allowed}
+/* Solo el estado realmente deshabilitado tiene transparencia. */
+.bulk-workflow-actions .btn:disabled,
+.bulk-workflow-actions .btn.disabled,
+.bulk-workflow-actions .btn[aria-disabled="true"]{
+    opacity:.42;filter:saturate(.48);cursor:not-allowed;
+}
 @media (max-width:767.98px){
     .module-header-actions,.bulk-workflow-actions{width:100%;justify-content:stretch}
     .module-header-actions>.btn,.bulk-workflow-actions form,.bulk-workflow-actions .btn{flex:1 1 auto}
@@ -1302,17 +1307,39 @@ body.bp-soft-navigating .app-main{cursor:progress}
     transition:background-color .16s ease,border-color .16s ease,
         box-shadow .16s ease,transform .16s ease,filter .16s ease;
 }
-.btn.btn-app-blue{background:#3c769e;border-color:#3c769e}
-.btn.btn-app-green{background:#387b65;border-color:#387b65}
-.btn.btn-app-amber{background:#8d693f;border-color:#8d693f}
-.btn.btn-app-red{background:#a55862;border-color:#a55862}
-.btn.btn-app-action:hover:not(:disabled){
-    color:#fff!important;filter:brightness(.93);transform:translateY(-1px);
-    box-shadow:0 3px 9px rgba(16,48,80,.12);
+/* Botones ACTIVOS: colores corporativos sólidos, iguales a los de
+   Nueva guía (azul) y el acento institucional (verde). Sin filtros ni opacidad. */
+.btn.btn-app-blue{background:var(--bp-blue);border-color:var(--bp-blue)}
+.btn.btn-app-green{background:var(--bp-green);border-color:var(--bp-green)}
+.btn.btn-app-amber{background:#a35a00;border-color:#a35a00}
+.btn.btn-app-red{background:#b42318;border-color:#b42318}
+.btn.btn-app-action:not(:disabled):not(.disabled):not([aria-disabled="true"]){
+    color:#fff!important;opacity:1;filter:none;
 }
-.btn.btn-app-action:active:not(:disabled){transform:translateY(0);filter:brightness(.80)}
+.btn.btn-app-blue:hover:not(:disabled):not(.disabled){background:var(--bp-navy);border-color:var(--bp-navy)}
+.btn.btn-app-green:hover:not(:disabled):not(.disabled){background:var(--bp-green-dark);border-color:var(--bp-green-dark)}
+.btn.btn-app-amber:hover:not(:disabled):not(.disabled){background:#824900;border-color:#824900}
+.btn.btn-app-red:hover:not(:disabled):not(.disabled){background:#8d1c15;border-color:#8d1c15}
+.btn.btn-app-action:hover:not(:disabled):not(.disabled):not([aria-disabled="true"]){
+    color:#fff!important;opacity:1;filter:none;transform:translateY(-1px);
+    box-shadow:0 4px 11px rgba(16,48,80,.15);
+}
+.btn.btn-app-action:active:not(:disabled):not(.disabled):not([aria-disabled="true"]){
+    opacity:1;filter:none;transform:translateY(0);
+}
 .btn.btn-app-action:focus-visible{outline:3px solid #8acbff;outline-offset:3px}
-.btn.btn-app-action:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
+.btn.btn-app-action:disabled,
+.btn.btn-app-action.disabled,
+.btn.btn-app-action[aria-disabled="true"]{
+    opacity:.42;filter:saturate(.48);cursor:not-allowed;box-shadow:none;transform:none;
+}
+/* Las acciones sólidas estándar (Agregar, Guardar, Nueva guía, Importar)
+   también deben usar 100% de opacidad cuando estén habilitadas. */
+.app-main .btn.btn-primary:not(:disabled):not(.disabled):not([aria-disabled="true"]),
+.app-main .btn.btn-success:not(:disabled):not(.disabled):not([aria-disabled="true"]),
+.app-main .btn.btn-danger:not(:disabled):not(.disabled):not([aria-disabled="true"]){
+    opacity:1;
+}
 .workflow-main-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .workflow-main-actions form{margin:0}
 .workflow-main-actions .btn{white-space:nowrap}
