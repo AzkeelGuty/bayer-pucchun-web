@@ -165,7 +165,8 @@
         widget.rendered = matches;
 
         if (!matches.length) {
-            showInfo(widget, 'No se encontraron coincidencias.');
+            // Sin coincidencias: cerrar el menú, sin mensaje ni selección forzada.
+            close(widget);
             return;
         }
 
