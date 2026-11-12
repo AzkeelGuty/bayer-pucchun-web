@@ -90,6 +90,7 @@ jobs:
           php tests/integration/repositories_test.php
           php tests/integration/master_catalogs_test.php
           php tests/integration/commerce_workflows_test.php
+          php tests/integration/internal_numbering_test.php
           php tests/integration/homologations_web_test.php
           php tests/integration/bulk_workflow_test.php
           php tests/integration/api_auth_test.php
