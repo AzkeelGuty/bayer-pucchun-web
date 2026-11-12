@@ -134,10 +134,10 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
 <div class="master-toolbar card mb-3"><div class="card-body py-3 d-flex align-items-center justify-content-between gap-3 flex-wrap">
     <div><strong>Administrar homologaciones de <?=e($title)?></strong>
     <div class="form-text mt-0">Registra o edita cada homologación, o importa varias desde una plantilla Excel.</div></div>
-    <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-primary" href="<?=url('/homologaciones/nuevo?tab='.urlencode($activeTab))?>">+ Agregar uno</a>
-        <a class="btn btn-success" href="<?=url('/homologaciones/importar?tab='.urlencode($activeTab))?>">Importar Excel</a>
-        <a class="btn btn-outline-primary" href="<?=url('/homologaciones/plantilla?tab='.urlencode($activeTab))?>" data-native-navigation>Plantilla XLSX</a>
+    <div class="d-flex gap-2 flex-wrap master-toolbar-actions">
+        <a class="btn btn-primary btn-with-icon" href="<?=url('/homologaciones/nuevo?tab='.urlencode($activeTab))?>"><i class="bi bi-plus-lg" aria-hidden="true"></i><span>Agregar uno</span></a>
+        <a class="btn btn-success btn-with-icon" href="<?=url('/homologaciones/importar?tab='.urlencode($activeTab))?>"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i><span>Importar Excel</span></a>
+        <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/homologaciones/plantilla?tab='.urlencode($activeTab))?>" data-native-navigation><i class="bi bi-download" aria-hidden="true"></i><span>Plantilla XLSX</span></a>
     </div>
 </div></div>
 <?php endif; ?>
@@ -198,8 +198,8 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
       <label for="homologation-search" class="form-label">Buscar homologación</label>
       <input id="homologation-search" class="form-control" name="q" value="<?=e($searchQuery)?>" placeholder="Partner, código interno, código o nombre Bayer..." autocomplete="off">
     </div><div class="col-12 col-md-4 d-flex gap-2">
-      <button class="btn btn-primary" type="submit">Buscar</button>
-      <a class="btn btn-outline-secondary" href="<?=url('/homologaciones?tab='.urlencode($activeTab))?>">Limpiar</a>
+      <button class="btn btn-primary btn-with-icon" type="submit"><i class="bi bi-search" aria-hidden="true"></i><span>Buscar</span></button>
+      <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/homologaciones?tab='.urlencode($activeTab))?>"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Limpiar</span></a>
     </div></div>
 </form>
 <?php endif; ?>
@@ -259,13 +259,13 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
                         <?php endforeach;?>
                         <?php if($isHomologationTable): ?>
                             <td class="text-end"><div class="master-row-actions">
-                                <a class="btn btn-sm btn-outline-primary" href="<?=url('/homologaciones/editar?tab='.urlencode($activeTab).'&id='.(int)$row['id'])?>">Editar</a>
+                                <a class="btn btn-sm btn-outline-primary btn-with-icon" href="<?=url('/homologaciones/editar?tab='.urlencode($activeTab).'&id='.(int)$row['id'])?>"><i class="bi bi-pencil-square" aria-hidden="true"></i><span>Editar</span></a>
                                 <?php if(($row['estado']??'')==='ACTIVO'): ?>
                                 <form method="post" class="d-inline" action="<?=url('/homologaciones/desactivar')?>" data-master-delete data-master-label="<?=e((string)($row['codigo_bayer']??$row['id']))?>">
                                     <?=csrf_field()?>
                                     <input type="hidden" name="tab" value="<?=e($activeTab)?>">
                                     <input type="hidden" name="id" value="<?=e((int)$row['id'])?>">
-                                    <button class="btn btn-sm btn-outline-warning" type="submit">Desactivar</button>
+                                    <button class="btn btn-sm btn-outline-danger btn-with-icon" type="submit"><i class="bi bi-slash-circle" aria-hidden="true"></i><span>Desactivar</span></button>
                                 </form>
                                 <?php endif;?>
                             </div></td>
