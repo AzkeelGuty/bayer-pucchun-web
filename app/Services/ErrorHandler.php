@@ -20,7 +20,9 @@ final class ErrorHandler
                 'code' => (string) $error->getCode(),
                 'path' => (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/'),
             ];
-            // Las pruebas aisladas no cargan necesariamente todos los Helpers.\n            $local = function_exists('is_local_env') && \is_local_env();\n            if ($local) {
+            // Las pruebas aisladas no cargan necesariamente todos los Helpers.
+            $local = function_exists('is_local_env') && \is_local_env();
+            if ($local) {
                 $context['message'] = $error->getMessage();
                 $context['file'] = $error->getFile();
                 $context['line'] = $error->getLine();
