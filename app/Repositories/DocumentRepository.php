@@ -10,6 +10,7 @@ class DocumentRepository extends OperationalRepository
     protected const PARENT_KEY = 'documento_id';
     protected const HEADER_FIELDS = ['tipo_documento_id', 'numero', 'fecha', 'cliente_id', 'vendedor_id', 'sucursal_id', 'estado_comprobante'];
     protected const DETAIL_FIELDS = ['producto_id', 'unidad_id', 'cantidad', 'valor_unitario'];
+    protected const OPTIONAL_FIELDS = ['medio_pago','referencia_pago'];
 
     protected function normalize(array $header, array $details): array
     {
@@ -21,6 +22,14 @@ class DocumentRepository extends OperationalRepository
             throw new \InvalidArgumentException('Estado de comprobante inválido.');
         }
         $header['estado_comprobante']=$status;
+        $method=is_scalar($header['medio_pago']??null)?strtoupper(trim((string)$header['medio_pago'])):'';
+        if($method!=='' && !in_array($method,['EFECTIVO','YAPE','PLIN','TRANSFERENCIA','TARJETA','OTRO'],true)){
+            throw new \InvalidArgumentException('Medio de pago inválido.');
+        }
+        $reference=is_scalar($header['referencia_pago']??null)?trim((string)$header['referencia_pago']):'';
+        if(mb_strlen($reference)>80) throw new \InvalidArgumentException('Referencia de pago demasiado extensa.');
+        $header['medio_pago']=$method!==''?$method:null;
+        $header['referencia_pago']=$reference!==''?$reference:null;
         return parent::normalize($header,$details);
     }
 
