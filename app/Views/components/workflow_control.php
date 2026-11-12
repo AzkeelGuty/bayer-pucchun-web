@@ -35,7 +35,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
             <?php if($needsReason): ?>
                 <input name="reason" class="form-control form-control-sm" maxlength="500" placeholder="Motivo si aplica" data-workflow-reason>
             <?php endif; ?>
-            <button class="btn btn-sm btn-outline-primary btn-with-icon" type="submit">
+            <button class="btn btn-app-action btn-app-blue btn-with-icon" type="submit">
                 <i class="bi bi-check2-circle"></i><span>Aplicar</span>
             </button>
         </form>
@@ -51,7 +51,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
             <input type="hidden" name="version" value="<?=e($version)?>">
             <input type="hidden" name="status" value="<?=e($status)?>">
             <input type="hidden" name="return_to" value="<?=e($safeReturn)?>">
-            <button class="btn btn-sm <?=e($class)?> btn-with-icon" type="submit">
+            <button class="btn btn-app-action <?=e($class)?> btn-with-icon" type="submit">
                 <i class="bi <?=e($icon)?>"></i><span><?=e($label)?></span>
             </button>
         </form>
@@ -61,13 +61,13 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
     echo '<div class="workflow-actions">';
 
     if($state==='BORRADOR'){
-        $form('VALIDADO','Validar','btn-success','bi-check2-circle');
+        $form('VALIDADO','Validar','btn-app-blue','bi-check2-circle');
     } elseif($state==='VALIDADO'){
-        $form('PUBLICADO','Publicar','btn-success','bi-cloud-arrow-up');
+        $form('PUBLICADO','Publicar','btn-app-green','bi-cloud-arrow-up');
         $dialogId='workflow-observe-'.$module.'-'.$id;
         ?>
         <button
-            class="btn btn-sm btn-warning btn-with-icon"
+            class="btn btn-app-action btn-app-amber btn-with-icon"
             type="button"
             data-workflow-dialog-open="<?=e($dialogId)?>"
             aria-haspopup="dialog"
@@ -109,7 +109,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
 
                 <div class="workflow-dialog-actions">
                     <button class="btn btn-outline-secondary" type="button" data-workflow-dialog-close>Cancelar</button>
-                    <button class="btn btn-warning btn-with-icon" type="submit">
+                    <button class="btn btn-app-action btn-app-amber btn-with-icon" type="submit">
                         <i class="bi bi-send-check"></i><span>Enviar observación</span>
                     </button>
                 </div>
