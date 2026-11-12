@@ -47,7 +47,7 @@ $correcting=$editing && (($header['estado_registro']??'')==='OBSERVADO');
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[tipo_documento_id]','Tipo de documento','header.tipo_documento_id',$header['tipo_documento_id']??'','tipo_documento_id'); ?></div>
 <div class="col-12 col-md-6 col-xl-4">
     <?php $field('header[numero]','Número interno (automático)','header.numero',$header['numero']??'','','text','maxlength="25" readonly data-internal-number'); ?>
-    <div class="form-text"><i class="bi bi-shield-check me-1"></i>Referencia interna provisional. Se confirma al guardar y no constituye un comprobante emitido ante SUNAT.</div>
+    <div class="form-text"><i class="bi bi-shield-check me-1"></i>Número interno generado por el sistema y confirmado al guardar.</div>
 </div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[fecha]','Fecha','header.fecha',$header['fecha']??'','','date'); ?></div>
 <div class="col-12 col-md-6 col-xl-4">
