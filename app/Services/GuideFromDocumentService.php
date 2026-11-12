@@ -12,7 +12,7 @@ use Throwable;
 
 /**
  * Crea una guía interna desde un comprobante SIN emitir una GRE ante SUNAT.
- * El número INT-GD-... es una referencia local, nunca una serie fiscal.
+ * El número INT-GD-... se reserva desde el contador interno del ERP, nunca es una serie fiscal.
  * La restricción UNIQUE(documento_origen_id) evita guías duplicadas.
  */
 final class GuideFromDocumentService
@@ -69,7 +69,6 @@ final class GuideFromDocumentService
             $geo=$stmt->fetch(PDO::FETCH_ASSOC)?:[];
             $complete=isset($geo['departamento_id'],$geo['provincia_id'],$geo['distrito_id']);
             $header=[
-                'numero'=>'INT-GD-'.str_pad((string)$documentId,12,'0',STR_PAD_LEFT),
                 'fecha'=>date('Y-m-d'),
                 'cliente_id'=>(int)$h['cliente_id'],
                 'vendedor_id'=>(int)$h['vendedor_id'],
@@ -78,7 +77,7 @@ final class GuideFromDocumentService
                 'provincia_id'=>$complete?(int)$geo['provincia_id']:null,
                 'distrito_id'=>$complete?(int)$geo['distrito_id']:null,
             ];
-            $id=(new GuideRepository($pdo))->create($header,$details,$actorId);
+            $id=(new GuideRepository($pdo))->createAutoNumbered($header,$details,$actorId);
             $stmt=$pdo->prepare("UPDATE guias_cabecera SET documento_origen_id=?,estado_sunat='NO_EMITIDA' WHERE id=?");
             $stmt->execute([$documentId,$id]);
             $pdo->commit();
