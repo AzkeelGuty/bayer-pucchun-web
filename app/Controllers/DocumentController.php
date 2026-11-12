@@ -127,7 +127,7 @@ final class DocumentController
             if($duplicate&&(!$editing||(int)$duplicate['header']['id']!==$id)) $errors['header.numero']='VAL-004: ya existe ese número para el tipo seleccionado.';
         }
         if($errors) { http_response_code(422); $this->form(array_merge($header,['id'=>$id,'version'=>$version]),$details,$editing,$errors); return; }
-        $header=array_intersect_key($header,array_flip(['tipo_documento_id','numero','fecha','cliente_id','vendedor_id','sucursal_id','estado_comprobante']));
+        $header=array_intersect_key($header,array_flip(['tipo_documento_id','numero','fecha','cliente_id','vendedor_id','sucursal_id','estado_comprobante','medio_pago','referencia_pago']));
         $lines=[]; foreach($details as $line) $lines[]=array_intersect_key($line+['valor_unitario'=>'0'],array_flip(['producto_id','unidad_id','cantidad','valor_unitario']));
         try {
             if($editing) $this->repository->updateDraft($id,$version,$header,$lines,(int)\auth_user()['id']);
