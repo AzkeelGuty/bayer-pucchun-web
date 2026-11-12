@@ -16,6 +16,7 @@ try{
     $db->load('database/schemas/002_schema_v2.sql');
     $db->load('database/migrations/009_guias_desde_documentos_y_pagos.sql');
     $db->load('database/migrations/009_guias_desde_documentos_y_pagos.sql');
+    $db->load('database/migrations/010_numeracion_interna_automatica.sql');
     fixtures($db->pdo);
     $pdo=$db->pdo;
     $pdo->exec("UPDATE tipos_documento SET codigo='FAC' WHERE id=1");

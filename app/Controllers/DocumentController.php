@@ -4,7 +4,7 @@ namespace App\Controllers;
 use App\Exceptions\HttpException;
 use App\Policies\OperationalPermissionPolicy;
 use App\Repositories\{DocumentRepository,GuideRepository};
-use App\Services\{DocumentScreenService,WorkflowService};
+use App\Services\{DocumentScreenService,WorkflowService,InternalNumberingService};
 
 final class DocumentController
 {
@@ -39,10 +39,24 @@ final class DocumentController
         $header=['fecha'=>date('Y-m-d'),'numero'=>'','estado_comprobante'=>'VIGENTE'];
         if(is_array($defaultType)){
             $header['tipo_documento_id']=$defaultType['id']??'';
+            $header['numero']=(new InternalNumberingService(\db()))->previewDocument((int)$header['tipo_documento_id']);
         }
 
         $this->form($header,[],false,[],$catalogs);
     }
+    /** Vista previa, no reserva un correlativo ni emite un comprobante SUNAT. */
+    public function nextNumberPreview(): void {
+        \require_role('ADMIN','DIGITADOR');
+        OperationalPermissionPolicy::require('documents.create');
+        $raw=\input('tipo_documento_id',0);
+        $typeId=filter_var($raw,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+        if($typeId===false) throw new HttpException(422,'Seleccione un tipo de documento válido.');
+        $number=(new InternalNumberingService(\db()))->previewDocument((int)$typeId);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode(['numero'=>$number,'provisional'=>true],JSON_UNESCAPED_UNICODE);
+    }
+
     public function edit(): void {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('documents.create'); $r=$this->record((int)\input('id',0));
         if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)) throw new HttpException(409,'Solo se pueden editar documentos en borrador u observados.');
@@ -121,17 +135,27 @@ final class DocumentController
             if((int)($header['sucursal_id']??0)<1 && (int)($client['sucursal_sugerida_id']??0)>0) $header['sucursal_id']=(int)$client['sucursal_sugerida_id'];
         }
         $details=$this->normalizeDetails($details,$catalogs);
+        if(!$editing){
+            // El campo visual no es autoridad: el servidor genera el número real al insertar.
+            $header['numero']='';
+            $typeId=filter_var($header['tipo_documento_id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+            if($typeId!==false){
+                try { $header['numero']=(new InternalNumberingService(\db()))->previewDocument((int)$typeId); }
+                catch(HttpException $ignored) { /* El validador mostrará el tipo de documento inválido. */ }
+            }
+        }
         $errors=$screen->validate($header,$details,$catalogs);
-        if(!$errors) {
-            $duplicate=$this->repository->findByNumber((int)$header['tipo_documento_id'],trim($header['numero']));
-            if($duplicate&&(!$editing||(int)$duplicate['header']['id']!==$id)) $errors['header.numero']='VAL-004: ya existe ese número para el tipo seleccionado.';
+        if(!$errors && $editing) {
+            $duplicate=$this->repository->findByNumber((int)$header['tipo_documento_id'],trim((string)$header['numero']));
+            if($duplicate && (int)$duplicate['header']['id']!==$id)
+                $errors['header.numero']='VAL-004: ya existe ese número para el tipo seleccionado.';
         }
         if($errors) { http_response_code(422); $this->form(array_merge($header,['id'=>$id,'version'=>$version]),$details,$editing,$errors); return; }
         $header=array_intersect_key($header,array_flip(['tipo_documento_id','numero','fecha','cliente_id','vendedor_id','sucursal_id','estado_comprobante','medio_pago','referencia_pago']));
         $lines=[]; foreach($details as $line) $lines[]=array_intersect_key($line+['valor_unitario'=>'0'],array_flip(['producto_id','unidad_id','cantidad','valor_unitario']));
         try {
             if($editing) $this->repository->updateDraft($id,$version,$header,$lines,(int)\auth_user()['id']);
-            else $id=$this->repository->create($header,$lines,(int)\auth_user()['id']);
+            else $id=$this->repository->createAutoNumbered($header,$lines,(int)\auth_user()['id']);
         } catch(\Throwable $error) {
             \log_event('document_screen_save_error',['type'=>get_class($error)]);
             http_response_code(409); $this->form(array_merge($header,['id'=>$id,'version'=>$version]),$details,$editing,['save'=>'No se pudo guardar. Revisa duplicados o cambios simultáneos y vuelve a intentarlo.']); return;

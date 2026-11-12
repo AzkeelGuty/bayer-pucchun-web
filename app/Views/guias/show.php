@@ -4,9 +4,9 @@
     <?= estado_badge($h['estado_registro']) ?>
 </div>
 <p class="d-flex gap-2">
-    <a class="btn btn-sm btn-outline-secondary" href="<?= url('/guias') ?>">&larr; Volver al listado</a>
+    <a class="btn btn-outline-primary btn-with-icon" href="<?= url('/guias') ?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a>
     <?php if (has_role('ADMIN', 'DIGITADOR') && in_array($h['estado_registro'], ['BORRADOR','OBSERVADO'], true)): ?>
-        <a class="btn btn-sm btn-outline-primary" href="<?= url('/guias/editar?id=' . $h['id']) ?>"><?= $h['estado_registro']==='OBSERVADO' ? 'Corregir' : 'Editar' ?></a>
+        <a class="btn btn-outline-primary btn-with-icon" href="<?= url('/guias/editar?id=' . $h['id']) ?>"><i class="bi bi-pencil-square" aria-hidden="true"></i><span><?= $h['estado_registro']==='OBSERVADO' ? 'Corregir' : 'Editar' ?></span></a>
     <?php endif; ?>
 </p>
 
@@ -72,14 +72,14 @@
     <p class="text-muted small">Las acciones disponibles dependen del estado actual de la guía y de los permisos del usuario.</p>
     <div class="d-flex gap-2 flex-wrap">
         <?php if ($h['estado_registro'] === 'BORRADOR'): ?>
-            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-sm btn-info">Validar</button></form>
+            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-app-action btn-app-blue btn-with-icon" type="submit"><i class="bi bi-check2-circle" aria-hidden="true"></i><span>Validar</span></button></form>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'VALIDADO'): ?>
-            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-sm btn-success">Publicar</button></form>
-            <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#observarModal">Observar</button>
+            <form method="post" action="<?= url('/guias/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-app-action btn-app-green btn-with-icon" type="submit"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i><span>Publicar</span></button></form>
+            <button type="button" class="btn btn-app-action btn-app-amber btn-with-icon" data-bs-toggle="modal" data-bs-target="#observarModal"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span>Observar</span></button>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'PUBLICADO'): ?>
-            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#anularModal">Anular</button>
+            <button type="button" class="btn btn-app-action btn-app-red btn-with-icon" data-bs-toggle="modal" data-bs-target="#anularModal"><i class="bi bi-x-octagon" aria-hidden="true"></i><span>Anular</span></button>
         <?php endif; ?>
     </div>
 </div></div>
@@ -97,7 +97,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-warning">Observar</button>
+                <button class="btn btn-app-action btn-app-amber btn-with-icon" type="submit"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span>Observar</span></button>
             </div>
         </form>
     </div>
@@ -116,7 +116,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-danger">Anular</button>
+                <button class="btn btn-app-action btn-app-red btn-with-icon" type="submit"><i class="bi bi-x-octagon" aria-hidden="true"></i><span>Anular</span></button>
             </div>
         </form>
     </div>

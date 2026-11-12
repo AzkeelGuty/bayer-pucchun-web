@@ -3,7 +3,7 @@ require base_path('app/Views/components/form_fields.php');
 $editing = isset($record);
 $correcting = $editing && (($record['header']['estado_registro'] ?? '') === 'OBSERVADO');
 $detailRows = $editing ? $record['details'] : [['producto_id' => '', 'unidad_id' => '', 'cantidad' => '1']];
-$numberValue = (string)old('numero');
+$numberValue = $editing ? (string)old('numero') : (string)($numberPreview ?? '');
 $dateValue = (string)old('fecha');
 if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('Y-m-d'));
 $lookupClientes=e(url('/lookups?type=clientes'));
@@ -32,10 +32,10 @@ $lookupProductos=e(url('/lookups?type=productos'));
         <h2 class="h5 mb-3">Datos generales</h2>
         <div class="row g-3">
             <div class="col-md-4">
-                <label class="form-label" for="guide-number">Número</label>
-                <input class="form-control <?=form_error('numero')?'is-invalid':''?>" id="guide-number" name="numero" maxlength="25" value="<?=e($numberValue)?>" autocomplete="off" required>
+                <label class="form-label" for="guide-number">Número interno (automático)</label>
+                <input class="form-control <?=form_error('numero')?'is-invalid':''?>" id="guide-number" name="numero" maxlength="25" value="<?=e($numberValue)?>" readonly required>
                 <div class="invalid-feedback"><?=e(form_error('numero'))?></div>
-                <div class="form-text">Ingrese el número real de la guía. El sistema no genera correlativos.</div>
+                <div class="form-text"><i class="bi bi-shield-check me-1"></i>El número definitivo se asigna al guardar. Esta referencia interna no representa una GRE emitida ante SUNAT.</div>
             </div>
             <div class="col-md-4">
                 <label class="form-label" for="guide-date">Fecha</label>

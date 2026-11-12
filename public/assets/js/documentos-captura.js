@@ -18,6 +18,32 @@
             wrapper.replaceWith(nativeSelect);
         });
 
+        // El número mostrado es una vista previa: el servidor reserva el definitivo
+        // durante INSERT bajo bloqueo transaccional, incluso con usuarios simultáneos.
+        if (form.hasAttribute('data-auto-number-form')) {
+            const type = form.querySelector('[name="header[tipo_documento_id]"]');
+            const number = form.querySelector('[data-internal-number]');
+            const endpoint = form.dataset.numberPreviewUrl;
+            let requestId = 0;
+            const preview = async () => {
+                if (!type || !number || !endpoint) return;
+                const thisRequest = ++requestId;
+                number.value = 'Calculando...';
+                if (!type.value) { number.value = ''; return; }
+                try {
+                    const separator = endpoint.includes('?') ? '&' : '?';
+                    const response = await fetch(endpoint + separator + 'tipo_documento_id=' + encodeURIComponent(type.value),
+                        {headers: {'Accept': 'application/json'}, credentials: 'same-origin', cache: 'no-store'});
+                    if (!response.ok) throw new Error('Vista previa no disponible');
+                    const data = await response.json();
+                    if (thisRequest === requestId) number.value = String(data.numero || '');
+                } catch (_) {
+                    if (thisRequest === requestId) number.value = 'Se asignará al guardar';
+                }
+            };
+            type?.addEventListener('change', preview);
+        }
+
         const client = form.querySelector('[name="header[cliente_id]"]');
         const seller = form.querySelector('[name="header[vendedor_id]"]');
         const branch = form.querySelector('[name="header[sucursal_id]"]');

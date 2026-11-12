@@ -58,6 +58,7 @@ try {
         7 => '007_document_types.sql',
         8 => '008_estado_comprobante.sql',
         9 => '009_guias_desde_documentos_y_pagos.sql',
+        10 => '010_numeracion_interna_automatica.sql',
     ];
     foreach ($names as $version => $filename) {
         check_health(in_array($version, $versions, true), 'Migracion ' . str_pad((string) $version, 3, '0', STR_PAD_LEFT), 'database/migrations/' . $filename);
@@ -95,6 +96,7 @@ try {
         'homologacion_almacenes' => ['id', 'partner_id', 'warehouse_id'],
         'homologacion_vendedores' => ['id', 'partner_id', 'sales_id'],
         'api_tokens' => ['id', 'usuario_id'],
+        'numeraciones_internas' => ['ambito', 'siguiente'],
     ];
     foreach ($required as $table => $columns) {
         if (!isset($schema[$table])) {

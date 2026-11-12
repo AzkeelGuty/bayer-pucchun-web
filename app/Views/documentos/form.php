@@ -41,13 +41,13 @@ $correcting=$editing && (($header['estado_registro']??'')==='OBSERVADO');
 <link rel="stylesheet" href="<?=asset_url('assets/css/documentos-captura.css')?>">
 <section class="module-header"><div><div class="page-eyebrow">DOCUMENTOS · <?= $editing?'EDICIÓN':'CAPTURA'?></div><h1 class="page-title"><?=$correcting?'Corregir documento':($editing?'Editar borrador':'Nuevo documento')?></h1><p class="page-subtitle">Selecciona los catálogos y agrega los productos del documento.</p></div><a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Volver al listado</a></section>
 <?php if($errors): ?><div class="alert alert-danger" role="alert" tabindex="-1" data-error-summary><strong>Revisa la información antes de guardar.</strong><ul class="mb-0"><?php foreach($errors as $key=>$error): ?><li><?=e($error)?></li><?php endforeach;?></ul></div><?php endif;?>
-<form class="card doc-screen" method="post" action="<?=url($editing?'/documentos/actualizar':'/documentos/guardar')?>" data-documents-form>
+<form class="card doc-screen" method="post" action="<?=url($editing?'/documentos/actualizar':'/documentos/guardar')?>" data-documents-form <?=$editing?'':'data-auto-number-form data-number-preview-url="'.e(url('/documentos/siguiente-numero')).'"'?>>
 <?=csrf_field()?><?php if($editing):?><input type="hidden" name="id" value="<?=e($header['id'])?>"><input type="hidden" name="version" value="<?=e($header['version'])?>"><?php endif;?>
 <div class="card-body p-4"><h2 class="h5 mb-3">Datos generales</h2><div class="row g-3">
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[tipo_documento_id]','Tipo de documento','header.tipo_documento_id',$header['tipo_documento_id']??'','tipo_documento_id'); ?></div>
 <div class="col-12 col-md-6 col-xl-4">
-    <?php $field('header[numero]','Número','header.numero',$header['numero']??'','','text','maxlength="25" autocomplete="off"'); ?>
-    <div class="form-text">Ingrese el número real del documento. El sistema no genera correlativos.</div>
+    <?php $field('header[numero]','Número interno (automático)','header.numero',$header['numero']??'','','text','maxlength="25" readonly data-internal-number'); ?>
+    <div class="form-text"><i class="bi bi-shield-check me-1"></i>Referencia interna provisional. Se confirma al guardar y no constituye un comprobante emitido ante SUNAT.</div>
 </div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[fecha]','Fecha','header.fecha',$header['fecha']??'','','date'); ?></div>
 <div class="col-12 col-md-6 col-xl-4">

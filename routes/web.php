@@ -35,6 +35,7 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
     $router->post('/'.$path.'/estado-masivo',[$controller,'bulkStatus'],$review);
 }
 
+$router->get('/documentos/siguiente-numero',[DocumentController::class,'nextNumberPreview'],$capture);
 $router->get('/documentos/ver',[DocumentController::class,'show'],$internal);
 $router->post('/documentos/estado-comprobante',[DocumentController::class,'changeVoucherStatus'],$review);
 $router->get('/guias/ver',[GuideController::class,'show'],$internal);

@@ -7,7 +7,7 @@ use App\Exceptions\HttpException;
 use App\Policies\OperationalPermissionPolicy;
 use App\Policies\OperationalOwnershipPolicy;
 use App\Repositories\{GuideRepository,MasterDataRepository};
-use App\Services\{WorkflowService,GuideFromDocumentService};
+use App\Services\{WorkflowService,GuideFromDocumentService,InternalNumberingService};
 use App\Validators\WorkflowValidator;
 
 final class GuideController
@@ -115,6 +115,7 @@ final class GuideController
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         \view('guias.form',$this->viewData(null)+[
             'defaultDate'=>date('Y-m-d'),
+            'numberPreview'=>(new InternalNumberingService(\db()))->previewGuide(),
         ]);
     }
 
@@ -230,10 +231,10 @@ final class GuideController
 
     private function save(bool $editing): void
     {
-        if ($editing) $this->record((int)\input('id',0));
+        $existing=$editing?$this->record((int)\input('id',0)):null;
         $details=$this->normalizeDetails(is_array($_POST['detalle']??null)?array_values($_POST['detalle']):[]);
         $header=[
-            'numero'=>trim((string)\input('numero','')),
+            'numero'=>$editing?(string)$existing['header']['numero']:'',
             'fecha'=>(string)\input('fecha',''),
             'cliente_id'=>(int)\input('cliente_id',0),
             'vendedor_id'=>(int)\input('vendedor_id',0),
@@ -244,7 +245,7 @@ final class GuideController
         ];
         $header=$this->applyClientDefaults($header);
         $errors=[];
-        foreach(['numero','fecha'] as $k) if(trim((string)$header[$k])==='') $errors[$k]='Campo obligatorio';
+        foreach($editing?['numero','fecha']:['fecha'] as $k) if(trim((string)$header[$k])==='') $errors[$k]='Campo obligatorio';
         foreach(['cliente_id','vendedor_id','sucursal_id'] as $k) if((int)$header[$k]<1) $errors[$k]='Seleccione una opción válida';
         $geo=[$header['departamento_id'],$header['provincia_id'],$header['distrito_id']];
         if($geo!==[null,null,null] && in_array(null,$geo,true)){
@@ -275,7 +276,7 @@ final class GuideController
                 $this->repository->updateDraft($id,(int)\input('version',0),$header,$lines,(int)\auth_user()['id']);
                 \audit('guias','editar',$id); \flash('success','Guía actualizada correctamente.');
             }else{
-                $id=$this->repository->create($header,$lines,(int)\auth_user()['id']);
+                $id=$this->repository->createAutoNumbered($header,$lines,(int)\auth_user()['id']);
                 \audit('guias','crear',$id); \flash('success','Guía registrada en borrador.');
             }
         }catch(\Throwable $e){
