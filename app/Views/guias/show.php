@@ -10,6 +10,17 @@
     <?php endif; ?>
 </p>
 
+<div class="alert alert-info" role="status">
+    <strong>Estado tributario:</strong>
+    <?php if(($h['estado_sunat']??'SIN_VERIFICAR')==='NO_EMITIDA'): ?>
+        Pendiente de emisión en SUNAT. Esta es una guía interna y su referencia no acredita el traslado de bienes.
+    <?php else: ?>
+        Sin constancia de emisión tributaria verificada dentro del ERP.
+    <?php endif; ?>
+    <?php if(!empty($h['documento_origen_id'])): ?>
+        <a href="<?=url('/documentos/ver?id='.(int)$h['documento_origen_id'])?>" class="ms-2">Ver documento de origen</a>
+    <?php endif; ?>
+</div>
 <div class="card mb-3"><div class="card-body">
     <h6 class="card-title">Cabecera</h6>
     <div class="row">
