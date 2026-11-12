@@ -20,6 +20,11 @@ function require_role(string ...$roles): void
     ensure(in_array('ADMIN',$roles,true),'Solo ADMIN gestiona las homologaciones');
 }
 
+function has_role(string ...$roles): bool
+{
+    return in_array('ADMIN',$roles,true);
+}
+
 function view(string $name,array $data=[]): void
 {
     $GLOBALS['homologationsRendered']=['name'=>$name,'data'=>$data];
