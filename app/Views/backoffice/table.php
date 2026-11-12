@@ -66,7 +66,7 @@ $headerLabel=static function(string $key) use($headingLabels): string {
  * - Si no existe, usa el valor enviado por el controlador.
  * - Como último respaldo usa la primera pestaña disponible.
  */
-$requestedTab=isset($_GET['tab']) ? strtolower(trim((string)$_GET['tab'])) : '';
+$requestedTab=isset($_GET['tab']) && is_string($_GET['tab']) ? strtolower(trim($_GET['tab'])) : '';
 $activeTab=$requestedTab!=='' ? $requestedTab : strtolower(trim((string)($active ?? '')));
 if($activeTab==='' && !empty($tabs)){
     $activeTab=(string)array_key_first($tabs);
