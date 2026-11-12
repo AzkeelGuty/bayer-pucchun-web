@@ -7,7 +7,7 @@ use App\Exceptions\HttpException;
 use App\Policies\OperationalPermissionPolicy;
 use App\Policies\OperationalOwnershipPolicy;
 use App\Repositories\{GuideRepository,MasterDataRepository};
-use App\Services\WorkflowService;
+use App\Services\{WorkflowService,GuideFromDocumentService};
 use App\Validators\WorkflowValidator;
 
 final class GuideController
@@ -202,6 +202,27 @@ final class GuideController
         }
 
         return array_values($normalized);
+    }
+
+    /** Genera un borrador interno, no una GRE emitida por SUNAT. */
+    public function generateFromDocument(): void
+    {
+        \require_role('ADMIN','DIGITADOR');
+        OperationalPermissionPolicy::require('guides.create');
+        $documentId=(int)\input('documento_id',0);
+        try{
+            $result=(new GuideFromDocumentService())->generate($documentId,(int)\auth_user()['id']);
+        }catch(HttpException $error){
+            throw $error;
+        }catch(\Throwable $error){
+            \log_event('guide_from_document_error',['type'=>get_class($error)]);
+            throw new HttpException(409,'No se pudo generar la guía interna. Verifique la migración 009 y el documento de origen.');
+        }
+        \audit('guias',$result['created']?'crear_desde_documento':'reutilizar_desde_documento',(int)$result['guide_id']);
+        \flash('success',$result['created']
+            ? 'Guía interna creada con los datos del documento. Revise destino y transporte antes de emitir una GRE en SUNAT.'
+            : 'El documento ya tiene una guía vinculada. Se abrió la existente.');
+        \redirect('/guias/ver?id='.(int)$result['guide_id']);
     }
 
     public function store(): void { \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create'); $this->save(false); }

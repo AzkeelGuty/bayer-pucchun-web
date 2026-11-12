@@ -107,6 +107,14 @@ final class DocumentScreenService
         if(!in_array($voucherState,['VIGENTE','ANULADO'],true)){
             $errors['header.estado_comprobante']='VAL-003: selecciona si el comprobante está vigente o anulado.';
         }
+        $payment=is_scalar($header['medio_pago']??null)?strtoupper(trim((string)$header['medio_pago'])):'';
+        if($payment!=='' && !in_array($payment,['EFECTIVO','YAPE','PLIN','TRANSFERENCIA','TARJETA','OTRO'],true)){
+            $errors['header.medio_pago']='Seleccione un medio de pago válido.';
+        }
+        $reference=$header['referencia_pago']??'';
+        if(!is_scalar($reference) || mb_strlen(trim((string)$reference))>80){
+            $errors['header.referencia_pago']='La referencia del pago admite hasta 80 caracteres.';
+        }
         $number=$header['numero']??'';
         if(!is_string($number)||trim($number)===''||strlen(trim($number))>25) $errors['header.numero']='VAL-001: ingresa un número de hasta 25 bytes.';
         $date=$header['fecha']??''; $parsed=is_string($date)?\DateTimeImmutable::createFromFormat('!Y-m-d',$date):false;

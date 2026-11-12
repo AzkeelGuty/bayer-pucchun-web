@@ -11,6 +11,14 @@ class GuideRepository extends OperationalRepository
     protected const HEADER_FIELDS = ['numero', 'fecha', 'cliente_id', 'vendedor_id', 'sucursal_id'];
     protected const OPTIONAL_FIELDS = ['departamento_id', 'provincia_id', 'distrito_id'];
 
+    public function findBySourceDocument(int $documentId): ?int
+    {
+        if($documentId<1) return null;
+        $st=$this->execute('SELECT id FROM guias_cabecera WHERE documento_origen_id=? LIMIT 1',[$documentId]);
+        $id=$st->fetchColumn();
+        return $id===false?null:(int)$id;
+    }
+
     public function findByNumber(string $number): ?array
     {
         $id = $this->execute('SELECT id FROM guias_cabecera WHERE numero=?', [$number])->fetchColumn();

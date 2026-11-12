@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 use App\Exceptions\HttpException;
 use App\Policies\OperationalPermissionPolicy;
-use App\Repositories\DocumentRepository;
+use App\Repositories\{DocumentRepository,GuideRepository};
 use App\Services\{DocumentScreenService,WorkflowService};
 
 final class DocumentController
@@ -50,7 +50,16 @@ final class DocumentController
     }
     public function show(): void {
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read'); $r=$this->record((int)\input('id',0));
-        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogsFor($r['header'],$r['details'])]);
+        $catalogs=(new DocumentScreenService())->catalogsFor($r['header'],$r['details']);
+        $type='';
+        foreach($catalogs['tipo_documento_id']??[] as $item){
+            if((int)$item['id']===(int)$r['header']['tipo_documento_id']) $type=(string)($item['codigo']??'');
+        }
+        $guideId=(new GuideRepository())->findBySourceDocument((int)$r['header']['id']);
+        $canGenerateGuide=in_array($type,['FAC','BOL'],true)
+            && in_array((string)$r['header']['estado_registro'],['BORRADOR','VALIDADO','PUBLICADO'],true)
+            && (string)($r['header']['estado_comprobante']??'VIGENTE')==='VIGENTE';
+        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>$catalogs,'guideId'=>$guideId,'canGenerateGuide'=>$canGenerateGuide]);
     }
     private function form(array $header,array $details,bool $editing=false,array $errors=[],?array $catalogs=null): void {
         $catalogs??=(new DocumentScreenService())->catalogsFor($header,$details);
@@ -118,7 +127,7 @@ final class DocumentController
             if($duplicate&&(!$editing||(int)$duplicate['header']['id']!==$id)) $errors['header.numero']='VAL-004: ya existe ese número para el tipo seleccionado.';
         }
         if($errors) { http_response_code(422); $this->form(array_merge($header,['id'=>$id,'version'=>$version]),$details,$editing,$errors); return; }
-        $header=array_intersect_key($header,array_flip(['tipo_documento_id','numero','fecha','cliente_id','vendedor_id','sucursal_id','estado_comprobante']));
+        $header=array_intersect_key($header,array_flip(['tipo_documento_id','numero','fecha','cliente_id','vendedor_id','sucursal_id','estado_comprobante','medio_pago','referencia_pago']));
         $lines=[]; foreach($details as $line) $lines[]=array_intersect_key($line+['valor_unitario'=>'0'],array_flip(['producto_id','unidad_id','cantidad','valor_unitario']));
         try {
             if($editing) $this->repository->updateDraft($id,$version,$header,$lines,(int)\auth_user()['id']);

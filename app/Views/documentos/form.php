@@ -60,6 +60,20 @@ $correcting=$editing && (($header['estado_registro']??'')==='OBSERVADO');
     <div class="form-text">Indica la situación comercial del comprobante. No reemplaza el estado de validación/publicación del ERP.</div>
     <?php if($voucherError): ?><div class="invalid-feedback"><?=e($voucherError)?></div><?php endif; ?>
 </div>
+<div class="col-12 col-md-6 col-xl-4">
+    <label class="form-label" for="doc-medio-pago">Medio de pago</label>
+    <select class="form-select" name="header[medio_pago]" id="doc-medio-pago">
+        <option value="">No especificado</option>
+        <?php foreach(['EFECTIVO'=>'Efectivo','YAPE'=>'Yape','PLIN'=>'Plin','TRANSFERENCIA'=>'Transferencia bancaria','TARJETA'=>'Tarjeta','OTRO'=>'Otro'] as $code=>$name): ?>
+        <option value="<?=e($code)?>" <?=strtoupper((string)($header['medio_pago']??''))===$code?'selected':''?>><?=e($name)?></option>
+        <?php endforeach; ?>
+    </select>
+    <div class="form-text">El medio de pago no cambia el tipo de comprobante tributario.</div>
+</div>
+<div class="col-12 col-md-6 col-xl-4">
+    <label class="form-label" for="doc-referencia-pago">Referencia de pago (opcional)</label>
+    <input class="form-control" type="text" id="doc-referencia-pago" name="header[referencia_pago]" maxlength="80" autocomplete="off" value="<?=e((string)($header['referencia_pago']??''))?>">
+</div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[cliente_id]','Cliente','header.cliente_id',$header['cliente_id']??'','cliente_id'); ?></div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[vendedor_id]','Vendedor','header.vendedor_id',$header['vendedor_id']??'','vendedor_id'); ?></div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[sucursal_id]','Sucursal','header.sucursal_id',$header['sucursal_id']??'','sucursal_id'); ?></div>

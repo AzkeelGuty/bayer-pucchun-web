@@ -73,8 +73,10 @@ if($activeTab==='' && !empty($tabs)){
 }
 
 $isMasterTable=($base??'')==='/maestros';
+$isHomologationTable=($base??'')==='/homologaciones';
 $hasPagination=is_array($pagination??null);
 $searchQuery=$isMasterTable ? trim((string)($q??'')) : '';
+if($isHomologationTable) $searchQuery=trim((string)($q??''));
 $paginationData=$hasPagination ? $pagination : [];
 $currentPage=max(1,(int)($paginationData['page']??1));
 $totalPages=max(1,(int)($paginationData['pages']??1));
@@ -128,6 +130,18 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
 </div>
 <?php endif; ?>
 
+<?php if($isHomologationTable): ?>
+<div class="master-toolbar card mb-3"><div class="card-body py-3 d-flex align-items-center justify-content-between gap-3 flex-wrap">
+    <div><strong>Administrar homologaciones de <?=e($title)?></strong>
+    <div class="form-text mt-0">Registra o edita cada homologación, o importa varias desde una plantilla Excel.</div></div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-primary" href="<?=url('/homologaciones/nuevo?tab='.urlencode($activeTab))?>">+ Agregar uno</a>
+        <a class="btn btn-success" href="<?=url('/homologaciones/importar?tab='.urlencode($activeTab))?>">Importar Excel</a>
+        <a class="btn btn-outline-primary" href="<?=url('/homologaciones/plantilla?tab='.urlencode($activeTab))?>" data-native-navigation>Plantilla XLSX</a>
+    </div>
+</div></div>
+<?php endif; ?>
+
 <?php if($isMasterTable): ?>
 <div class="master-toolbar card mb-3">
     <div class="card-body py-3 d-flex align-items-center justify-content-between gap-3 flex-wrap">
@@ -177,6 +191,19 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
 </form>
 <?php endif; ?>
 
+<?php if($isHomologationTable): ?>
+<form class="card card-body mb-3" action="<?=url('/homologaciones')?>" method="get" role="search" data-master-search-form>
+    <input type="hidden" name="tab" value="<?=e($activeTab)?>">
+    <div class="row g-2 align-items-end"><div class="col-12 col-md-8">
+      <label for="homologation-search" class="form-label">Buscar homologación</label>
+      <input id="homologation-search" class="form-control" name="q" value="<?=e($searchQuery)?>" placeholder="Partner, código interno, código o nombre Bayer..." autocomplete="off">
+    </div><div class="col-12 col-md-4 d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Buscar</button>
+      <a class="btn btn-outline-secondary" href="<?=url('/homologaciones?tab='.urlencode($activeTab))?>">Limpiar</a>
+    </div></div>
+</form>
+<?php endif; ?>
+
 <div class="card data-table-card"<?=($isMasterTable||$hasPagination)?'':' data-live-refresh="6000" data-live-refresh-key="backoffice-data-table"'?>>
     <?php if($isMasterTable||$hasPagination): ?>
     <div class="catalog-result-bar">
@@ -200,7 +227,7 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
                     <thead>
                         <tr>
                             <?php foreach(array_keys($rows[0]) as $h): ?><th><?=e($headerLabel((string)$h))?></th><?php endforeach;?>
-                            <?php if($isMasterTable && !empty($masterManageAvailable)): ?><th class="text-end">Acciones</th><?php endif; ?>
+                            <?php if(($isMasterTable && !empty($masterManageAvailable)) || $isHomologationTable): ?><th class="text-end">Acciones</th><?php endif; ?>
                         </tr>
                     </thead>
                     <tbody>
@@ -230,7 +257,19 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
                                 <?php endif; ?>
                             </td>
                         <?php endforeach;?>
-                        <?php if($isMasterTable && !empty($masterManageAvailable)): ?>
+                        <?php if($isHomologationTable): ?>
+                            <td class="text-end"><div class="master-row-actions">
+                                <a class="btn btn-sm btn-outline-primary" href="<?=url('/homologaciones/editar?tab='.urlencode($activeTab).'&id='.(int)$row['id'])?>">Editar</a>
+                                <?php if(($row['estado']??'')==='ACTIVO'): ?>
+                                <form method="post" class="d-inline" action="<?=url('/homologaciones/desactivar')?>" data-master-delete data-master-label="<?=e((string)($row['codigo_bayer']??$row['id']))?>">
+                                    <?=csrf_field()?>
+                                    <input type="hidden" name="tab" value="<?=e($activeTab)?>">
+                                    <input type="hidden" name="id" value="<?=e((int)$row['id'])?>">
+                                    <button class="btn btn-sm btn-outline-warning" type="submit">Desactivar</button>
+                                </form>
+                                <?php endif;?>
+                            </div></td>
+                        <?php elseif($isMasterTable && !empty($masterManageAvailable)): ?>
                             <td class="text-end">
                                 <div class="master-row-actions">
                                     <a class="btn btn-sm btn-outline-primary btn-with-icon" href="<?=url('/maestros/editar?tab='.urlencode($activeTab).'&id='.(int)$row['id'])?>">
