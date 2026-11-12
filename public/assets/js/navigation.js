@@ -101,8 +101,39 @@
         resolve();
     });
 
+    // Las respuestas de error POST no tienen .app-shell: nunca hacer reload
+    // silencioso porque oculta los 403/419/500 y parece que el botón no funciona.
+    const showRequestError = (freshDoc, status) => {
+        const box = document.querySelector('.app-notifications');
+        const title = freshDoc.querySelector('.error-card h1')?.textContent?.trim() || 'No se pudo completar la operación';
+        const detail = freshDoc.querySelector('.error-card p')?.textContent?.trim()
+            || 'La solicitud no pudo procesarse. Verifique su sesión y permisos.';
+        if (!box) {
+            window.alert(title + ': ' + detail);
+            return;
+        }
+        box.replaceChildren();
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger app-alert app-alert-floating show';
+        alert.setAttribute('role', 'alert');
+        const heading = document.createElement('strong');
+        heading.textContent = title + ' (HTTP ' + status + ')';
+        const message = document.createElement('span');
+        message.textContent = detail;
+        alert.append(heading, message);
+        box.append(alert);
+    };
+
     const syncShell = (freshDoc) => {
         document.title = freshDoc.title || document.title;
+        // Las notificaciones están fuera de .app-main: sincronizarlas tras cada
+        // cambio de ruta/POST para que el éxito o fallo sea visible.
+        const currentNotifications = document.querySelector('.app-notifications');
+        const freshNotifications = freshDoc.querySelector('.app-notifications');
+        if (currentNotifications && freshNotifications) {
+            currentNotifications.innerHTML = freshNotifications.innerHTML;
+        }
+
 
         const freshTheme = Array.from(freshDoc.querySelectorAll('style'))
             .find(node => node.textContent.includes('--brand-primary'));
@@ -225,8 +256,13 @@
 
             if (!freshMain || !freshDoc.querySelector('.app-shell')) {
                 const finalTarget = response.url || url.href;
-                if (method === 'GET' || response.redirected) location.assign(finalTarget);
-                else location.reload();
+                if (!response.ok && method === 'POST') {
+                    showRequestError(freshDoc, response.status);
+                } else if (method === 'GET' || response.redirected) {
+                    location.assign(finalTarget);
+                } else {
+                    showRequestError(freshDoc, response.status);
+                }
                 return;
             }
 
