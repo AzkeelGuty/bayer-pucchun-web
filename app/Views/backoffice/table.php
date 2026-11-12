@@ -75,7 +75,8 @@ if($activeTab==='' && !empty($tabs)){
 $isMasterTable=($base??'')==='/maestros';
 $isHomologationTable=($base??'')==='/homologaciones';
 $hasPagination=is_array($pagination??null);
-$searchQuery=($isMasterTable||$isHomologationTable) ? trim((string)($q??'')) : '';
+$searchQuery=$isMasterTable ? trim((string)($q??'')) : '';
+if($isHomologationTable) $searchQuery=trim((string)($q??''));
 $paginationData=$hasPagination ? $pagination : [];
 $currentPage=max(1,(int)($paginationData['page']??1));
 $totalPages=max(1,(int)($paginationData['pages']??1));
