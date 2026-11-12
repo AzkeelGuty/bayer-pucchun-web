@@ -1,6 +1,16 @@
 <?php
 $label=function(string $catalog,mixed $id)use($catalogs):string{foreach($catalogs[$catalog]??[] as $item)if((string)$item['id']===(string)$id)return $item['label'];return 'Registro histórico #'.$id;};
-$state=$document['estado_registro']; $workflowAvailable=true; $options=has_role('ADMIN','SUPERVISOR')?match($state){'BORRADOR'=>['VALIDADO'=>'Validar'],'VALIDADO'=>['OBSERVADO'=>'Observar','PUBLICADO'=>'Publicar'],default=>[]}:[];
+$state=$document['estado_registro']; $workflowAvailable=true;
+$canReview=can_workflow_permission('validation.review');
+$canPublish=can_workflow_permission('publications.publish');
+$options=match($state){
+    'BORRADOR'=>$canReview?['VALIDADO'=>'Validar']:[],
+    'VALIDADO'=>array_merge(
+        $canReview?['OBSERVADO'=>'Observar']:[],
+        $canPublish?['PUBLICADO'=>'Publicar']:[]
+    ),
+    default=>[]
+};
 $voucherState=(string)($document['estado_comprobante']??'VIGENTE');
 ?>
 <link rel="stylesheet" href="<?=asset_url('assets/css/documentos-captura.css')?>">
@@ -26,5 +36,5 @@ $voucherState=(string)($document['estado_comprobante']??'VIGENTE');
     $buttonIcon=match($target){'VALIDADO'=>'bi-check2-circle','PUBLICADO'=>'bi-cloud-arrow-up','OBSERVADO'=>'bi-exclamation-triangle',default=>'bi-arrow-right-circle'};
 ?><button type="button" class="btn btn-app-action <?=e($buttonStyle)?> btn-with-icon" <?=!$workflowAvailable?'disabled':''?> data-workflow-target="<?=e($target)?>" data-workflow-label="<?=e($text)?>"><i class="bi <?=e($buttonIcon)?>" aria-hidden="true"></i><span><?=e($text)?></span></button><?php endforeach;?></div></section>
 <p class="text-muted mt-3">Las acciones disponibles dependen del estado del documento y del rol del usuario.</p>
-<dialog class="doc-dialog" aria-labelledby="workflow-title" data-workflow-dialog><form method="post" action="<?=url('/documentos/estado')?>"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($document['id'])?>"><input type="hidden" name="version" value="<?=e($document['version'])?>"><input type="hidden" name="status" data-workflow-state><h2 class="h4" id="workflow-title">Confirmar acción</h2><p>La acción se aplicará al documento <?=e($document['numero'])?>.</p><div data-reason-wrap><label class="form-label" for="workflow-reason">Motivo</label><textarea id="workflow-reason" class="form-control" name="reason" maxlength="500" rows="3"></textarea></div><div class="d-flex justify-content-end gap-2 mt-3"><button class="btn btn-outline-primary" type="button" data-close-dialog>Cancelar</button><button class="btn btn-primary" type="submit">Confirmar</button></div></form></dialog>
+<dialog class="doc-dialog" aria-labelledby="workflow-title" data-workflow-dialog><form method="post" data-no-soft-nav action="<?=url('/documentos/estado')?>"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($document['id'])?>"><input type="hidden" name="version" value="<?=e($document['version'])?>"><input type="hidden" name="status" data-workflow-state><h2 class="h4" id="workflow-title">Confirmar acción</h2><p>La acción se aplicará al documento <?=e($document['numero'])?>.</p><div data-reason-wrap><label class="form-label" for="workflow-reason">Motivo</label><textarea id="workflow-reason" class="form-control" name="reason" maxlength="500" rows="3"></textarea></div><div class="d-flex justify-content-end gap-2 mt-3"><button class="btn btn-outline-primary" type="button" data-close-dialog>Cancelar</button><button class="btn btn-primary" type="submit">Confirmar</button></div></form></dialog>
 <script src="<?=asset_url('assets/js/documentos-captura.js')?>" defer></script>

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 function has_role(string ...$roles): bool { return true; }
+function can_workflow_permission(string $permission): bool { return in_array($permission,['validation.review','publications.publish'],true); }
 function url(string $path): string { return $path; }
 function e(mixed $value): string { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
 function csrf_field(): string { return '<input type="hidden" name="_token" value="test">'; }

@@ -51,6 +51,7 @@ jobs:
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/csrf_test.php
           php tests/unit/export_branding_path_test.php
           php tests/unit/workflow_test.php
+          php tests/unit/workflow_action_buttons_test.php
           php tests/unit/guide_workflow_test.php
           php tests/unit/stock_workflow_test.php
           php tests/unit/workflow_transitions_test.php
@@ -71,6 +72,7 @@ jobs:
           php tests/integration/master_catalogs_test.php
           php tests/integration/commerce_workflows_test.php
           php tests/integration/internal_numbering_test.php
+          php tests/integration/validation_actions_test.php
           php tests/integration/homologations_web_test.php
           php tests/integration/bulk_workflow_test.php
           php tests/integration/api_auth_test.php

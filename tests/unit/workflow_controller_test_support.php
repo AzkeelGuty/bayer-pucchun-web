@@ -5,6 +5,7 @@ require __DIR__ . '/workflow_test_support.php';
 function input(string $key, mixed $default = null): mixed { return $_POST[$key] ?? $_GET[$key] ?? $default; }
 function auth_user(): array { return $_SESSION['auth_user']; }
 function has_role(string ...$roles): bool { return App\Policies\AccessPolicy::allows(auth_user(), $roles); }
+function can_workflow_permission(string $permission): bool { return in_array($permission, db()->grants[(int)auth_user()['id']] ?? [], true); }
 function require_role(string ...$roles): void {
     if (!has_role(...$roles)) throw new App\Exceptions\HttpException(403, 'Acceso denegado.');
 }

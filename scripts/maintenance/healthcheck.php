@@ -59,6 +59,7 @@ try {
         8 => '008_estado_comprobante.sql',
         9 => '009_guias_desde_documentos_y_pagos.sql',
         10 => '010_numeracion_interna_automatica.sql',
+        11 => '011_permisos_flujo_aprobacion.sql',
     ];
     foreach ($names as $version => $filename) {
         check_health(in_array($version, $versions, true), 'Migracion ' . str_pad((string) $version, 3, '0', STR_PAD_LEFT), 'database/migrations/' . $filename);
@@ -105,6 +106,16 @@ try {
         }
         $missing = array_values(array_filter($columns, static fn(string $column): bool => !isset($schema[$table][$column])));
         check_health(!$missing, 'Estructura ' . $table, $missing ? 'Faltan columnas: ' . implode(', ', $missing) : '');
+    }
+
+    foreach ([['ADMIN','validation.review'],['ADMIN','publications.publish'],['SUPERVISOR','validation.review']] as [$role,$permission]) {
+        try {
+            $st=$pdo->prepare('SELECT COUNT(*) FROM rol_permiso rp JOIN roles r ON r.id=rp.rol_id JOIN permisos p ON p.id=rp.permiso_id WHERE r.nombre=? AND r.estado=1 AND p.codigo=?');
+            $st->execute([$role,$permission]);
+            check_health((int)$st->fetchColumn()>0,'Permiso '.$role.' / '.$permission);
+        } catch (Throwable $error) {
+            check_health(false,'Permiso '.$role.' / '.$permission,$error->getMessage());
+        }
     }
 
     // Compilar las consultas que consumen las nuevas columnas sin modificar registros.

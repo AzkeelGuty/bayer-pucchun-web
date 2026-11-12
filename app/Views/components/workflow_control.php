@@ -3,6 +3,8 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
 {
     if (!has_role('ADMIN','SUPERVISOR')) return;
 
+    $canReview=can_workflow_permission('validation.review');
+    $canPublish=can_workflow_permission('publications.publish');
     $state=(string)($row['estado_registro'] ?? 'BORRADOR');
     $id=(int)($row['id'] ?? 0);
     $version=(int)($row['version'] ?? 0);
@@ -12,9 +14,12 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
 
     if($presentation==='supervised'){
         $options=match($state){
-            'BORRADOR'=>['VALIDADO'=>'Validar'],
-            'VALIDADO'=>['PUBLICADO'=>'Publicar','OBSERVADO'=>'Observar'],
-            'OBSERVADO'=>['BORRADOR'=>'Devolver a borrador'],
+            'BORRADOR'=>$canReview?['VALIDADO'=>'Validar']:[],
+            'VALIDADO'=>array_merge(
+                $canPublish?['PUBLICADO'=>'Publicar']:[],
+                $canReview?['OBSERVADO'=>'Observar']:[]
+            ),
+            'OBSERVADO'=>$canReview?['BORRADOR'=>'Devolver a borrador']:[],
             default=>[]
         };
         if(!$options) return;
@@ -22,7 +27,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
         $default=(string)array_key_first($options);
         $needsReason=array_intersect(array_keys($options),['OBSERVADO','ANULADO']);
         ?>
-        <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-form" data-workflow-supervised>
+        <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-form" data-no-soft-nav data-workflow-supervised>
             <?=csrf_field()?>
             <input type="hidden" name="id" value="<?=e($id)?>">
             <input type="hidden" name="version" value="<?=e($version)?>">
@@ -33,9 +38,9 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
                 <?php endforeach; ?>
             </select>
             <?php if($needsReason): ?>
-                <input name="reason" class="form-control form-control-sm" maxlength="500" placeholder="Motivo si aplica" data-workflow-reason>
+                <input name="reason" class="form-control form-control-sm" maxlength="500" placeholder="Motivo obligatorio para observar" data-workflow-reason <?=$default==='OBSERVADO'?'required':''?>>
             <?php endif; ?>
-            <button class="btn btn-app-action btn-app-blue btn-with-icon" type="submit">
+            <button class="btn btn-app-action <?=$default==='PUBLICADO'?'btn-app-green':($default==='OBSERVADO'?'btn-app-amber':'btn-app-blue')?> btn-with-icon" type="submit">
                 <i class="bi bi-check2-circle"></i><span>Aplicar</span>
             </button>
         </form>
@@ -45,7 +50,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
 
     $form=function(string $status,string $label,string $class,string $icon='bi-check2-circle') use($module,$id,$version,$safeReturn): void {
         ?>
-        <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-quick-form">
+        <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-quick-form" data-no-soft-nav>
             <?=csrf_field()?>
             <input type="hidden" name="id" value="<?=e($id)?>">
             <input type="hidden" name="version" value="<?=e($version)?>">
@@ -60,10 +65,11 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
 
     echo '<div class="workflow-actions">';
 
-    if($state==='BORRADOR'){
+    if($state==='BORRADOR' && $canReview){
         $form('VALIDADO','Validar','btn-app-blue','bi-check2-circle');
     } elseif($state==='VALIDADO'){
-        $form('PUBLICADO','Publicar','btn-app-green','bi-cloud-arrow-up');
+        if($canPublish) $form('PUBLICADO','Publicar','btn-app-green','bi-cloud-arrow-up');
+        if($canReview) {
         $dialogId='workflow-observe-'.$module.'-'.$id;
         ?>
         <button
@@ -77,7 +83,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
         </button>
 
         <dialog class="workflow-dialog" id="<?=e($dialogId)?>" data-workflow-dialog>
-            <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-dialog-form">
+            <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-dialog-form" data-no-soft-nav>
                 <?=csrf_field()?>
                 <input type="hidden" name="id" value="<?=e($id)?>">
                 <input type="hidden" name="version" value="<?=e($version)?>">
@@ -116,6 +122,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
             </form>
         </dialog>
         <?php
+        }
     } elseif($state==='OBSERVADO'){
         echo '<span class="workflow-waiting"><i class="bi bi-pencil-square"></i> Esperando corrección</span>';
     } elseif($state==='PUBLICADO'){

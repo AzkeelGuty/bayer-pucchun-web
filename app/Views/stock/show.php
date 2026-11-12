@@ -50,14 +50,14 @@
     <h6 class="card-title">Flujo de aprobación</h6>
     <p class="text-muted small">Las acciones disponibles dependen del estado actual del stock y de los permisos del usuario.</p>
     <div class="d-flex gap-2 flex-wrap">
-        <?php if ($h['estado_registro'] === 'BORRADOR'): ?>
-            <form method="post" action="<?= url('/stock/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-app-action btn-app-blue btn-with-icon" type="submit"><i class="bi bi-check2-circle"></i><span>Validar</span></button></form>
+        <?php if ($h['estado_registro'] === 'BORRADOR' && can_workflow_permission('validation.review')): ?>
+            <form method="post" data-no-soft-nav action="<?= url('/stock/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="VALIDADO"><button class="btn btn-app-action btn-app-blue btn-with-icon" type="submit"><i class="bi bi-check2-circle"></i><span>Validar</span></button></form>
         <?php endif; ?>
         <?php if ($h['estado_registro'] === 'VALIDADO'): ?>
-            <form method="post" action="<?= url('/stock/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-app-action btn-app-green btn-with-icon" type="submit"><i class="bi bi-cloud-arrow-up"></i><span>Publicar</span></button></form>
-            <button type="button" class="btn btn-app-action btn-app-amber btn-with-icon" data-bs-toggle="modal" data-bs-target="#observarModal"><i class="bi bi-exclamation-triangle"></i><span>Observar</span></button>
+            <?php if (can_workflow_permission('publications.publish')): ?><form method="post" data-no-soft-nav action="<?= url('/stock/estado') ?>"><?= csrf_field() ?><input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>"><input type="hidden" name="status" value="PUBLICADO"><button class="btn btn-app-action btn-app-green btn-with-icon" type="submit"><i class="bi bi-cloud-arrow-up"></i><span>Publicar</span></button></form><?php endif; ?>
+            <?php if (can_workflow_permission('validation.review')): ?><button type="button" class="btn btn-app-action btn-app-amber btn-with-icon" data-bs-toggle="modal" data-bs-target="#observarModal"><i class="bi bi-exclamation-triangle"></i><span>Observar</span></button><?php endif; ?>
         <?php endif; ?>
-        <?php if ($h['estado_registro'] === 'PUBLICADO'): ?>
+        <?php if ($h['estado_registro'] === 'PUBLICADO' && can_workflow_permission('publications.publish')): ?>
             <button type="button" class="btn btn-app-action btn-app-red btn-with-icon" data-bs-toggle="modal" data-bs-target="#anularModal"><i class="bi bi-x-octagon"></i><span>Anular</span></button>
         <?php endif; ?>
     </div>
@@ -65,7 +65,7 @@
 
 <div class="modal fade" id="observarModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <form method="post" action="<?= url('/stock/estado') ?>" class="modal-content">
+        <form method="post" data-no-soft-nav action="<?= url('/stock/estado') ?>" class="modal-content">
             <?= csrf_field() ?>
             <input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>">
             <input type="hidden" name="status" value="OBSERVADO">
@@ -84,7 +84,7 @@
 
 <div class="modal fade" id="anularModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <form method="post" action="<?= url('/stock/estado') ?>" class="modal-content">
+        <form method="post" data-no-soft-nav action="<?= url('/stock/estado') ?>" class="modal-content">
             <?= csrf_field() ?>
             <input type="hidden" name="id" value="<?= $h['id'] ?>"><input type="hidden" name="version" value="<?= e($h['version']) ?>">
             <input type="hidden" name="status" value="ANULADO">

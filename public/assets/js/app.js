@@ -586,3 +586,25 @@ document.addEventListener('submit', function (event) {
         event.stopImmediatePropagation();
     }
 }, true);
+
+
+// Control de acciones supervisadas: el motivo debe ser obligatorio al observar.
+// Se usa delegación para que siga funcionando tras la navegación interna.
+document.addEventListener('change', (event) => {
+    const select=event.target.closest?.('[data-workflow-status]');
+    if (!select) return;
+    const form=select.closest('[data-workflow-supervised]');
+    if (!form) return;
+    const needsReason=['OBSERVADO','ANULADO'].includes(select.value);
+    const reason=form.querySelector('[data-workflow-reason]');
+    if (reason) {
+        reason.required=needsReason;
+        reason.placeholder=needsReason ? 'Motivo obligatorio para observar' : 'Motivo si aplica';
+    }
+    const action=form.querySelector('button[type="submit"]');
+    if (action) {
+        action.classList.remove('btn-app-blue','btn-app-green','btn-app-amber');
+        action.classList.add(select.value==='PUBLICADO' ? 'btn-app-green' :
+            needsReason ? 'btn-app-amber' : 'btn-app-blue');
+    }
+});

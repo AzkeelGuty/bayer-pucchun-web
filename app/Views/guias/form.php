@@ -35,7 +35,7 @@ $lookupProductos=e(url('/lookups?type=productos'));
                 <label class="form-label" for="guide-number">Número interno (automático)</label>
                 <input class="form-control <?=form_error('numero')?'is-invalid':''?>" id="guide-number" name="numero" maxlength="25" value="<?=e($numberValue)?>" readonly required>
                 <div class="invalid-feedback"><?=e(form_error('numero'))?></div>
-                <div class="form-text"><i class="bi bi-shield-check me-1"></i>El número definitivo se asigna al guardar. Esta referencia interna no representa una GRE emitida ante SUNAT.</div>
+                <div class="form-text"><i class="bi bi-shield-check me-1"></i>Número interno asignado automáticamente al guardar.</div>
             </div>
             <div class="col-md-4">
                 <label class="form-label" for="guide-date">Fecha</label>
