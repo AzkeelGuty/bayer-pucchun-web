@@ -1291,3 +1291,40 @@ body.bp-soft-navigating .app-main{cursor:progress}
     .catalog-page-numbers{order:3;width:100%}
     .catalog-pagination>.btn{flex:1 1 120px;justify-content:center}
 }
+
+
+/* Acciones homogéneas de administración y aprobación, contrastes accesibles. */
+.btn.btn-app-action{
+    display:inline-flex;align-items:center;justify-content:center;gap:.48rem;
+    min-height:40px;min-width:118px;padding:9px 17px;border:1px solid transparent;
+    border-radius:10px;font-size:.9rem;font-weight:750;line-height:1.25;
+    color:#fff!important;cursor:pointer;box-shadow:0 2px 5px rgba(16,48,80,.08);
+    transition:background-color .16s ease,border-color .16s ease,
+        box-shadow .16s ease,transform .16s ease,filter .16s ease;
+}
+.btn.btn-app-blue{background:#075b9f;border-color:#075b9f}
+.btn.btn-app-green{background:#137d45;border-color:#137d45}
+.btn.btn-app-amber{background:#a85a0c;border-color:#a85a0c}
+.btn.btn-app-red{background:#c5293e;border-color:#c5293e}
+.btn.btn-app-action:hover:not(:disabled){
+    color:#fff!important;filter:brightness(.88);transform:translateY(-1px);
+    box-shadow:0 5px 12px rgba(16,48,80,.19);
+}
+.btn.btn-app-action:active:not(:disabled){transform:translateY(0);filter:brightness(.80)}
+.btn.btn-app-action:focus-visible{outline:3px solid #8acbff;outline-offset:3px}
+.btn.btn-app-action:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
+.workflow-main-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.workflow-main-actions form{margin:0}
+.workflow-main-actions .btn{white-space:nowrap}
+input[data-internal-number],#guide-number[readonly]{
+    background:#f1f7fc!important;color:#104572!important;
+    font-weight:800;letter-spacing:.3px;cursor:default;border-color:#bad7ea;
+}
+@media(max-width:575.98px){
+    .workflow-main-actions .btn{min-width:0;width:100%}
+    .workflow-main-actions form{flex:1 1 auto}
+}
+@media(prefers-reduced-motion:reduce){
+    .btn.btn-app-action{transition:none}
+    .btn.btn-app-action:hover:not(:disabled){transform:none}
+}
