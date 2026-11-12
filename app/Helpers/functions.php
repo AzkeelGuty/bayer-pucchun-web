@@ -285,3 +285,19 @@ function estado_badge(?string $estado): string {
     $class=$classes[$estado]??'bg-secondary';
     return '<span class="badge '.$class.'">'.e($estado??'—').'</span>';
 }
+
+
+/** Verifica permisos persistidos antes de mostrar acciones del flujo.
+ * Consulta una vez por usuario/permiso durante la solicitud. */
+function can_workflow_permission(string $permission): bool
+{
+    if (!in_array($permission,['validation.review','publications.publish'],true)) return false;
+    $user=auth_user();
+    if (!$user || !has_role('ADMIN','SUPERVISOR')) return false;
+    static $cache=[];
+    $key=(int)$user['id'].':'.$permission;
+    if (!array_key_exists($key,$cache)) {
+        $cache[$key]=(new \App\Services\PermissionService())->allows($user,$permission);
+    }
+    return $cache[$key];
+}
