@@ -7,7 +7,7 @@ function bulk_workflow_controls(string $module,array $counts): void
     $validated=(int)($counts['VALIDADO']??0);
     ?>
     <div class="bulk-workflow-actions" aria-label="Acciones masivas">
-        <form method="post" action="<?=url('/'.$module.'/estado-masivo')?>" data-bulk-workflow data-bulk-label="validar todos los borradores">
+        <form method="post" action="<?=url('/'.$module.'/estado-masivo')?>" data-no-soft-nav data-bulk-workflow data-bulk-label="validar todos los borradores">
             <?=csrf_field()?>
             <input type="hidden" name="status" value="VALIDADO">
             <button class="btn btn-app-action btn-app-blue btn-with-icon" type="submit" <?=$drafts<1?'disabled':''?> title="<?=$drafts?> borradores pendientes">
@@ -15,7 +15,7 @@ function bulk_workflow_controls(string $module,array $counts): void
                 <span>Validar todo<?=$drafts>0?' ('.$drafts.')':''?></span>
             </button>
         </form>
-        <form method="post" action="<?=url('/'.$module.'/estado-masivo')?>" data-bulk-workflow data-bulk-label="publicar todos los registros validados">
+        <form method="post" action="<?=url('/'.$module.'/estado-masivo')?>" data-no-soft-nav data-bulk-workflow data-bulk-label="publicar todos los registros validados">
             <?=csrf_field()?>
             <input type="hidden" name="status" value="PUBLICADO">
             <button class="btn btn-app-action btn-app-green btn-with-icon" type="submit" <?=$validated<1?'disabled':''?> title="<?=$validated?> registros listos para publicar">
