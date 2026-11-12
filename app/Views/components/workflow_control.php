@@ -3,6 +3,8 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
 {
     if (!has_role('ADMIN','SUPERVISOR')) return;
 
+    $canReview=can_workflow_permission('validation.review');
+    $canPublish=can_workflow_permission('publications.publish');
     $state=(string)($row['estado_registro'] ?? 'BORRADOR');
     $id=(int)($row['id'] ?? 0);
     $version=(int)($row['version'] ?? 0);
@@ -12,9 +14,12 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
 
     if($presentation==='supervised'){
         $options=match($state){
-            'BORRADOR'=>['VALIDADO'=>'Validar'],
-            'VALIDADO'=>['PUBLICADO'=>'Publicar','OBSERVADO'=>'Observar'],
-            'OBSERVADO'=>['BORRADOR'=>'Devolver a borrador'],
+            'BORRADOR'=>$canReview?['VALIDADO'=>'Validar']:[],
+            'VALIDADO'=>array_merge(
+                $canPublish?['PUBLICADO'=>'Publicar']:[],
+                $canReview?['OBSERVADO'=>'Observar']:[]
+            ),
+            'OBSERVADO'=>$canReview?['BORRADOR'=>'Devolver a borrador']:[],
             default=>[]
         };
         if(!$options) return;
@@ -60,10 +65,11 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
 
     echo '<div class="workflow-actions">';
 
-    if($state==='BORRADOR'){
+    if($state==='BORRADOR' && $canReview){
         $form('VALIDADO','Validar','btn-app-blue','bi-check2-circle');
     } elseif($state==='VALIDADO'){
-        $form('PUBLICADO','Publicar','btn-app-green','bi-cloud-arrow-up');
+        if($canPublish) $form('PUBLICADO','Publicar','btn-app-green','bi-cloud-arrow-up');
+        if($canReview) {
         $dialogId='workflow-observe-'.$module.'-'.$id;
         ?>
         <button
@@ -116,6 +122,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
             </form>
         </dialog>
         <?php
+        }
     } elseif($state==='OBSERVADO'){
         echo '<span class="workflow-waiting"><i class="bi bi-pencil-square"></i> Esperando corrección</span>';
     } elseif($state==='PUBLICADO'){
