@@ -33,6 +33,17 @@ class DocumentRepository extends OperationalRepository
         return parent::normalize($header,$details);
     }
 
+
+    /** Asigna el número definitivo en la misma transacción que crea la cabecera y sus líneas. */
+    public function createAutoNumbered(array $header,array $details,int $actorId): int
+    {
+        return $this->atomic(function () use($header,$details,$actorId): int {
+            $header['numero']=(new \App\Services\InternalNumberingService($this->pdo))
+                ->nextDocument((int)($header['tipo_documento_id']??0));
+            return parent::create($header,$details,$actorId);
+        });
+    }
+
     public function findByNumber(int $typeId, string $number): ?array
     {
         $id = $this->execute('SELECT id FROM documentos_cabecera WHERE tipo_documento_id=? AND numero=?', [$typeId, $number])->fetchColumn();
