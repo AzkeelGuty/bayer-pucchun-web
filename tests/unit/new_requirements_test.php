@@ -42,15 +42,23 @@ $docIndex=$read('app/Views/documentos/index.php');
 $docShow=$read('app/Views/documentos/show.php');
 $documentScreen=$read('app/Services/DocumentScreenService.php');
 $bayerDataService=$read('app/Services/BayerDataService.php');
-req(!is_file($root.'/app/Services/OperationalNumberingService.php'),'El generador automático de correlativos debe estar eliminado.');
+req(!is_file($root.'/app/Services/OperationalNumberingService.php'),'No debe reutilizarse el numerador obsoleto sin control transaccional.');
+req(is_file($root.'/app/Services/InternalNumberingService.php'),'El numerador transaccional debe existir.');
 
 foreach([$docController,$guideController,$docForm,$guideForm,$docJs,$formsJs] as $content){
     req(!str_contains($content,'data-number-manual'),'No debe quedar el selector de numeración automática/manual.');
     req(!str_contains($content,'number_mode'),'No debe quedar number_mode en captura.');
-    req(!str_contains($content,'nextDocumentNumber(') && !str_contains($content,'nextGuideNumber('),'Los formularios no deben generar correlativos.');
+    // La numeración ahora se asigna desde el servidor al guardar.
+
 }
-req(str_contains($docForm,'El sistema no genera correlativos.'),'Documento debe explicar la numeración manual.');
-req(str_contains($guideForm,'El sistema no genera correlativos.'),'Guía debe explicar la numeración manual.');
+req(str_contains($docForm,'data-internal-number') && str_contains($docForm,'readonly'),
+    'Documento debe mostrar la referencia automática de solo lectura.');
+req(str_contains($guideForm,'Número interno (automático)') && str_contains($guideForm,'readonly'),
+    'Guía debe mostrar la referencia automática de solo lectura.');
+req(str_contains($docController,'createAutoNumbered(') && str_contains($guideController,'createAutoNumbered('),
+    'La captura debe reservar el correlativo real al guardar.');
+req(str_contains($routes,'/documentos/siguiente-numero'),
+    'La vista previa debe actualizarse al cambiar el tipo de documento.');
 
 req(str_contains($guideForm,'data-destination-save-client'),'La guía debe permitir guardar la ubicación del cliente.');
 req(str_contains($formsJs,'cliente-ubicacion') || str_contains($guideForm,'/guias/cliente-ubicacion'),'Debe existir el endpoint de ubicación del cliente.');
