@@ -22,7 +22,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
         $default=(string)array_key_first($options);
         $needsReason=array_intersect(array_keys($options),['OBSERVADO','ANULADO']);
         ?>
-        <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-form" data-workflow-supervised>
+        <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-form" data-no-soft-nav data-workflow-supervised>
             <?=csrf_field()?>
             <input type="hidden" name="id" value="<?=e($id)?>">
             <input type="hidden" name="version" value="<?=e($version)?>">
@@ -45,7 +45,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
 
     $form=function(string $status,string $label,string $class,string $icon='bi-check2-circle') use($module,$id,$version,$safeReturn): void {
         ?>
-        <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-quick-form">
+        <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-quick-form" data-no-soft-nav>
             <?=csrf_field()?>
             <input type="hidden" name="id" value="<?=e($id)?>">
             <input type="hidden" name="version" value="<?=e($version)?>">
@@ -77,7 +77,7 @@ function workflow_control(string $module, array $row, string $returnTo='/validac
         </button>
 
         <dialog class="workflow-dialog" id="<?=e($dialogId)?>" data-workflow-dialog>
-            <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-dialog-form">
+            <form method="post" action="<?=url('/'.$module.'/estado')?>" class="workflow-dialog-form" data-no-soft-nav>
                 <?=csrf_field()?>
                 <input type="hidden" name="id" value="<?=e($id)?>">
                 <input type="hidden" name="version" value="<?=e($version)?>">
