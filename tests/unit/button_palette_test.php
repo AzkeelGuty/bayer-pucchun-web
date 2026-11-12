@@ -44,8 +44,8 @@ foreach([
     $check(str_contains($source,'btn-app-green'),$file.' usa publicación verde');
 }
 $bulk=(string)file_get_contents($root.'/app/Views/components/bulk_workflow.php');
-$check(str_contains($bulk,"(!$canValidate||$drafts<1)?'disabled':''"),'Validar todo deshabilitado solo sin permiso o borradores');
-$check(str_contains($bulk,"(!$canPublish||$validated<1)?'disabled':''"),'Publicar todo deshabilitado solo sin permiso o registros validados');
+$check(str_contains($bulk,'(!$canValidate||$drafts<1)'), 'Validar todo deshabilitado solo sin permiso o borradores');
+$check(str_contains($bulk,'(!$canPublish||$validated<1)'), 'Publicar todo deshabilitado solo sin permiso o registros validados');
 $check(str_contains($css,'.btn.btn-app-action:disabled,'),'El estado deshabilitado tiene estilo propio');
 $check(str_contains($css,'.bulk-workflow-actions .btn:disabled,'),'Los botones masivos respetan estilo disabled');
 
