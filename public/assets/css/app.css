@@ -1303,9 +1303,9 @@ body.bp-soft-navigating .app-main{cursor:progress}
         box-shadow .16s ease,transform .16s ease,filter .16s ease;
 }
 .btn.btn-app-blue{background:#3c769e;border-color:#3c769e}
-.btn.btn-app-green{background:#43866b;border-color:#43866b}
-.btn.btn-app-amber{background:#ae8854;border-color:#ae8854}
-.btn.btn-app-red{background:#af6971;border-color:#af6971}
+.btn.btn-app-green{background:#387b65;border-color:#387b65}
+.btn.btn-app-amber{background:#8d693f;border-color:#8d693f}
+.btn.btn-app-red{background:#a55862;border-color:#a55862}
 .btn.btn-app-action:hover:not(:disabled){
     color:#fff!important;filter:brightness(.93);transform:translateY(-1px);
     box-shadow:0 3px 9px rgba(16,48,80,.12);
