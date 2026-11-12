@@ -47,6 +47,7 @@ final class OwnershipPDO extends PDO {
             if (str_contains($query,'FROM provincias')) return [['id'=>1,'departamento_id'=>1,'nombre'=>'Provincia Fixture']];
             if (str_contains($query,'FROM distritos')) return [['id'=>1,'provincia_id'=>1,'nombre'=>'Distrito Fixture']];
             if (str_contains($query,'FROM unidades_medida')) return [['id'=>1,'label'=>'NIU · Unidad']];
+            if (str_contains($query,'FROM guias_cabecera WHERE documento_origen_id')) return [];
             // DocumentScreenService's existing list/count are inspected and evaluated over fixtures.
             if (!str_contains($query,'FROM documentos_cabecera h')) throw new RuntimeException('Unexpected query in ownership test');
             $rows = array_column(array_values($this->records),'header');
