@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 use App\Exceptions\HttpException;
 use App\Policies\OperationalPermissionPolicy;
-use App\Repositories\DocumentRepository;
+use App\Repositories\{DocumentRepository,GuideRepository};
 use App\Services\{DocumentScreenService,WorkflowService};
 
 final class DocumentController
@@ -50,7 +50,16 @@ final class DocumentController
     }
     public function show(): void {
         \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('documents.read'); $r=$this->record((int)\input('id',0));
-        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>(new DocumentScreenService())->catalogsFor($r['header'],$r['details'])]);
+        $catalogs=(new DocumentScreenService())->catalogsFor($r['header'],$r['details']);
+        $type='';
+        foreach($catalogs['tipo_documento_id']??[] as $item){
+            if((int)$item['id']===(int)$r['header']['tipo_documento_id']) $type=(string)$item['codigo'];
+        }
+        $guideId=(new GuideRepository())->findBySourceDocument((int)$r['header']['id']);
+        $canGenerateGuide=in_array($type,['FAC','BOL'],true)
+            && in_array((string)$r['header']['estado_registro'],['BORRADOR','VALIDADO','PUBLICADO'],true)
+            && (string)($r['header']['estado_comprobante']??'VIGENTE')==='VIGENTE';
+        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>$catalogs,'guideId'=>$guideId,'canGenerateGuide'=>$canGenerateGuide]);
     }
     private function form(array $header,array $details,bool $editing=false,array $errors=[],?array $catalogs=null): void {
         $catalogs??=(new DocumentScreenService())->catalogsFor($header,$details);
