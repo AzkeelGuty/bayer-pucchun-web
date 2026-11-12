@@ -1,6 +1,16 @@
 <?php
 $label=function(string $catalog,mixed $id)use($catalogs):string{foreach($catalogs[$catalog]??[] as $item)if((string)$item['id']===(string)$id)return $item['label'];return 'Registro histórico #'.$id;};
-$state=$document['estado_registro']; $workflowAvailable=true; $options=has_role('ADMIN','SUPERVISOR')?match($state){'BORRADOR'=>['VALIDADO'=>'Validar'],'VALIDADO'=>['OBSERVADO'=>'Observar','PUBLICADO'=>'Publicar'],default=>[]}:[];
+$state=$document['estado_registro']; $workflowAvailable=true;
+$canReview=can_workflow_permission('validation.review');
+$canPublish=can_workflow_permission('publications.publish');
+$options=match($state){
+    'BORRADOR'=>$canReview?['VALIDADO'=>'Validar']:[],
+    'VALIDADO'=>array_merge(
+        $canReview?['OBSERVADO'=>'Observar']:[],
+        $canPublish?['PUBLICADO'=>'Publicar']:[]
+    ),
+    default=>[]
+};
 $voucherState=(string)($document['estado_comprobante']??'VIGENTE');
 ?>
 <link rel="stylesheet" href="<?=asset_url('assets/css/documentos-captura.css')?>">
