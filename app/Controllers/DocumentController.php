@@ -53,7 +53,7 @@ final class DocumentController
         $catalogs=(new DocumentScreenService())->catalogsFor($r['header'],$r['details']);
         $type='';
         foreach($catalogs['tipo_documento_id']??[] as $item){
-            if((int)$item['id']===(int)$r['header']['tipo_documento_id']) $type=(string)$item['codigo'];
+            if((int)$item['id']===(int)$r['header']['tipo_documento_id']) $type=(string)($item['codigo']??'');
         }
         $guideId=(new GuideRepository())->findBySourceDocument((int)$r['header']['id']);
         $canGenerateGuide=in_array($type,['FAC','BOL'],true)
