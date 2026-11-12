@@ -38,6 +38,7 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
 $router->get('/documentos/ver',[DocumentController::class,'show'],$internal);
 $router->post('/documentos/estado-comprobante',[DocumentController::class,'changeVoucherStatus'],$review);
 $router->get('/guias/ver',[GuideController::class,'show'],$internal);
+$router->post('/guias/desde-documento',[GuideController::class,'generateFromDocument'],$capture);
 $router->post('/guias/cliente-ubicacion',[GuideController::class,'saveClientLocation'],$capture);
 $router->get('/stock/ver',[StockController::class,'show'],$internal);
 
