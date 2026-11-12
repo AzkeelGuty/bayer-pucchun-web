@@ -20,11 +20,11 @@ final class ErrorHandler
                 'code' => (string) $error->getCode(),
                 'path' => (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/'),
             ];
-            if (\is_local_env()) {
+            // Las pruebas aisladas no cargan necesariamente todos los Helpers.\n            $local = function_exists('is_local_env') && \is_local_env();\n            if ($local) {
                 $context['message'] = $error->getMessage();
                 $context['file'] = $error->getFile();
                 $context['line'] = $error->getLine();
-                if (\config('app.debug', false)) {
+                if (function_exists('config') && \config('app.debug', false)) {
                     $debugDetails = get_class($error) . ': ' . $error->getMessage()
                         . "\nArchivo: " . $error->getFile() . ':' . $error->getLine();
                 }
