@@ -44,6 +44,7 @@ ensure($transport['cantidades']['KGM']===7 && $transport['cantidades']['LTR']===
 $db=new TestDatabase();
 try{
     $db->load('database/schemas/002_schema_v2.sql');
+    $db->load('database/migrations/009_guias_desde_documentos_y_pagos.sql');
     $db->load('database/migrations/013_calculos_totales_documentos_guias.sql');
     $db->load('database/migrations/013_calculos_totales_documentos_guias.sql');
     fixtures($db->pdo);
