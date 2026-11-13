@@ -60,6 +60,7 @@ jobs:
           php tests/unit/button_palette_test.php
           php tests/unit/erp_actions_ui_test.php
           php tests/unit/payment_tax_labels_test.php
+          php tests/unit/sunat_security_test.php
           php tests/unit/guide_workflow_test.php
           php tests/unit/stock_workflow_test.php
           php tests/unit/workflow_transitions_test.php
@@ -82,6 +83,7 @@ jobs:
           php tests/integration/internal_numbering_test.php
           php tests/integration/validation_actions_test.php
           php tests/integration/audit_ip_test.php
+          php tests/integration/sunat_emission_test.php
           php tests/integration/homologations_web_test.php
           php tests/integration/bulk_workflow_test.php
           php tests/integration/api_auth_test.php
