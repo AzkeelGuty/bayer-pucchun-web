@@ -16,11 +16,6 @@ $voucherState=(string)($document['estado_comprobante']??'VIGENTE');
 <link rel="stylesheet" href="<?=asset_url('assets/css/documentos-captura.css')?>">
 <link rel="stylesheet" href="<?=asset_url('assets/css/commercial-totals.css')?>">
 <section class="module-header"><div><div class="page-eyebrow">DETALLE DEL DOCUMENTO</div><h1 class="page-title"><?=e($document['numero'])?></h1><p class="page-subtitle"><?=e($label('tipo_documento_id',$document['tipo_documento_id']))?> · <?=e($document['fecha'])?></p></div><a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Volver al listado</a></section>
-<?php if(has_role('ADMIN')): ?>
-<div class="mb-3"><a href="<?=url('/sunat')?>" class="btn btn-outline-primary btn-with-icon">
-    <i class="bi bi-receipt" aria-hidden="true"></i><span>Consultar o emitir en SUNAT</span>
-</a></div>
-<?php endif; ?>
 <section class="card mb-3"><div class="card-body p-4"><div class="d-flex flex-wrap justify-content-between gap-2 mb-3"><h2 class="h5">Datos generales</h2><div class="d-flex gap-2 flex-wrap"><span class="badge-status status-<?=e(strtolower($state))?>">Flujo: <?=e($state)?></span><span class="badge-status status-<?=$voucherState==='ANULADO'?'anulado':'publicado'?>">Comprobante: <?=e($voucherState)?></span></div></div><dl class="row"><div class="col-12 col-md-4"><dt>Cliente</dt><dd><?=e($label('cliente_id',$document['cliente_id']))?></dd></div><div class="col-12 col-md-4"><dt>Vendedor</dt><dd><?=e($label('vendedor_id',$document['vendedor_id']))?></dd></div><div class="col-12 col-md-4"><dt>Sucursal</dt><dd><?=e($label('sucursal_id',$document['sucursal_id']))?></dd></div>
 <div class="col-12 col-md-4"><dt>Medio de pago</dt><dd><?=e($document['medio_pago']??'No especificado')?></dd></div>
 
