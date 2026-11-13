@@ -307,7 +307,7 @@ final class BayerCatalogService
             $sql.=' AND (codigo_bayer LIKE ? OR nombre_bayer LIKE ?)';
             $q='%'.trim((string)$filters['q']).'%';$params=[$q,$q];
         }
-        $sql.=' ORDER BY codigo_bayer LIMIT 10000';
+        $sql.=' ORDER BY codigo_bayer';
         $s=$this->pdo->prepare($sql);$s->execute($params);return $s->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -327,7 +327,7 @@ final class BayerCatalogService
                  WHEN i.cantidad=0 THEN \'SIN_STOCK\' ELSE \'CON_STOCK\' END AS stockStatus
             FROM bayer_inventario_periodos i
             JOIN bayer_productos_catalogo p ON p.id=i.producto_id
-            WHERE '.implode(' AND ',$where).' ORDER BY i.periodo DESC,p.codigo_bayer LIMIT 10000'
+            WHERE '.implode(' AND ',$where).' ORDER BY i.periodo DESC,p.codigo_bayer'
         );
         $s->execute($params);return $s->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -341,7 +341,7 @@ final class BayerCatalogService
                 x.igv_porcentaje AS vatRate,x.sugerido_con_igv AS suggestedGross,
                 x.descuento_dealer AS dealerDiscount
              FROM bayer_precios_referencia x JOIN bayer_productos_catalogo p ON p.id=x.producto_id
-             WHERE p.publicado=1 ORDER BY x.vigencia_desde DESC,p.codigo_bayer LIMIT 10000'
+             WHERE p.publicado=1 ORDER BY x.vigencia_desde DESC,p.codigo_bayer'
         )->fetchAll(PDO::FETCH_ASSOC);
     }
 }
