@@ -351,7 +351,7 @@
             select, wrapper, input, selectedDisplay, menu,
             items: itemsFor(select),
             rendered: [], activeIndex: -1,
-            minChars: Math.max(0, Number(select.dataset.searchMin || 1)),
+            minChars: Math.max(1, Number.parseInt(select.dataset.searchMin || '1', 10) || 1),
             limit: Math.max(5, Math.min(20, Number(select.dataset.searchLimit || 15))),
             remoteUrl: select.dataset.searchUrl || '',
             parentSelector: select.dataset.searchParent || '',
