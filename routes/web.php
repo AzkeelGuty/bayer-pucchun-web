@@ -57,7 +57,9 @@ $router->get('/bayer-productos',[BayerCatalogController::class,'index'],[new Rol
 $router->get('/bayer-productos/editar',[BayerCatalogController::class,'form'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/bayer-productos/guardar',[BayerCatalogController::class,'save'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/bayer-productos/importar',[BayerCatalogController::class,'importPage'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/analizar',[BayerCatalogController::class,'analyze'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/bayer-productos/importar',[BayerCatalogController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/importar/cancelar',[BayerCatalogController::class,'discardImport'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/bayer-productos/plantilla',[BayerCatalogController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/bayer-productos/precios-cargar',[BayerCatalogController::class,'loadPrices'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/bayer-productos/ver',[BayerCatalogController::class,'detail'],[new RoleMiddleware(['ADMIN'])]);

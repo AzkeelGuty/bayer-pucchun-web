@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Exceptions\HttpException;
-use App\Services\{BayerCatalogService,BayerWorkbookReader,SimpleXlsxTable};
+use App\Services\{BayerCatalogService,BayerImportPreviewService,SimpleXlsxTable};
 use Throwable;
 
 /** Catálogo de productos Bayer; no comparte códigos ni existencias con Pucchún. */
@@ -56,29 +56,92 @@ final class BayerCatalogController
     public function importPage(): void
     {
         \require_role('ADMIN');
-        \view('bayer_catalog.import');
+        $preview=null;$selected=0;$stage=null;
+        try{
+            $previewService=new BayerImportPreviewService();
+            $stage=$previewService->current((int)\auth_user()['id']);
+            if($stage!==null){
+                $preview=$previewService->data($stage);
+                $raw=$_GET['hoja']??'0';
+                $selected=is_string($raw)&&ctype_digit($raw)?(int)$raw:0;
+                if($selected<0||$selected>=count($preview))$selected=0;
+            }
+        }catch(Throwable $error){
+            \log_event('bayer_preview_render_error',['type'=>get_class($error)]);
+            \flash('error','No fue posible recuperar el archivo. Vuelva a seleccionarlo.');
+            (new BayerImportPreviewService())->discard();
+            $preview=null;$stage=null;
+        }
+        \view('bayer_catalog.import',[
+            'preview'=>$preview,'selected'=>$selected,'stage'=>$stage
+        ]);
     }
 
+    /** Paso 1: analiza el archivo, sin modificar la base de datos. */
+    public function analyze(): void
+    {
+        \require_role('ADMIN');
+        try{
+            $period=\input('periodo','');
+            if(!is_string($period))throw new HttpException(422,'El período indicado no es válido.');
+            (new BayerImportPreviewService())->stage(
+                $_FILES['excel']??[],$period,(int)\auth_user()['id']);
+            \redirect('/bayer-productos/importar?hoja=0');
+        }catch(HttpException $error){
+            \flash('error',$error->getMessage());
+        }catch(Throwable $error){
+            \log_event('bayer_native_preview_error',['type'=>get_class($error)]);
+            \flash('error','No se pudo analizar el archivo. Revise su estructura XLSX o CSV.');
+        }
+        \redirect('/bayer-productos/importar');
+    }
+
+    /** Paso 2: reabre el archivo privado e importa SOLO la pestaña confirmada. */
     public function import(): void
     {
         \require_role('ADMIN');
+        $raw=\input('hoja','');
+        $selected=is_string($raw)&&ctype_digit($raw)?(int)$raw:-1;
         try {
-            $period=(string)\input('periodo','');
-            $rows=(new BayerWorkbookReader())->readUpload($_FILES['excel']??[],$period);
-            $result=$this->service()->importRows($rows,(string)($_FILES['excel']['name']??'Inventario Bayer'));
+            if((string)\input('confirmacion','')!=='IMPORTAR')
+                throw new HttpException(422,'Confirme la hoja elegida antes de importar.');
+            $staging=new BayerImportPreviewService();
+            $stage=$staging->current((int)\auth_user()['id']);
+            if($stage===null)throw new HttpException(422,
+                'La vista previa ha vencido. Vuelva a subir el reporte original.');
+            $sheets=$staging->data($stage);
+            if(!isset($sheets[$selected]))throw new HttpException(422,
+                'Seleccione una hoja válida de la vista previa.');
+            $sheet=$sheets[$selected];
+            if($sheet['errors']>0)throw new HttpException(422,
+                'La hoja seleccionada contiene '.$sheet['errors'].
+                ' inconsistencias. Corrija los períodos, cantidades o duplicados del reporte.');
+            $rows=$staging->selectedRows($stage,$sheet['name']);
+            $result=$this->service()->importRows($rows,(string)$stage['name'].' · '.$sheet['name']);
             \audit('bayer_productos','importar_excel');
-            \flash('success','Importación terminada: '.$result['productos_nuevos'].' productos nuevos, '.
+            $staging->discard();
+            \flash('success','Hoja '.$sheet['name'].' importada: '.
+                $result['productos_nuevos'].' productos nuevos, '.
                 $result['productos_actualizados'].' actualizados y '.$result['periodos'].
-                ' registros mensuales. Los datos quedan pendientes de publicación en API.');
+                ' registros mensuales. Otras hojas no fueron importadas. Pendiente de publicación API.');
             \redirect('/homologaciones?tab=productos');
         } catch(HttpException $error){
             \flash('error',$error->getMessage());
-            \redirect('/bayer-productos/importar');
+            \redirect('/bayer-productos/importar'.($selected>=0?'?hoja='.$selected:''));
         } catch(Throwable $error){
             \log_event('bayer_native_import_error',['type'=>get_class($error)]);
             \flash('error','No se pudo completar la importación Bayer. No se confirmaron datos parciales.');
-            \redirect('/bayer-productos/importar');
+            \redirect('/bayer-productos/importar'.($selected>=0?'?hoja='.$selected:''));
         }
+    }
+
+    /** Descarta la carga pendiente sin crear productos ni inventarios. */
+    public function discardImport(): void
+    {
+        \require_role('ADMIN');
+        (new BayerImportPreviewService())->discard();
+        \flash('success','Vista previa cancelada. No se importaron registros.');
+        \redirect('/bayer-productos/importar');
     }
 
     public function loadPrices(): void
