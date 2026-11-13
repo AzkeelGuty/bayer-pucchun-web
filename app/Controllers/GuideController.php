@@ -129,7 +129,7 @@ final class GuideController
         $id=(int)\input('id',0);
         $record=$this->record($id);
         if(!in_array((string)($record['header']['estado_registro']??''),['BORRADOR','OBSERVADO'],true)) throw new HttpException(409,'Solo se puede editar una guía en borrador u observada.');
-        $_SESSION['_old']=[
+        if(!is_array($_SESSION['_old']['detalle']??null)) $_SESSION['_old']=[
             'numero'=>$record['header']['numero']??'',
             'fecha'=>$record['header']['fecha']??'',
             'cliente_id'=>$record['header']['cliente_id']??'',
