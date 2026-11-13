@@ -19,7 +19,8 @@ final class BayerCatalogController
         $q=is_string($rawQ)?trim($rawQ):'';
         $estado=is_string($rawState)?trim($rawState):'';
         if(mb_strlen($q)>100)$q=mb_substr($q,0,100);
-        $page=max(1,(int)\input('page',1));
+        $pageRaw=$_GET['page']??1;
+        $page=max(1,is_scalar($pageRaw)?(int)$pageRaw:1);
         $data=$this->service()->list(['q'=>$q,'estado'=>$estado],15,($page-1)*15);
         $pages=max(1,(int)ceil($data['total']/15));
         if($page>$pages){
