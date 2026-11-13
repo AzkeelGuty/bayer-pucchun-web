@@ -57,6 +57,7 @@ jobs:
         shell: bash
         run: |
           find public/assets/js -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+          node tests/unit/searchable_selects_test.js
 
       - name: Unit tests
         shell: bash
@@ -71,6 +72,7 @@ jobs:
           php tests/unit/new_requirements_test.php
           php tests/unit/workflow_action_buttons_test.php
           php tests/unit/button_palette_test.php
+          php tests/unit/erp_actions_ui_test.php
           php tests/unit/workflow_test.php
           php tests/unit/guide_workflow_test.php
           php tests/unit/stock_workflow_test.php
@@ -94,6 +96,7 @@ jobs:
           php tests/integration/commerce_workflows_test.php
           php tests/integration/internal_numbering_test.php
           php tests/integration/validation_actions_test.php
+          php tests/integration/audit_ip_test.php
           php tests/integration/homologations_web_test.php
           php tests/integration/bulk_workflow_test.php
           php tests/integration/api_auth_test.php

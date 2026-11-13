@@ -98,7 +98,23 @@ function require_auth(): void { if(!auth_user()) redirect('/login'); }
 function require_role(string ...$roles): void { require_auth(); if(!has_role(...$roles)){(new App\Services\AuthService())->recordAccess('access_denied',(int)auth_user()['id']);throw new App\Exceptions\HttpException(403,'No tiene permisos para esta operación.');} }
 function view(string $name, array $data=[]): void { extract($data); $view=base_path('app/Views/'.str_replace('.','/',$name).'.php'); require base_path('app/Views/layouts/header.php'); require $view; require base_path('app/Views/layouts/footer.php'); }
 function log_event(string $message, array $context=[]): void { @file_put_contents(base_path('storage/logs/app.log'), '['.date('c').'] '.$message.' '.json_encode($context,JSON_UNESCAPED_UNICODE).PHP_EOL, FILE_APPEND | LOCK_EX); }
-function audit(string $module,string $action,?int $entityId=null): void { $u=auth_user(); if(!$u)return; try{$st=db()->prepare('INSERT INTO auditoria_acciones(usuario_id,modulo,accion,entidad_id,fecha_hora) VALUES(?,?,?,?,NOW())');$st->execute([$u['id'],$module,$action,$entityId]);}catch(Throwable $e){log_event('audit_error',['e'=>$e->getMessage()]);} }
+function audit(string $module,string $action,?int $entityId=null): void
+{
+    $user=auth_user();
+    if(!$user) return;
+    try {
+        (new App\Services\AuditService(db()))->record(
+            (int)$user['id'],
+            $module,
+            $action,
+            $entityId,
+            App\Services\AuthService::ip(),
+            isset($_SERVER['HTTP_USER_AGENT']) ? (string)$_SERVER['HTTP_USER_AGENT'] : null
+        );
+    } catch(Throwable $error) {
+        log_event('audit_error',['type'=>get_class($error)]);
+    }
+}
 
 function is_local_env(): bool { return strtolower((string) config('app.env', 'production')) === 'local'; }
 
@@ -201,7 +217,7 @@ function access_ip_label(?string $ip): string
 {
     $ip = trim((string) $ip);
     if ($ip === '') return '—';
-    if ($ip === '::1') return '127.0.0.1';
+    if ($ip === '::1') return '::1'; // Loopback IPv6: no convertirlo ficticiamente a IPv4.
     if (str_starts_with(strtolower($ip), '::ffff:')) {
         $mapped = substr($ip, 7);
         if (filter_var($mapped, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) return $mapped;
