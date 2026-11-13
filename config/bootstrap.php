@@ -1,5 +1,9 @@
 <?php
 require_once dirname(__DIR__) . '/app/Helpers/functions.php';
+// Las dependencias SUNAT sólo estarán disponibles tras composer install.
+if (is_file(dirname(__DIR__) . '/vendor/autoload.php')) {
+    require_once dirname(__DIR__) . '/vendor/autoload.php';
+}
 load_env(dirname(__DIR__) . '/.env');
 spl_autoload_register(function ($class) {
     if (str_starts_with($class, 'App\\')) {
