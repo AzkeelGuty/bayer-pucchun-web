@@ -57,7 +57,6 @@ $correcting=$editing && (($header['estado_registro']??'')==='OBSERVADO');
         <option value="VIGENTE" <?=$voucherState==='VIGENTE'?'selected':''?>>Vigente</option>
         <option value="ANULADO" <?=$voucherState==='ANULADO'?'selected':''?>>Anulado</option>
     </select>
-    <div class="form-text">Indica la situación comercial del comprobante. No reemplaza el estado de validación/publicación del ERP.</div>
     <?php if($voucherError): ?><div class="invalid-feedback"><?=e($voucherError)?></div><?php endif; ?>
 </div>
 <div class="col-12 col-md-6 col-xl-4">
@@ -69,11 +68,6 @@ $correcting=$editing && (($header['estado_registro']??'')==='OBSERVADO');
         <?php endforeach; ?>
     </select>
     <div class="form-text">El medio de pago no cambia el tipo de comprobante tributario.</div>
-</div>
-<div class="col-12 col-md-6 col-xl-4">
-    <label class="form-label" for="doc-referencia-pago">Código o referencia del pago (opcional)</label>
-    <input class="form-control" type="text" id="doc-referencia-pago" name="header[referencia_pago]" maxlength="80" autocomplete="off" aria-describedby="doc-referencia-pago-help" placeholder="N.º de operación, si corresponde" value="<?=e((string)($header['referencia_pago']??''))?>">
-    <div class="form-text" id="doc-referencia-pago-help" data-payment-reference-help>Identificador de la operación en Yape, Plin, transferencia o tarjeta. Si el pago fue en efectivo, puedes dejarlo vacío.</div>
 </div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[cliente_id]','Cliente','header.cliente_id',$header['cliente_id']??'','cliente_id'); ?></div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[vendedor_id]','Vendedor','header.vendedor_id',$header['vendedor_id']??'','vendedor_id'); ?></div>
