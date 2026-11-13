@@ -13,6 +13,7 @@ $lookupProvincias=e(url('/lookups?type=provincias'));
 $lookupDistritos=e(url('/lookups?type=distritos'));
 $lookupProductos=e(url('/lookups?type=productos'));
 ?>
+<link rel="stylesheet" href="<?=asset_url('assets/css/commercial-totals.css')?>">
 <section class="module-header">
     <div>
         <div class="page-eyebrow">GUÍAS · <?= $editing ? 'EDICIÓN' : 'CAPTURA' ?></div>
@@ -68,6 +69,19 @@ $lookupProductos=e(url('/lookups?type=productos'));
             </div>
         </div>
 
+
+        <div class="commercial-options mt-4 p-3">
+            <?php $guideMode=(string)old('precio_igv_modalidad');
+                if($guideMode==='' && $editing)$guideMode=(string)($record['header']['precio_igv_modalidad']??''); ?>
+            <label class="form-label" for="guide-precio-igv">Valorización comercial (opcional)</label>
+            <select class="form-select" id="guide-precio-igv" name="precio_igv_modalidad" data-igv-mode style="max-width:425px">
+                <option value="">Solo traslado de bienes (sin importes)</option>
+                <option value="ADICIONAL" <?=$guideMode==='ADICIONAL'?'selected':''?>>Precios sin IGV: añadir 18 %</option>
+                <option value="INCLUIDO" <?=$guideMode==='INCLUIDO'?'selected':''?>>Precios con IGV incluido</option>
+            </select>
+            <p class="text-muted small mb-0 mt-2">Las cantidades se registran siempre. Si valorizas la guía, introduce el valor unitario en cada producto. Esta valorización es referencial y no sustituye el comprobante de venta.</p>
+            <?php if(form_error('precio_igv_modalidad')): ?><div class="text-danger small"><?=e(form_error('precio_igv_modalidad'))?></div><?php endif;?>
+        </div>
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4 mb-3">
             <h2 class="h5 mb-0">Detalle</h2>
             <button type="button" id="add-line-btn" class="btn btn-outline-primary">+ Añadir producto a la guía</button>
@@ -75,13 +89,15 @@ $lookupProductos=e(url('/lookups?type=productos'));
         <div class="table-responsive">
             <table class="table app-table align-middle" id="detalle-table">
                 <caption class="visually-hidden">Detalle de la guía</caption>
-                <thead><tr><th>Producto</th><th>Unidad</th><th style="width:140px">Cantidad</th><th>Acción</th></tr></thead>
+                <thead><tr><th>Producto</th><th>Unidad</th><th style="width:140px">Cantidad</th><th>Valor unitario (S/)</th><th class="text-end">Importe</th><th>Acción</th></tr></thead>
                 <tbody>
                     <?php foreach ($detailRows as $i => $line): ?>
                     <tr>
                         <td><?php select_inline("detalle[$i][producto_id]", $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-url="'.$lookupProductos.'" data-search-placeholder="Escribe código o inicio del producto..." data-search-min="1"', 'Seleccione…', true, (string) $line['producto_id']); ?></td>
                         <td><?php select_inline("detalle[$i][unidad_id]", $unidades, 'id', 'nombre', 'data-auto-unit aria-readonly="true" tabindex="-1"', 'Seleccione…', true, (string) $line['unidad_id']); ?></td>
                         <td><input type="number" step="1" min="1" inputmode="numeric" class="form-control form-control-sm" name="detalle[<?= $i ?>][cantidad]" value="<?= e(($line['cantidad']??'')!=='' ? format_quantity($line['cantidad']) : '') ?>" required></td>
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="detalle[<?= $i ?>][valor_unitario]" value="<?=e((string)($line['valor_unitario']??''))?>" placeholder="Opcional" aria-label="Valor unitario referencial"></td>
+                        <td class="text-end align-middle"><output class="commercial-line-amount" data-line-amount>—</output></td>
                         <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
                     </tr>
                     <?php endforeach; ?>
@@ -93,9 +109,27 @@ $lookupProductos=e(url('/lookups?type=productos'));
                 <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-url="'.$lookupProductos.'" data-search-placeholder="Escribe código o inicio del producto..." data-search-min="1"'); ?></td>
                 <td><?php select_inline('detalle[__IDX__][unidad_id]', $unidades, 'id', 'nombre', 'data-auto-unit aria-readonly="true" tabindex="-1"'); ?></td>
                 <td><input type="number" step="1" min="1" inputmode="numeric" class="form-control form-control-sm" name="detalle[__IDX__][cantidad]" value="1" required></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="detalle[__IDX__][valor_unitario]" placeholder="Opcional" aria-label="Valor unitario referencial"></td>
+                <td class="text-end align-middle"><output class="commercial-line-amount" data-line-amount>—</output></td>
                 <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
             </tr>
         </template>
+        <?php if(form_error('valor_unitario')): ?><div class="alert alert-danger mt-2"><?=e(form_error('valor_unitario'))?></div><?php endif;?>
+        <section class="commercial-summary mt-3" data-commercial-totals aria-label="Resumen de la guía">
+            <div class="commercial-summary-heading"><i class="bi bi-box-seam" aria-hidden="true"></i>
+                <strong>Resumen de la guía de remisión</strong></div>
+            <div class="commercial-summary-grid">
+                <div class="commercial-summary-note"><span data-total-items>0 productos</span>
+                    <span data-unit-quantities>—</span>
+                    <span class="text-muted small">Cantidades agrupadas por unidad de medida.</span></div>
+                <dl class="commercial-summary-values" data-money-available hidden>
+                    <div><dt>Subtotal sin IGV</dt><dd data-total-subtotal>S/ 0.00</dd></div>
+                    <div><dt>IGV e IPM (18 %)</dt><dd data-total-igv>S/ 0.00</dd></div>
+                    <div class="commercial-grand-total"><dt>Valor comercial referencial</dt><dd data-total-payable>S/ 0.00</dd></div>
+                </dl>
+            </div>
+            <p class="commercial-summary-help" data-total-hint>Guía de traslado: no se han declarado valores comerciales.</p>
+        </section>
     </div>
     <div class="card-footer d-flex gap-2 flex-wrap">
         <button class="btn btn-primary" type="submit"><?= $correcting ? 'Guardar corrección' : ($editing ? 'Actualizar borrador' : 'Guardar borrador') ?></button>
@@ -106,4 +140,5 @@ $lookupProductos=e(url('/lookups?type=productos'));
 window.BP_DETAIL_REPEATER = {tableId: 'detalle-table', templateId: 'detalle-row-template', addButtonId: 'add-line-btn', hasLote: false};
 </script>
 <script src="<?= asset_url('assets/js/forms.js') ?>"></script>
+<script src="<?=asset_url('assets/js/commercial-totals.js')?>"></script>
 <?php unset($_SESSION['_old'], $_SESSION['_errors']); ?>
