@@ -226,7 +226,7 @@ final class BayerCatalogService
     /** Aplica la lista Dealer recibida, conservando su IGV individual (0 % o 18 %). */
     public function importBundledPrices(): array
     {
-        $path=\base_path('database/data/bayer_lista_precios_dealer_2026_11.csv');
+        $path=dirname(__DIR__,2).'/database/data/bayer_lista_precios_dealer_2026_11.csv';
         if(!is_file($path))throw new HttpException(503,'Falta el archivo validado de precios Bayer.');
         $handle=fopen($path,'rb');
         if(!$handle)throw new HttpException(503,'No se pudo abrir la lista de precios.');
