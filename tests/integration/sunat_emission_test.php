@@ -80,8 +80,12 @@ try{
         'Contadores BETA y PRODUCCION independientes');
     $pdo->exec("INSERT INTO sunat_emisiones(documento_id,usuario_id,ruc_emisor,tipo_cpe,serie,correlativo,ambiente)
         VALUES($id,1,'00000000001','01','F001',1,'BETA')");
-    $saved=$service->findForDocument($id);
+    $saved=$service->findForDocument($id,'BETA');
     ensure($saved['estado']==='EN_PROCESO','Una emisión no se considera aceptada sin CDR');
+    $pdo->exec("INSERT INTO sunat_emisiones(documento_id,usuario_id,ruc_emisor,tipo_cpe,serie,correlativo,ambiente)
+        VALUES($id,1,'00000000001','01','F001',1,'PRODUCCION')");
+    ensure($service->findForDocument($id,'PRODUCCION')['ambiente']==='PRODUCCION',
+        'Una factura ensayada en BETA se puede emitir por separado en PRODUCCION');
     rejects(fn()=>$pdo->exec("INSERT INTO sunat_emisiones(documento_id,usuario_id,ruc_emisor,tipo_cpe,serie,correlativo,ambiente)
         VALUES($id,1,'00000000001','01','F001',2,'BETA')"),PDOException::class);
     rejects(fn()=>$service->evidenceFile((int)$saved['id'],'xml'),HttpException::class);
