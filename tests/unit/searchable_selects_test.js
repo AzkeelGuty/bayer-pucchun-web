@@ -86,7 +86,7 @@ const browser={
     location:{href:'http://localhost/erp/'},
     setTimeout,clearTimeout,addEventListener(){},
 };
-const ctx={document:activeDocument,window:browser,console,URL,AbortController,Event:class{constructor(type){this.type=type;}}};
+const ctx={document:activeDocument,window:browser,console,URL,AbortController,clearTimeout,setTimeout,Event:class{constructor(type){this.type=type;}}};
 vm.runInNewContext(source,ctx,{filename:'searchable-selects.js'});
 const api=browser.BP_SearchableSelects;
 assert.ok(api?.enhance);
