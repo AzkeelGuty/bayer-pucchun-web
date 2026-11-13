@@ -26,6 +26,13 @@ $qs=['tab'=>'productos','q'=>$q,'estado'=>$estado];
     <div class="form-text mt-0">El código es el que figura en el reporte Bayer. No es necesario ingresar partner ni un segundo código.</div>
   </div>
   <div class="d-flex flex-wrap gap-2">
+    <form action="<?=url('/bayer-productos/publicar-todo')?>" method="post"
+      onsubmit="return confirm('¿Publicar para API todos los productos Bayer activos revisados?')">
+      <?=csrf_field()?>
+      <input type="hidden" name="confirmacion" value="PUBLICAR">
+      <button class="btn btn-success btn-with-icon" type="submit"><i class="bi bi-cloud-upload"></i>
+        Publicar todos en API</button>
+    </form>
     <form method="post" action="<?=url('/bayer-productos/precios-cargar')?>" class="d-inline"
       onsubmit="return confirm('¿Cargar la lista Dealer Bayer del 02/11/2026 (99 referencias) sin modificar el stock?')">
       <?=csrf_field()?>
