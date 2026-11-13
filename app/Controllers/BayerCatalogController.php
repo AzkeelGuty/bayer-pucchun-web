@@ -14,8 +14,10 @@ final class BayerCatalogController
     public function index(): void
     {
         \require_role('ADMIN');
-        $q=trim((string)\input('q',''));
-        $estado=trim((string)\input('estado',''));
+        $rawQ=$_GET['q']??'';
+        $rawState=$_GET['estado']??'';
+        $q=is_string($rawQ)?trim($rawQ):'';
+        $estado=is_string($rawState)?trim($rawState):'';
         if(mb_strlen($q)>100)$q=mb_substr($q,0,100);
         $page=max(1,(int)\input('page',1));
         $data=$this->service()->list(['q'=>$q,'estado'=>$estado],15,($page-1)*15);
