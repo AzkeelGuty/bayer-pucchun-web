@@ -581,7 +581,11 @@ document.addEventListener('submit', function (event) {
     const form = event.target.closest?.('[data-master-delete]');
     if (!form) return;
     const label = form.dataset.masterLabel || 'este registro';
-    if (!window.confirm('¿Eliminar "' + label + '"? Esta acción no se puede deshacer. Si el registro está en uso, el sistema impedirá eliminarlo.')) {
+    const logicalDelete = form.dataset.masterDeleteMode === 'deactivate';
+    const message = logicalDelete
+        ? '¿Eliminar "' + label + '" de las homologaciones activas? El registro quedará inactivo y se conservará su historial.'
+        : '¿Eliminar "' + label + '"? Esta acción no se puede deshacer. Si el registro está en uso, el sistema impedirá eliminarlo.';
+    if (!window.confirm(message)) {
         event.preventDefault();
         event.stopImmediatePropagation();
     }
