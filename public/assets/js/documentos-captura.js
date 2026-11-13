@@ -109,12 +109,14 @@
                 const product = row.querySelector('select[name$="[producto_id]"]');
                 if (!product?.value) return;
 
-                if (!seen.has(product.value)) {
-                    seen.set(product.value, row);
+                const price=row.querySelector('input[name$="[valor_unitario]"]')?.value||'0';
+                const key=product.value+':'+price;
+                if (!seen.has(key)) {
+                    seen.set(key, row);
                     return;
                 }
 
-                const first = seen.get(product.value);
+                const first = seen.get(key);
                 const firstQty = first.querySelector('input[name$="[cantidad]"]');
                 const rowQty = row.querySelector('input[name$="[cantidad]"]');
                 const a = Math.max(1, Number.parseInt(firstQty?.value || '1', 10) || 1);
