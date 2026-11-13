@@ -9,6 +9,7 @@ use App\Services\{MasterCatalogService,SimpleXlsxTable};
 $db=new TestDatabase();
 try{
     $db->load('database/schemas/002_schema_v2.sql');
+    $db->load('database/migrations/013_calculos_totales_documentos_guias.sql');
     $db->load('database/migrations/009_guias_desde_documentos_y_pagos.sql');
     $db->load('database/migrations/004_catalogos_masivos_busqueda.sql');
     $pdo=$db->pdo;

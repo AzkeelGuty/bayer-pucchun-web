@@ -19,6 +19,12 @@ El backend v2 incluye:
 **Pendiente funcional:** terminar la conexión de los formularios de captura y workflow con Schema v2 antes de considerar completa la versión funcional.
 
 
+## Cálculos de Documentos y Guías
+
+El ERP calcula por producto **cantidad × valor unitario** y muestra subtotal, IGV/IPM (18 %) y total en Documentos. Es obligatorio elegir si los valores unitarios incluyen IGV para evitar cobrarlo dos veces. Las Guías presentan cantidades agrupadas por unidad y valorización comercial **opcional**.
+
+Esta mejora requiere ejecutar la migración **013** después de 012 y no modifica registros previos. Más detalles: [Resumen comercial de Documentos y Guías](docs/RESUMENES_COMERCIALES_DOCUMENTOS_GUIAS.md).
+
 ## Emisión electrónica SUNAT (módulo independiente)
 
 El panel `/sunat`, exclusivo de `ADMIN`, permite revisar la habilitación del emisor y emitir facturas **gravadas al IGV** mediante Greenter (UBL 2.1 / firma XML / servicio SUNAT), tras configurar datos tributarios auténticos. Guarda XML y CDR en almacenamiento privado y separa la numeración fiscal del identificador interno `INT-...`.

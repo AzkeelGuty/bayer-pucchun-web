@@ -51,6 +51,16 @@ final class SunatEmissionService
         if(!$ready->isReady())
             throw new HttpException(503,'La emisión electrónica está deshabilitada o faltan datos de SUNAT.');
         $document=(new SunatInvoiceBuilder($this->pdo))->snapshot($documentId);
+        // La factura electrónica no puede interpretar los mismos valores unitarios
+        // de otra forma que la elegida al registrar el comprobante en el ERP.
+        $savedMode=$document['precio_igv_modalidad']??null;
+        if($savedMode!==null){
+            $requested=$priceMode==='PRECIO_INCLUYE_IGV'?'INCLUIDO':
+                ($priceMode==='PRECIO_SIN_IGV'?'ADICIONAL':null);
+            if($requested!==$savedMode)
+                throw new HttpException(422,'La modalidad IGV de la emisión debe coincidir con la del documento guardado.');
+        }
+
         // SUNAT establece un plazo de emisión y comunicación de facturas.
         // Nunca enviar un comprobante antiguo con fecha inexacta en producción.
         if($ready->mode()==='produccion'){

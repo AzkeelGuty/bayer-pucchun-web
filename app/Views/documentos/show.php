@@ -14,6 +14,7 @@ $options=match($state){
 $voucherState=(string)($document['estado_comprobante']??'VIGENTE');
 ?>
 <link rel="stylesheet" href="<?=asset_url('assets/css/documentos-captura.css')?>">
+<link rel="stylesheet" href="<?=asset_url('assets/css/commercial-totals.css')?>">
 <section class="module-header"><div><div class="page-eyebrow">DETALLE DEL DOCUMENTO</div><h1 class="page-title"><?=e($document['numero'])?></h1><p class="page-subtitle"><?=e($label('tipo_documento_id',$document['tipo_documento_id']))?> · <?=e($document['fecha'])?></p></div><a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Volver al listado</a></section>
 <?php if(has_role('ADMIN')): ?>
 <div class="mb-3"><a href="<?=url('/sunat')?>" class="btn btn-outline-primary btn-with-icon">
@@ -24,7 +25,48 @@ $voucherState=(string)($document['estado_comprobante']??'VIGENTE');
 <div class="col-12 col-md-4"><dt>Medio de pago</dt><dd><?=e($document['medio_pago']??'No especificado')?></dd></div>
 
 </dl><?php if(has_role('ADMIN','SUPERVISOR')):?><form method="post" action="<?=url('/documentos/estado-comprobante')?>" class="row g-2 align-items-end mb-3"><?=csrf_field()?><input type="hidden" name="id" value="<?=e($document['id'])?>"><input type="hidden" name="version" value="<?=e($document['version'])?>"><div class="col-12 col-md-4"><label class="form-label" for="voucher-status">Estado del comprobante</label><select class="form-select" id="voucher-status" name="estado_comprobante"><option value="VIGENTE" <?=$voucherState==='VIGENTE'?'selected':''?>>Vigente</option><option value="ANULADO" <?=$voucherState==='ANULADO'?'selected':''?>>Anulado</option></select></div><div class="col-12 col-md-auto"><button class="btn btn-outline-primary" type="submit">Actualizar comprobante</button></div><div class="col-12"><div class="form-text">Este estado es comercial y se mantiene separado del flujo BORRADOR/VALIDADO/OBSERVADO/PUBLICADO.</div></div></form><?php endif;?><?php if($document['observation_reason']??null):?><div class="alert alert-warning"><strong>Observación:</strong> <?=e($document['observation_reason'])?></div><?php endif;?><?php if($document['cancellation_reason']??null):?><div class="alert alert-secondary"><strong>Anulación histórica del flujo:</strong> <?=e($document['cancellation_reason'])?></div><?php endif;?></div></section>
-<section class="card mb-3"><div class="card-body p-4"><h2 class="h5">Productos · <?=count($details)?> líneas</h2><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Producto</th><th>Unidad</th><th>Cantidad</th><th>Valor unitario</th></tr></thead><tbody><?php foreach($details as $line):?><tr><td><?=e($label('producto_id',$line['producto_id']))?></td><td><?=e($label('unidad_id',$line['unidad_id']))?></td><td><?=e(format_quantity($line['cantidad']))?></td><td><?=e($line['valor_unitario'])?></td></tr><?php endforeach;?></tbody></table></div></div></section>
+<section class="card mb-3"><div class="card-body p-4">
+    <h2 class="h5">Productos · <?=count($details)?> líneas</h2>
+    <div class="table-responsive"><table class="table align-middle">
+        <thead><tr><th>Producto</th><th>Unidad</th><th class="text-end">Cantidad</th>
+            <th class="text-end">Valor unitario (S/)</th><th class="text-end">Importe (S/)</th></tr></thead>
+        <tbody>
+        <?php foreach($details as $i=>$line): ?>
+        <tr>
+            <td><?=e($label('producto_id',$line['producto_id']))?></td>
+            <td><?=e($label('unidad_id',$line['unidad_id']))?></td>
+            <td class="text-end"><?=e(format_quantity($line['cantidad']))?></td>
+            <td class="text-end"><?=e(\App\Services\CommercialTotalsService::money(
+                \App\Services\CommercialTotalsService::priceCents((string)$line['valor_unitario'])))?></td>
+            <td class="text-end fw-semibold"><?=e(\App\Services\CommercialTotalsService::money($totals['lineas'][$i]['importe']))?></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody></table></div>
+    <section class="commercial-summary mt-3" aria-label="Resumen económico del documento">
+        <div class="commercial-summary-heading"><i class="bi bi-calculator" aria-hidden="true"></i>
+            <strong>Resumen del documento</strong></div>
+        <div class="commercial-summary-grid">
+            <div class="commercial-summary-note">
+                <span><?=count($details)?> <?=count($details)===1?'producto':'productos'?></span>
+                <?php if(($document['precio_igv_modalidad']??null)===null): ?>
+                    <span class="text-muted small">Registro histórico sin modalidad de IGV consignada.</span>
+                <?php else: ?>
+                    <span class="text-muted small">Valores unitarios <?=($document['precio_igv_modalidad']==='INCLUIDO')?'con IGV incluido':'sin IGV'?>.</span>
+                <?php endif; ?>
+            </div>
+            <dl class="commercial-summary-values">
+                <?php if($totals['subtotal']!==null): ?>
+                <div><dt>Subtotal sin IGV</dt><dd><?=e(\App\Services\CommercialTotalsService::money($totals['subtotal']))?></dd></div>
+                <div><dt>IGV e IPM (18 %)</dt><dd><?=e(\App\Services\CommercialTotalsService::money($totals['igv']))?></dd></div>
+                <?php endif; ?>
+                <div class="commercial-grand-total">
+                    <dt><?=$totals['subtotal']!==null?'Total a pagar':'Monto registrado (IGV no desagregado)'?></dt>
+                    <dd><?=e(\App\Services\CommercialTotalsService::money($totals['total']))?></dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+</div></section>
 <section class="card mb-3"><div class="card-body"><h2 class="h5">Entrega y guía de remisión</h2>
 <p class="text-muted small mb-3">Puede crear una guía interna copiando automáticamente cliente, vendedor, sucursal y todos los productos de esta factura o boleta. La guía no se considera emitida ante SUNAT hasta completar el procedimiento oficial.</p>
 <?php if(!empty($guideId)): ?>

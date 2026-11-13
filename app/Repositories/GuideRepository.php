@@ -9,7 +9,18 @@ class GuideRepository extends OperationalRepository
     protected const DETAIL = 'guias_detalle';
     protected const PARENT_KEY = 'guia_id';
     protected const HEADER_FIELDS = ['numero', 'fecha', 'cliente_id', 'vendedor_id', 'sucursal_id'];
-    protected const OPTIONAL_FIELDS = ['departamento_id', 'provincia_id', 'distrito_id'];
+    protected const OPTIONAL_FIELDS = ['departamento_id', 'provincia_id', 'distrito_id','precio_igv_modalidad'];
+    protected const DETAIL_FIELDS = ['producto_id','unidad_id','cantidad','valor_unitario'];
+
+    protected function normalize(array $header,array $details): array
+    {
+        $mode=$header['precio_igv_modalidad']??null;
+        if($mode!==null && !in_array($mode,['INCLUIDO','ADICIONAL'],true))
+            throw new \InvalidArgumentException('Modalidad de IGV inválida en guía.');
+        $header['precio_igv_modalidad']=$mode;
+        \App\Services\CommercialTotalsService::summarize($details,$mode);
+        return parent::normalize($header,$details);
+    }
 
 
     /** Una guía nueva recibe un número interno, independiente de la emisión GRE. */

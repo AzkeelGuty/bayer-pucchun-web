@@ -61,6 +61,7 @@ try {
         10 => '010_numeracion_interna_automatica.sql',
         11 => '011_permisos_flujo_aprobacion.sql',
         12 => '012_sunat_emision_cpe.sql',
+        13 => '013_calculos_totales_documentos_guias.sql',
     ];
     foreach ($names as $version => $filename) {
         check_health(in_array($version, $versions, true), 'Migracion ' . str_pad((string) $version, 3, '0', STR_PAD_LEFT), 'database/migrations/' . $filename);
@@ -101,6 +102,9 @@ try {
         'numeraciones_internas' => ['ambito', 'siguiente'],
         'sunat_series_fiscales' => ['ruc_emisor','serie','ambiente','siguiente'],
         'sunat_emisiones' => ['documento_id','ambiente','estado','codigo_cdr','xml_archivo','cdr_archivo'],
+        'documentos_cabecera' => ['id','precio_igv_modalidad'],
+        'guias_cabecera' => ['id','precio_igv_modalidad'],
+        'guias_detalle' => ['guia_id','valor_unitario'],
     ];
     foreach ($required as $table => $columns) {
         if (!isset($schema[$table])) {

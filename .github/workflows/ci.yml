@@ -51,6 +51,7 @@ jobs:
         run: |
           node --check public/assets/js/searchable-selects.js
           node tests/unit/searchable_selects_test.js
+          node tests/unit/commercial_totals_test.js
 
       - name: Unit tests
         run: |
@@ -88,6 +89,7 @@ jobs:
           php tests/integration/validation_actions_test.php
           php tests/integration/audit_ip_test.php
           php tests/integration/sunat_emission_test.php
+          php tests/integration/commercial_totals_test.php
           php tests/integration/homologations_web_test.php
           php tests/integration/bulk_workflow_test.php
           php tests/integration/api_auth_test.php

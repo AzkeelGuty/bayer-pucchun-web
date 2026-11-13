@@ -119,6 +119,9 @@ final class DocumentScreenService
         if(!is_string($number)||trim($number)===''||strlen(trim($number))>25) $errors['header.numero']='VAL-001: ingresa un número de hasta 25 bytes.';
         $date=$header['fecha']??''; $parsed=is_string($date)?\DateTimeImmutable::createFromFormat('!Y-m-d',$date):false;
         if(!$parsed||$parsed->format('Y-m-d')!==$date||$date<'1000-01-01') $errors['header.fecha']='VAL-002: ingresa una fecha válida.';
+        $mode=$header['precio_igv_modalidad']??null;
+        if(!in_array($mode,['INCLUIDO','ADICIONAL'],true))
+            $errors['header.precio_igv_modalidad']='Seleccione si los valores unitarios incluyen IGV.';
         if(count($details)<1||count($details)>200) $errors['details']='VAL-007: agrega entre 1 y 200 productos.';
         foreach($details as $i=>$line) {
             if(!is_array($line)) { $errors['details']='VAL-002: formato de productos inválido.'; continue; }
@@ -132,6 +135,13 @@ final class DocumentScreenService
             $unitValue=$line['valor_unitario']??'0';
             if(!is_scalar($unitValue)||!preg_match('/^\d{1,12}(\.\d{1,2})?$/D',(string)$unitValue)){
                 $errors["details.$i.valor_unitario"]='VAL-002: usa un valor unitario válido con hasta 2 decimales.';
+            }
+        }
+        if(!isset($errors['header.precio_igv_modalidad']) && !isset($errors['details'])){
+            try {
+                \App\Services\CommercialTotalsService::summarize($details,$mode);
+            } catch(\InvalidArgumentException $e) {
+                $errors['details.total']=$e->getMessage();
             }
         }
         return $errors;

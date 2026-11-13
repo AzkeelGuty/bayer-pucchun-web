@@ -102,6 +102,10 @@ final class GuideController
             'clientes'=>\index_by($m->clientesByIds([(int)$record['header']['cliente_id']]),'id'),
             'vendedores'=>\index_by($m->vendedoresByIds([(int)$record['header']['vendedor_id']]),'id'),
             'sucursales'=>\index_by($m->sucursalesByIds([(int)$record['header']['sucursal_id']]),'id'),
+            'totals'=>\App\Services\CommercialTotalsService::summarize(
+                $record['details'],$record['header']['precio_igv_modalidad']??null,
+                array_column($m->unidades(),'nombre','id')
+            ),
             'productos'=>\index_by($m->productosByIds($productIds),'id'),
             'unidades'=>\index_by($m->unidades(),'id'),
             'departamentos'=>\index_by($m->departamentos(),'id'),
@@ -125,7 +129,7 @@ final class GuideController
         $id=(int)\input('id',0);
         $record=$this->record($id);
         if(!in_array((string)($record['header']['estado_registro']??''),['BORRADOR','OBSERVADO'],true)) throw new HttpException(409,'Solo se puede editar una guía en borrador u observada.');
-        $_SESSION['_old']=[
+        if(!is_array($_SESSION['_old']['detalle']??null)) $_SESSION['_old']=[
             'numero'=>$record['header']['numero']??'',
             'fecha'=>$record['header']['fecha']??'',
             'cliente_id'=>$record['header']['cliente_id']??'',
@@ -189,7 +193,8 @@ final class GuideController
 
             $quantity=\quantity_integer_value($line['cantidad']??'',false);
             if($productId>0 && $quantity!==null){
-                $key=(string)$productId;
+                // No sumar productos con precios diferentes en una misma línea.
+                $key=$productId.':'.trim((string)($line['valor_unitario']??''));
                 if(isset($positions[$key])){
                     $pos=$positions[$key];
                     $normalized[$pos]['cantidad']=(string)((int)$normalized[$pos]['cantidad']+$quantity);
@@ -239,6 +244,8 @@ final class GuideController
             'cliente_id'=>(int)\input('cliente_id',0),
             'vendedor_id'=>(int)\input('vendedor_id',0),
             'sucursal_id'=>(int)\input('sucursal_id',0),
+            'precio_igv_modalidad'=>in_array(\input('precio_igv_modalidad',''),['INCLUIDO','ADICIONAL'],true)
+                ? (string)\input('precio_igv_modalidad') : null,
             'departamento_id'=>\input('departamento_id','')!==''?(int)\input('departamento_id'):null,
             'provincia_id'=>\input('provincia_id','')!==''?(int)\input('provincia_id'):null,
             'distrito_id'=>\input('distrito_id','')!==''?(int)\input('distrito_id'):null,
@@ -260,6 +267,24 @@ final class GuideController
                 $errors['detalle']="Revise la línea ".($i+1).": la cantidad debe ser un entero mayor que cero.";
             }
         }
+        // Los valores comerciales son opcionales en una guía de traslado.
+        // Si se ingresan, deben incluirse en todas las líneas y tener modalidad IGV.
+        $provided=0;
+        foreach($details as &$line){
+            if(!is_array($line))continue;
+            $raw=$line['valor_unitario']??null;
+            $line['valor_unitario']=is_scalar($raw) && trim((string)$raw)!==''
+                ? trim((string)$raw) : null;
+            if($line['valor_unitario']!==null)$provided++;
+        }
+        unset($line);
+        if($provided>0 && $header['precio_igv_modalidad']===null)
+            $errors['precio_igv_modalidad']='Seleccione si los precios incluyen IGV.';
+        if($provided===0)$header['precio_igv_modalidad']=null;
+        if(!$errors){
+            try { \App\Services\CommercialTotalsService::summarize($details,$header['precio_igv_modalidad']); }
+            catch(\InvalidArgumentException $e){$errors['valor_unitario']=$e->getMessage();}
+        }
         if($errors){
             $_SESSION['_old']=$_POST; $_SESSION['_errors']=$errors;
             $target=$editing?'/guias/editar?id='.(int)\input('id',0):'/guias/nuevo';
@@ -269,6 +294,7 @@ final class GuideController
             'producto_id'=>(int)$line['producto_id'],
             'unidad_id'=>(int)$line['unidad_id'],
             'cantidad'=>(string)$line['cantidad'],
+            'valor_unitario'=>$line['valor_unitario']??null,
         ],$details);
         try{
             if($editing){

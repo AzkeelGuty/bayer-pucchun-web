@@ -60,6 +60,7 @@ final class GuideFromDocumentService
                     'producto_id'=>(int)$line['producto_id'],
                     'unidad_id'=>(int)$line['unidad_id'],
                     'cantidad'=>(string)$line['cantidad'],
+                    'valor_unitario'=>isset($line['valor_unitario'])?(string)$line['valor_unitario']:null,
                 ];
             }
             if(!$details) throw new HttpException(422,'El documento no contiene productos para trasladar.');
@@ -73,6 +74,7 @@ final class GuideFromDocumentService
                 'cliente_id'=>(int)$h['cliente_id'],
                 'vendedor_id'=>(int)$h['vendedor_id'],
                 'sucursal_id'=>(int)$h['sucursal_id'],
+                'precio_igv_modalidad'=>$h['precio_igv_modalidad']??null,
                 'departamento_id'=>$complete?(int)$geo['departamento_id']:null,
                 'provincia_id'=>$complete?(int)$geo['provincia_id']:null,
                 'distrito_id'=>$complete?(int)$geo['distrito_id']:null,

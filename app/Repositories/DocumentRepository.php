@@ -10,7 +10,7 @@ class DocumentRepository extends OperationalRepository
     protected const PARENT_KEY = 'documento_id';
     protected const HEADER_FIELDS = ['tipo_documento_id', 'numero', 'fecha', 'cliente_id', 'vendedor_id', 'sucursal_id', 'estado_comprobante'];
     protected const DETAIL_FIELDS = ['producto_id', 'unidad_id', 'cantidad', 'valor_unitario'];
-    protected const OPTIONAL_FIELDS = ['medio_pago','referencia_pago'];
+    protected const OPTIONAL_FIELDS = ['medio_pago','referencia_pago','precio_igv_modalidad'];
 
     protected function normalize(array $header, array $details): array
     {
@@ -30,6 +30,11 @@ class DocumentRepository extends OperationalRepository
         if(mb_strlen($reference)>80) throw new \InvalidArgumentException('Referencia de pago demasiado extensa.');
         $header['medio_pago']=$method!==''?$method:null;
         $header['referencia_pago']=$reference!==''?$reference:null;
+        $mode=$header['precio_igv_modalidad']??null;
+        if($mode!==null && !in_array($mode,['INCLUIDO','ADICIONAL'],true))
+            throw new \InvalidArgumentException('Seleccione si los valores unitarios incluyen IGV.');
+        $header['precio_igv_modalidad']=$mode;
+        \App\Services\CommercialTotalsService::summarize($details,$mode);
         return parent::normalize($header,$details);
     }
 

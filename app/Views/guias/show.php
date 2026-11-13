@@ -1,4 +1,5 @@
 <?php $h = $record['header']; ?>
+<link rel="stylesheet" href="<?=asset_url('assets/css/commercial-totals.css')?>">
 <div class="d-flex justify-content-between align-items-center">
     <h2>Guía <?= e($h['numero']) ?></h2>
     <?= estado_badge($h['estado_registro']) ?>
@@ -38,21 +39,57 @@
 </div></div>
 
 <div class="card mb-3"><div class="card-body">
-    <h6 class="card-title">Detalle</h6>
+    <h6 class="card-title">Detalle de productos · <?=count($record['details'])?> líneas</h6>
     <div class="table-responsive">
-        <table class="table table-sm">
-            <thead><tr><th>Producto</th><th>Unidad</th><th>Cantidad</th></tr></thead>
+        <table class="table table-sm align-middle">
+            <thead><tr><th>Producto</th><th>Unidad</th><th class="text-end">Cantidad</th>
+                <?php if($totals['valorizado']): ?><th class="text-end">Valor unitario</th><th class="text-end">Importe</th><?php endif; ?>
+            </tr></thead>
             <tbody>
-            <?php foreach ($record['details'] as $line): ?>
+            <?php foreach ($record['details'] as $i=>$line): ?>
                 <tr>
                     <td><?= e($productos[$line['producto_id']]['nombre'] ?? $line['producto_id']) ?></td>
                     <td><?= e($unidades[$line['unidad_id']]['nombre'] ?? $line['unidad_id']) ?></td>
-                    <td><?= e(format_quantity($line['cantidad'])) ?></td>
+                    <td class="text-end"><?= e(format_quantity($line['cantidad'])) ?></td>
+                    <?php if($totals['valorizado']): ?>
+                    <td class="text-end"><?=e(\App\Services\CommercialTotalsService::money(
+                        \App\Services\CommercialTotalsService::priceCents((string)$line['valor_unitario'])))?></td>
+                    <td class="text-end fw-semibold"><?=e(\App\Services\CommercialTotalsService::money(
+                        $totals['lineas'][$i]['importe']))?></td>
+                    <?php endif; ?>
                 </tr>
             <?php endforeach; ?>
             </tbody>
         </table>
     </div>
+    <section class="commercial-summary mt-3" aria-label="Resumen de la guía de remisión">
+        <div class="commercial-summary-heading"><i class="bi bi-box-seam" aria-hidden="true"></i>
+            <strong>Resumen de la guía</strong></div>
+        <div class="commercial-summary-grid">
+            <div class="commercial-summary-note">
+                <span><?=count($record['details'])?> <?=count($record['details'])===1?'producto':'productos'?></span>
+                <div><?php foreach($totals['cantidades'] as $unit=>$quantity): ?>
+                    <span class="commercial-unit-total"><?=e((string)$quantity)?> <?=e($unit)?></span>
+                <?php endforeach; ?></div>
+                <small class="text-muted">Cantidades agrupadas por unidad de medida.</small>
+            </div>
+            <?php if($totals['valorizado']): ?>
+            <dl class="commercial-summary-values">
+                <?php if($totals['subtotal']!==null): ?>
+                    <div><dt>Subtotal sin IGV</dt><dd><?=e(\App\Services\CommercialTotalsService::money($totals['subtotal']))?></dd></div>
+                    <div><dt>IGV e IPM (18 %)</dt><dd><?=e(\App\Services\CommercialTotalsService::money($totals['igv']))?></dd></div>
+                <?php endif; ?>
+                <div class="commercial-grand-total">
+                    <dt><?=$totals['subtotal']!==null?'Valor comercial referencial':'Valor comercial sin desglose de IGV'?></dt>
+                    <dd><?=e(\App\Services\CommercialTotalsService::money($totals['total']))?></dd>
+                </div>
+            </dl>
+            <?php endif; ?>
+        </div>
+        <?php if($totals['valorizado']): ?>
+        <p class="commercial-summary-help">Importes referenciales para control comercial; la guía sustenta el traslado, no reemplaza el comprobante de pago.</p>
+        <?php endif; ?>
+    </section>
 </div></div>
 
 <?php if (has_role('ADMIN', 'SUPERVISOR')): ?>

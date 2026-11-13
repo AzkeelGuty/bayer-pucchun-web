@@ -54,8 +54,8 @@
                     <label class="visually-hidden" for="mode-<?=e((int)$candidate['id'])?>">Interpretación de precios</label>
                     <select id="mode-<?=e((int)$candidate['id'])?>" name="modo_precio" class="form-select form-select-sm" required style="max-width:200px">
                         <option value="">¿Precio incluye IGV?</option>
-                        <option value="PRECIO_INCLUYE_IGV">Sí, incluye IGV 18 %</option>
-                        <option value="PRECIO_SIN_IGV">No, sin IGV</option>
+                        <option value="PRECIO_INCLUYE_IGV" <?=($candidate['precio_igv_modalidad']??'')==='INCLUIDO'?'selected':''?>>Sí, incluye IGV 18 %</option>
+                        <option value="PRECIO_SIN_IGV" <?=($candidate['precio_igv_modalidad']??'')==='ADICIONAL'?'selected':''?>>No, sin IGV</option>
                     </select>
                     <label class="small"><input type="checkbox" name="confirma_gravados" value="1" required>
                         Confirmo que todas las líneas están gravadas con IGV 18 %.</label>

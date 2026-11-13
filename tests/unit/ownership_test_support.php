@@ -109,7 +109,7 @@ function ownershipFixture(string $repositoryClass, string $permissionPrefix, arr
     return $repo;
 }
 function ownershipPost(int $id): array {
-    $header=['tipo_documento_id'=>1,'numero'=>'TEST-'.$id,'fecha'=>'2026-09-17','cliente_id'=>1,'vendedor_id'=>1,'sucursal_id'=>1];
+    $header=['tipo_documento_id'=>1,'numero'=>'TEST-'.$id,'fecha'=>'2026-09-17','cliente_id'=>1,'vendedor_id'=>1,'sucursal_id'=>1,'estado_comprobante'=>'VIGENTE','precio_igv_modalidad'=>'ADICIONAL'];
     $line=['producto_id'=>1,'unidad_id'=>1,'cantidad'=>'2','valor_unitario'=>'1'];
     return $header+['id'=>$id,'version'=>'4','created_by'=>23,'actor_id'=>999,'header'=>$header,'details'=>[$line],'detalle'=>[$line], 'fecha_stock'=>'2026-09-17','almacen_id'=>1,'idempotency_key'=>'stock-'.$id];
 }
