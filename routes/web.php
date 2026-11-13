@@ -112,4 +112,5 @@ $router->get('/api/v1/pucchun/all',[ApiController::class,'pucchunAll']);
 $router->get('/api/v1/pucchun/sales',[ApiController::class,'sales']);
 $router->get('/api/v1/pucchun/shipments',[ApiController::class,'shipments']);
 $router->get('/api/v1/pucchun/inventory',[ApiController::class,'inventory']);
+$router->get('/api/v1/pucchun/latest-stock',[ApiController::class,'pucchunLatestStock']);
 
