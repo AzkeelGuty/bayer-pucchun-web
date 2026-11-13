@@ -4,6 +4,7 @@
     const enhanced = new WeakMap();
     const remoteCache = new Map();
     let openWidget = null;
+    const widgets = new Set();
 
     const normalize = (value) => String(value || '')
         .normalize('NFD')
@@ -31,9 +32,16 @@
 
     function close(widget) {
         if (!widget) return;
+        clearTimeout(widget.timer);
+        widget.timer = null;
+        widget.controller?.abort();
+        widget.controller = null;
+        widget.requestNonce += 1;
         widget.menu.classList.remove('open');
+        widget.menu.replaceChildren();
         widget.input.setAttribute('aria-expanded', 'false');
         widget.activeIndex = -1;
+        widget.rendered = [];
         if (openWidget === widget) openWidget = null;
     }
 
@@ -136,6 +144,8 @@
     }
 
     function showInfo(widget, message) {
+        if (!widget.input.isConnected || document.activeElement !== widget.input) return;
+        if (openWidget && openWidget !== widget) close(openWidget);
         widget.menu.innerHTML = '';
         const info = document.createElement('div');
         info.className = 'incremental-select-empty';
@@ -154,7 +164,7 @@
         widget.activeIndex = -1;
 
         if (term.length < widget.minChars) {
-            showInfo(widget, 'Escribe para buscar.');
+            close(widget);
             return;
         }
 
@@ -182,6 +192,8 @@
             widget.menu.appendChild(button);
         });
 
+        if (!widget.input.isConnected || document.activeElement !== widget.input) return;
+        if (openWidget && openWidget !== widget) close(openWidget);
         widget.menu.classList.add('open');
         widget.input.setAttribute('aria-expanded', 'true');
         openWidget = widget;
@@ -202,6 +214,8 @@
             return;
         }
 
+        if (!widget.input.isConnected || document.activeElement !== widget.input || normalize(widget.input.value) !== term) return;
+        const nonce = ++widget.requestNonce;
         const url = new URL(widget.remoteUrl, window.location.href);
         url.searchParams.set('q', term);
         url.searchParams.set('limit', String(widget.limit));
@@ -209,6 +223,7 @@
         const key = url.toString();
 
         if (remoteCache.has(key)) {
+            if (nonce !== widget.requestNonce) return;
             widget.items = remoteCache.get(key);
             renderItems(widget);
             return;
@@ -226,7 +241,8 @@
             });
             if (!response.ok) throw new Error('No se pudo consultar el catálogo.');
             const payload = await response.json();
-            if (normalize(widget.input.value) !== term) return;
+            if (nonce !== widget.requestNonce || !widget.input.isConnected ||
+                document.activeElement !== widget.input || normalize(widget.input.value) !== term) return;
             const items = Array.isArray(payload.items) ? payload.items.map(item => ({
                 value: String(item.value || ''),
                 label: String(item.label || ''),
@@ -238,8 +254,8 @@
             widget.items = items;
             renderItems(widget);
         } catch (error) {
-            if (error?.name === 'AbortError') return;
-            showInfo(widget, error?.message || 'No se pudo consultar el catálogo.');
+            if (error?.name === 'AbortError' || nonce !== widget.requestNonce) return;
+            close(widget);
         }
     }
 
@@ -250,8 +266,11 @@
             return;
         }
         clearTimeout(widget.timer);
+        widget.controller?.abort();
+        widget.controller = null;
+        widget.requestNonce += 1;
         if (term.length < widget.minChars) {
-            showInfo(widget, 'Escribe para buscar.');
+            close(widget);
             return;
         }
         widget.timer = window.setTimeout(() => loadRemote(widget, term), 160);
@@ -336,14 +355,27 @@
             limit: Math.max(5, Math.min(20, Number(select.dataset.searchLimit || 15))),
             remoteUrl: select.dataset.searchUrl || '',
             parentSelector: select.dataset.searchParent || '',
-            timer: null, controller: null,
+            timer: null, controller: null, requestNonce: 0,
         };
         enhanced.set(select, widget);
+        widgets.add(widget);
         sync(widget);
 
         input.addEventListener('focus', () => {
-            if (select.value) input.select();
+            if (openWidget && openWidget !== widget) close(openWidget);
+            if (select.value) {
+                input.select();
+                // Selección vigente: no abrir otro menú hasta que el usuario escriba.
+                close(widget);
+                return;
+            }
             render(widget);
+        });
+        input.addEventListener('blur', () => {
+            // mousedown en una opción cancela blur; al pasar a otro campo se cierra.
+            window.setTimeout(() => {
+                if (document.activeElement !== input) close(widget);
+            }, 0);
         });
         input.addEventListener('input', () => {
             const current = select.selectedOptions && select.selectedOptions[0];
@@ -409,10 +441,14 @@
         if (root.querySelectorAll) root.querySelectorAll('select[data-search-select]').forEach(enhance);
     }
 
-    document.addEventListener('click', event => {
+    document.addEventListener('pointerdown', event => {
         if (!openWidget) return;
         if (openWidget.wrapper.contains(event.target) || openWidget.menu.contains(event.target)) return;
         close(openWidget);
+    });
+    document.addEventListener('focusin', event => {
+        if (openWidget && !openWidget.wrapper.contains(event.target) &&
+            !openWidget.menu.contains(event.target)) close(openWidget);
     });
     window.addEventListener('resize', () => positionMenu(openWidget));
     window.addEventListener('scroll', () => positionMenu(openWidget), true);
@@ -432,7 +468,14 @@
     else boot();
 
     function reset() {
-        close(openWidget);
+        for (const widget of widgets) {
+            close(widget);
+            widget.menu.remove();
+            widget.select.removeAttribute('data-search-enhanced');
+            enhanced.delete(widget.select);
+        }
+        widgets.clear();
+        openWidget = null;
         document.querySelectorAll('.incremental-select-menu').forEach(menu => menu.remove());
     }
 
