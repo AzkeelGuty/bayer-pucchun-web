@@ -59,6 +59,7 @@ $router->post('/bayer-productos/guardar',[BayerCatalogController::class,'save'],
 $router->get('/bayer-productos/importar',[BayerCatalogController::class,'importPage'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/bayer-productos/importar',[BayerCatalogController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/bayer-productos/plantilla',[BayerCatalogController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/precios-cargar',[BayerCatalogController::class,'loadPrices'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/bayer-productos/ver',[BayerCatalogController::class,'detail'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/bayer-productos/estado',[BayerCatalogController::class,'status'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/bayer-productos/eliminar',[BayerCatalogController::class,'confirmDelete'],[new RoleMiddleware(['ADMIN'])]);
