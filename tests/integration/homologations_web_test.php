@@ -42,26 +42,33 @@ try{
 
     $controller=new BackofficeController();
 
+    // Los registros históricos de homologación se conservan en su tabla
+    // sin confundirse con el catálogo propio del proveedor Bayer.
+    $db->pdo->exec("INSERT INTO bayer_productos_catalogo(codigo_bayer,nombre_bayer,marca)
+        VALUES('86216353','ABACUS EC18 4X4L BOT PE','ABACUS'),
+              ('84939862','ALIETTE WG80 12X1KG BAG PE','ALIETTE')");
+
     $_GET=[];
     $controller->homologations();
     $result=$GLOBALS['homologationsRendered'];
-    ensure($result['name']==='backoffice.table','La ruta usa el listado estándar');
+    ensure($result['name']==='bayer_catalog.index','Productos Bayer usa catálogo independiente');
     ensure($result['data']['q']==='','Sin ?q= se aplica búsqueda vacía');
-    ensure($result['data']['pagination']['total']===2,'La lista sin filtros incluye registros');
+    ensure($result['data']['total']===2,'Solo se muestran códigos del proveedor Bayer, no códigos Pucchún');
 
-    $_GET=['tab'=>'productos','q'=>'BAY-001'];
+    $_GET=['tab'=>'productos','q'=>'86216353'];
     $controller->homologations();
     $result=$GLOBALS['homologationsRendered'];
-    ensure($result['data']['pagination']['total']===1,'Búsqueda por código Bayer');
-    ensure($result['data']['rows'][0]['codigo_bayer']==='BAY-001','Resultado correcto');
+    ensure($result['data']['total']===1,'Búsqueda por código Bayer real');
+    ensure($result['data']['rows'][0]['codigo_bayer']==='86216353','Resultado correcto');
 
     $_GET=['tab'=>'productos','q'=>['valor'=>'inesperado']];
     $controller->homologations();
-    ensure($GLOBALS['homologationsRendered']['data']['q']==='','Un parámetro q array no causa 500');
+    ensure($GLOBALS['homologationsRendered']['data']['q']==='','Parámetro q array no causa 500');
 
     $_GET=['tab'=>['productos'],'q'=>''];
     $controller->homologations();
-    ensure($GLOBALS['homologationsRendered']['data']['active']==='productos','Tab malformado vuelve a valor seguro');
+    ensure($GLOBALS['homologationsRendered']['name']==='bayer_catalog.index',
+        'Tab malformado vuelve a catálogo Bayer seguro');
 
     $_GET=['tab'=>'clientes','q'=>['valor'=>'invalido']];
     $controller->masters();
