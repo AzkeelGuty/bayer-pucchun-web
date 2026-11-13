@@ -13,7 +13,8 @@ final class SunatController
     {
         \require_role('ADMIN');
         $service=new SunatEmissionService(\db());
-        $candidates=\db()->query(
+        $ambiente=(new SunatReadinessService())->mode()==='produccion'?'PRODUCCION':'BETA';
+        $candidateQuery=\db()->prepare(
             "SELECT d.id,d.numero,d.fecha,c.razon_social AS cliente,e.ruc AS emisor,
                     x.id AS sunat_id,x.estado AS sunat_estado
              FROM documentos_cabecera d
@@ -21,11 +22,13 @@ final class SunatController
              JOIN clientes c ON c.id=d.cliente_id
              JOIN sucursales s ON s.id=d.sucursal_id
              JOIN empresas e ON e.id=s.empresa_id
-             LEFT JOIN sunat_emisiones x ON x.documento_id=d.id
+             LEFT JOIN sunat_emisiones x ON x.documento_id=d.id AND x.ambiente=?
              WHERE t.codigo IN ('FAC','01') AND d.estado_registro='PUBLICADO'
                    AND d.estado_comprobante='VIGENTE'
              ORDER BY d.id DESC LIMIT 50"
-        )->fetchAll(\PDO::FETCH_ASSOC);
+        );
+        $candidateQuery->execute([$ambiente]);
+        $candidates=$candidateQuery->fetchAll(\PDO::FETCH_ASSOC);
         \view('sunat.index',[
             'config'=>(new SunatReadinessService())->publicSummary(),
             'emissions'=>$service->recent(),
