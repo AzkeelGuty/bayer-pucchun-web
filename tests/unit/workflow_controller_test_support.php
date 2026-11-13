@@ -12,6 +12,7 @@ function require_role(string ...$roles): void {
 function audit(string $module, string $action, int $id): void { $GLOBALS['audits'][] = [$module, $action, $id]; }
 function flash(string $key, string $value): void {}
 function url(string $path): string { return $path; }
+function asset_url(string $path): string { return '/'.$path; }
 function csrf_field(): string { return '<input name="_csrf" value="test-token">'; }
 function estado_badge(string $state): string { return e($state); }
 final class WorkflowRedirect extends RuntimeException {}
@@ -59,6 +60,7 @@ function testController(string $module, string $controllerClass, string $reposit
     foreach (['BORRADOR','VALIDADO','OBSERVADO','PUBLICADO','ANULADO'] as $state) {
         $record = ['header' => ['id'=>7, 'version'=>4, 'estado_registro'=>$state, 'numero'=>'G-7', 'fecha'=>'2026-09-17', 'fecha_stock'=>'2026-09-17', 'cliente_id'=>1, 'vendedor_id'=>1, 'sucursal_id'=>1, 'departamento_id'=>null, 'provincia_id'=>null, 'distrito_id'=>null, 'almacen_id'=>1, 'idempotency_key'=>'test', 'observation_reason'=>'Prueba', 'cancellation_reason'=>'Prueba'], 'details'=>[]];
         $clientes=$vendedores=$sucursales=$departamentos=$provincias=$distritos=$almacenes=$productos=$unidades=$lotes=[];
+        $totals=App\Services\CommercialTotalsService::summarize($record['details'],null);
         ob_start();
         require base_path("app/Views/$module/show.php");
         $html = ob_get_clean();
