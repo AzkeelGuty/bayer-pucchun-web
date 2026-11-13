@@ -104,3 +104,12 @@ $router->get('/api/v1/bayer/all',[ApiController::class,'all']);
 $router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
 $router->get('/api/v1/bayer/shipments',[ApiController::class,'shipments']);
 $router->get('/api/v1/bayer/inventory',[ApiController::class,'inventory']);
+$router->get('/api/v1/bayer/products',[ApiController::class,'bayerProducts']);
+$router->get('/api/v1/bayer/reported-inventory',[ApiController::class,'bayerReportedInventory']);
+$router->get('/api/v1/bayer/prices',[ApiController::class,'bayerPrices']);
+// Rutas explícitas Pucchún: conservar las antiguas para integraciones vigentes.
+$router->get('/api/v1/pucchun/all',[ApiController::class,'pucchunAll']);
+$router->get('/api/v1/pucchun/sales',[ApiController::class,'sales']);
+$router->get('/api/v1/pucchun/shipments',[ApiController::class,'shipments']);
+$router->get('/api/v1/pucchun/inventory',[ApiController::class,'inventory']);
+
