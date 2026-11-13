@@ -42,8 +42,9 @@ final class SunatController
         $id=filter_var(\input('documento_id',0),FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
         $mode=(string)\input('modo_precio','');
         $taxable=\input('confirma_gravados')==='1';
-        if($id===false||!in_array($mode,['PRECIO_INCLUYE_IGV','PRECIO_SIN_IGV'],true)||!$taxable){
-            \flash('error','Seleccione documento, forma de interpretar precios y confirme que todos los productos están gravados.');
+        $cash=\input('confirma_contado')==='1';
+        if($id===false||!in_array($mode,['PRECIO_INCLUYE_IGV','PRECIO_SIN_IGV'],true)||!$taxable||!$cash){
+            \flash('error','Seleccione documento, interpretación del precio y confirme IGV gravado y pago al contado.');
             \redirect('/sunat');
         }
         $ready=new SunatReadinessService();
@@ -53,7 +54,7 @@ final class SunatController
         }
         try {
             $row=(new SunatEmissionService(\db()))->emitInvoice(
-                (int)$id,(int)\auth_user()['id'],$mode,$taxable
+                (int)$id,(int)\auth_user()['id'],$mode,$taxable,$cash
             );
             \audit('sunat','emitir_factura',$id);
             $status=(string)$row['estado'];
