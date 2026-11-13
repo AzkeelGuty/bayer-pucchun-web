@@ -73,6 +73,7 @@ jobs:
           php tests/unit/workflow_action_buttons_test.php
           php tests/unit/button_palette_test.php
           php tests/unit/erp_actions_ui_test.php
+          php tests/unit/payment_tax_labels_test.php
           php tests/unit/workflow_test.php
           php tests/unit/guide_workflow_test.php
           php tests/unit/stock_workflow_test.php
