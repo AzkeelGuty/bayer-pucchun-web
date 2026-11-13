@@ -42,14 +42,24 @@ final class SunatEmissionService
         )->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function emitInvoice(int $documentId,int $userId,string $priceMode,bool $allTaxable): array
+    public function emitInvoice(int $documentId,int $userId,string $priceMode,bool $allTaxable,bool $cashPayment): array
     {
         if(!$allTaxable) throw new HttpException(422,'Confirma que TODOS los productos están gravados con IGV 18 %.');
+        if(!$cashPayment) throw new HttpException(422,'Confirma la condición de pago al contado de esta operación.');
         if($documentId<1||$userId<1)throw new HttpException(422,'Datos de emisión incorrectos.');
         $ready=new SunatReadinessService();
         if(!$ready->isReady())
             throw new HttpException(503,'La emisión electrónica está deshabilitada o faltan datos de SUNAT.');
         $document=(new SunatInvoiceBuilder($this->pdo))->snapshot($documentId);
+        // SUNAT establece un plazo de emisión y comunicación de facturas.
+        // Nunca enviar un comprobante antiguo con fecha inexacta en producción.
+        if($ready->mode()==='produccion'){
+            $today=new \DateTimeImmutable('today',new \DateTimeZone('America/Lima'));
+            $issued=\DateTimeImmutable::createFromFormat('!Y-m-d',(string)$document['fecha'],
+                new \DateTimeZone('America/Lima'));
+            if(!$issued||$issued>$today||$issued<$today->modify('-3 days'))
+                throw new HttpException(422,'La fecha de factura está fuera del plazo admitido para esta modalidad de envío. Corrija el procedimiento tributario antes de emitir.');
+        }
         $totals=SunatInvoiceBuilder::totals($document['lineas'],$priceMode);
         $ruc=(string)$document['ruc_emisor'];
         $serie=strtoupper((string)\env('SUNAT_SERIE_FACTURA',''));
