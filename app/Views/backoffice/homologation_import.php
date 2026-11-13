@@ -12,12 +12,33 @@
     <h2 class="h5">2. Completar los datos</h2>
     <p>El código del partner y el código interno deben existir en el sistema. Las combinaciones existentes se actualizarán sin duplicarse.</p>
     <h2 class="h5">3. Importar a la base de datos</h2>
+    <?php if($tab==='productos'): ?>
+    <div class="alert alert-info mb-3" role="note">
+      <strong>¿La importación indica que el código interno no existe?</strong>
+      Puede registrar los productos ausentes al mismo tiempo que carga las homologaciones. Se crearán inactivos para que revise la unidad base y los datos del producto antes de utilizarlos.
+    </div>
+    <?php endif; ?>
     <form action="<?=url('/homologaciones/importar')?>" method="post" enctype="multipart/form-data">
       <?=csrf_field()?>
       <input type="hidden" name="tab" value="<?=e($tab)?>">
       <label class="form-label" for="homologation-xlsx">Archivo Excel (.xlsx)</label>
       <input id="homologation-xlsx" class="form-control" type="file" name="excel" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
       <div class="form-text">Máximo 8 MB y 2000 registros. Si alguna fila falla, no se guarda ninguna.</div>
+      <?php if($tab==='productos'): ?>
+      <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" id="registrar-productos-faltantes"
+            name="registrar_productos_faltantes" value="1">
+        <label class="form-check-label fw-semibold" for="registrar-productos-faltantes">
+          Registrar automáticamente productos con código interno faltante
+        </label>
+        <div class="form-text">
+          Se utilizarán <code>codigo_interno</code> y <code>nombre_bayer</code> del Excel.
+          Los productos se crean inactivos, sin inventar unidades ni marcas.
+          <code>unidad_codigo</code> identifica la unidad de la homologación Bayer, no necesariamente la unidad base del producto Pucchún. Revise y asigne la unidad base en Catálogos maestros antes de activarlo.
+          Esta opción no modifica productos que ya existen.
+        </div>
+      </div>
+      <?php endif; ?>
       <button class="btn btn-success w-100 mt-3" type="submit">Importar homologaciones</button>
     </form>
   </div></div></div>
@@ -31,6 +52,6 @@
       <?php endforeach; ?>
       </tbody>
     </table></div>
-    <p class="form-text">La importación respeta el código interno y el identificador externo; no crea productos, clientes ni partners nuevos.</p>
+    <p class="form-text">Los identificadores externos se conservan tal como aparecen en el Excel. No se crean partners ni clientes. En Productos Bayer solo se crean registros maestros faltantes si se activa expresamente la opción de registro, y quedan inactivos hasta su revisión.</p>
   </div></div></div>
 </div>

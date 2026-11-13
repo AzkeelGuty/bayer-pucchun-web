@@ -91,9 +91,15 @@ final class HomologationController
         $tab=$this->tab();
         try{
             $rows=(new SimpleXlsxTable())->readUpload($_FILES['excel']??[]);
-            $result=$this->service->importRows($tab,$rows,(int)\auth_user()['id']);
+            $registerMissing=$tab==='productos' && (string)($_POST['registrar_productos_faltantes']??'')==='1';
+            $result=$this->service->importRows($tab,$rows,(int)\auth_user()['id'],$registerMissing);
             \audit('homologaciones','importar_'.$tab);
-            \flash('success',$result['total'].' filas procesadas: '.$result['inserted'].' nuevas y '.$result['updated'].' actualizadas.');
+            $message=$result['total'].' filas procesadas: '.$result['inserted'].' homologaciones nuevas y '.$result['updated'].' actualizadas.';
+            if(($result['created_products']??0)>0){
+                $message.=' Se registraron '.$result['created_products']
+                    .' productos nuevos INACTIVOS en Catálogos maestros. Revise y complete sus unidades de medida antes de activarlos.';
+            }
+            \flash('success',$message);
             \redirect('/homologaciones?tab='.rawurlencode($tab));
         }catch(HttpException $error){
             \flash('error',$error->getMessage());

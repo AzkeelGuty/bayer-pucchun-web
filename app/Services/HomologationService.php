@@ -192,10 +192,54 @@ final class HomologationService
         return (int)$id;
     }
 
+    /**
+     * Registra exclusivamente productos ausentes cuando el administrador lo autorizó
+     * en el formulario de importación. Quedan INACTIVOS hasta revisar unidad base,
+     * categoría y datos maestros. No se inventa una homologación oficial de Bayer.
+     *
+     * @return array{id:int,created:bool}
+     */
+    private function resolveImportProduct(string $code,string $name,int $row,bool $allowCreation): array
+    {
+        $find=$this->pdo->prepare('SELECT id FROM productos WHERE codigo=? LIMIT 1');
+        $find->execute([$code]);
+        $id=$find->fetchColumn();
+        if($id!==false) return ['id'=>(int)$id,'created'=>false];
+
+        if(!$allowCreation){
+            throw new HttpException(422,
+                "Fila $row: el código interno '$code' no existe en Catálogos maestros → Productos. "
+                .'Registre el producto allí o active «Registrar productos faltantes» al importar.'
+            );
+        }
+        if(mb_strlen($code)>30)
+            throw new HttpException(422,"Fila $row: el código interno excede los 30 caracteres permitidos para un producto.");
+        $name=trim($name);
+        if($name==='' || mb_strlen($name)>150)
+            throw new HttpException(422,
+                "Fila $row: para registrar el producto '$code' debe completar nombre_bayer (máximo 150 caracteres).");
+        try{
+            $insert=$this->pdo->prepare(
+                "INSERT INTO productos(codigo,nombre,tipo_art,unidad_base_id,estado) VALUES(?,?,'PRODUCTO',NULL,0)"
+            );
+            $insert->execute([$code,$name]);
+            return ['id'=>(int)$this->pdo->lastInsertId(),'created'=>true];
+        }catch(PDOException $error){
+            // Concurrencia: si otro administrador lo creó, reutilizar ese código.
+            if((int)($error->errorInfo[1]??0)!==1062)throw $error;
+            $find->execute([$code]);
+            $id=$find->fetchColumn();
+            if($id===false)throw $error;
+            return ['id'=>(int)$id,'created'=>false];
+        }
+    }
+
     /** Importa todo o nada, actualizando por partner + elemento local sin duplicar. */
-    public function importRows(string $tab,array $rows,int $actorId): array
+    public function importRows(string $tab,array $rows,int $actorId,bool $createMissingProducts=false): array
     {
         $d=$this->definition($tab);
+        if($createMissingProducts && $tab!=='productos')
+            throw new HttpException(422,'El registro automático de códigos faltantes solo corresponde a Productos Bayer.');
         if(count($rows)<1 || count($rows)>2000) throw new HttpException(422,'La plantilla admite de 1 a 2000 registros.');
         $expected=array_keys($d['import']);
         $headers=array_keys($rows[0]);
@@ -204,7 +248,7 @@ final class HomologationService
         }
         if($this->pdo->inTransaction()) throw new \LogicException('Importación ya en una transacción.');
         $this->pdo->beginTransaction();
-        $inserted=0;$updated=0;$seen=[];
+        $inserted=0;$updated=0;$createdProducts=0;$seen=[];
         try{
             foreach($rows as $i=>$row){
                 $line=$i+2;
@@ -212,7 +256,18 @@ final class HomologationService
                 $localCode=trim((string)($row['codigo_interno']??''));
                 if($partnerCode==='' || $localCode==='') throw new HttpException(422,"Fila $line: complete partner_codigo y codigo_interno.");
                 $partner=$this->resolveCode('partners','codigo',$partnerCode,$line);
-                $local=$this->resolveCode($d['local_table'],$d['local_code'],$localCode,$line);
+                $unitId=null;
+                if($tab==='productos'){
+                    $unitCode=trim((string)($row['unidad_codigo']??''));
+                    $unitId=$unitCode===''?null:$this->resolveCode('unidades_medida','codigo',$unitCode,$line);
+                    $result=$this->resolveImportProduct(
+                        $localCode,(string)($row['nombre_bayer']??''),$line,$createMissingProducts
+                    );
+                    $local=$result['id'];
+                    if($result['created'])$createdProducts++;
+                }else{
+                    $local=$this->resolveCode($d['local_table'],$d['local_code'],$localCode,$line);
+                }
                 $key="$partner:$local";
                 if(isset($seen[$key])) throw new HttpException(422,"Fila $line: combinación duplicada dentro del Excel.");
                 $seen[$key]=true;
@@ -225,8 +280,7 @@ final class HomologationService
                     'valid_until'=>$row['valid_until']??'',
                 ];
                 if($tab==='productos'){
-                    $unitCode=trim((string)($row['unidad_codigo']??''));
-                    $input['unidad_bayer_id']=$unitCode===''?'':$this->resolveCode('unidades_medida','codigo',$unitCode,$line);
+                    $input['unidad_bayer_id']=$unitId??'';
                 }
                 $st=$this->pdo->prepare("SELECT id FROM {$d['table']} WHERE partner_id=? AND {$d['local_key']}=? LIMIT 1");
                 $st->execute([$partner,$local]);
@@ -243,6 +297,6 @@ final class HomologationService
             if($this->pdo->inTransaction()) $this->pdo->rollBack();
             throw $error;
         }
-        return ['total'=>count($rows),'inserted'=>$inserted,'updated'=>$updated];
+        return ['total'=>count($rows),'inserted'=>$inserted,'updated'=>$updated,'created_products'=>$createdProducts];
     }
 }
