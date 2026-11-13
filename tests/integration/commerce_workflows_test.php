@@ -25,7 +25,7 @@ try{
     ensure((int)$pdo->query("SELECT COUNT(*) FROM schema_migrations WHERE version=9")->fetchColumn()===1,'Migración 009 reejecutable sin duplicar registro');
     $documents=new DocumentRepository($pdo);
     $guides=new GuideRepository($pdo);
-    $created=$documents->create([...docHeader('F001-TEST'),'medio_pago'=>'YAPE','referencia_pago'=>'OPERACION-123'],[
+    $created=$documents->create([...docHeader('F001-TEST'),'medio_pago'=>'YAPE','referencia_pago'=>'OPERACION-123','precio_igv_modalidad'=>'ADICIONAL'],[
         ['producto_id'=>1,'unidad_id'=>1,'cantidad'=>'2','valor_unitario'=>'10.00'],
         ['producto_id'=>2,'unidad_id'=>2,'cantidad'=>'1','valor_unitario'=>'15.50'],
     ],1);
@@ -45,6 +45,14 @@ try{
     ensure(count($guide['details'])===2,'Se copian todos los productos');
     ensure((int)$guide['details'][0]['producto_id']===1 && (int)$guide['details'][1]['producto_id']===2,'Los productos coinciden');
     ensure((string)$guide['details'][0]['cantidad']==='2.000','Se mantiene cantidad del documento');
+    ensure((string)$guide['details'][0]['valor_unitario']==='10.00'
+        && (string)$guide['details'][1]['valor_unitario']==='15.50',
+        'Guía automática copia precios comerciales de ambas líneas');
+    ensure($guide['header']['precio_igv_modalidad']==='ADICIONAL',
+        'Guía vinculada conserva la interpretación del IGV');
+    ensure(\App\Services\CommercialTotalsService::summarize(
+        $guide['details'],$guide['header']['precio_igv_modalidad'])['total']===4189,
+        'Importe comercial de la guía vinculada coincide con el documento');
 
     $again=(new GuideFromDocumentService($pdo))->generate($created,1);
     ensure($again['created']===false && $again['guide_id']===$guideId,'Idempotencia: no duplicar la guía');
