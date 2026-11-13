@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Exceptions\HttpException;
-use App\Services\{ApiTokenService,BayerDataService};
+use App\Services\{ApiTokenService,BayerDataService,BayerCatalogService};
 use App\Validators\LoginValidator;
 use DateTimeImmutable;
 use Throwable;
@@ -106,6 +106,13 @@ final class ApiController
                     '/api/v1/bayer/sales',
                     '/api/v1/bayer/shipments',
                     '/api/v1/bayer/inventory',
+                    '/api/v1/bayer/products',
+                    '/api/v1/bayer/reported-inventory',
+                    '/api/v1/bayer/prices',
+                    '/api/v1/pucchun/all',
+                    '/api/v1/pucchun/sales',
+                    '/api/v1/pucchun/shipments',
+                    '/api/v1/pucchun/inventory',
                 ],
                 'optionalFilters'=>['from','to','branch','q','document_status'],
                 'quantityModel'=>[
@@ -132,6 +139,66 @@ final class ApiController
         $this->serveDataset('inventory');
     }
 
+    /** Colecciones originales Pucchún, sin mezclar saldos del proveedor. */
+    public function pucchunAll(): void
+    {
+        $this->guard();
+        try{
+            $filters=$this->filters();$service=new BayerDataService();
+            $sales=$this->prepareRows('sales',$service->completeDataset('sales',$filters));
+            $shipments=$this->prepareRows('shipments',$service->completeDataset('shipments',$filters));
+            $inventory=$this->prepareRows('inventory',$service->completeDataset('inventory',$filters));
+            $count=count($sales)+count($shipments)+count($inventory);
+            $this->recordAccess('api_pucchun_all');
+            $this->respond([
+                'meta'=>$this->meta('pucchun_all',$count,$filters)+[
+                    'source'=>'PUCCHUN',
+                    'datasets'=>['sales'=>count($sales),'shipments'=>count($shipments),
+                        'inventory'=>count($inventory)],
+                ],
+                'data'=>['sales'=>$sales,'shipments'=>$shipments,'inventory'=>$inventory],
+            ]);
+        }catch(\InvalidArgumentException $error){$this->error('INVALID_FILTER',$error->getMessage(),422);}
+        catch(Throwable $error){
+            \log_event('api_pucchun_all_error',['type'=>get_class($error)]);
+            $this->error('INTERNAL_ERROR','No se pudo completar la consulta Pucchún.',500);
+        }
+    }
+
+    public function bayerProducts(): void {$this->serveBayerCatalog('products');}
+    public function bayerReportedInventory(): void {$this->serveBayerCatalog('reported-inventory');}
+    public function bayerPrices(): void {$this->serveBayerCatalog('prices');}
+
+    /** Solo conjuntos Bayer publicados por el administrador; los inventarios
+     * del canal nunca se mezclan con las existencias físicas Pucchún. */
+    private function serveBayerCatalog(string $dataset): void
+    {
+        $this->guard();
+        try{
+            $filters=$this->filters();$service=new BayerCatalogService();
+            $rows=match($dataset){
+                'products'=>$service->publishedProducts($filters),
+                'reported-inventory'=>$service->publishedInventory($filters),
+                'prices'=>$service->publishedPrices(),
+                default=>throw new \InvalidArgumentException('Dataset no permitido.'),
+            };
+            $this->recordAccess('api_bayer_'.$dataset);
+            $this->respond([
+                'meta'=>$this->meta('bayer_'.$dataset,count($rows),$filters)+[
+                    'source'=>'BAYER',
+                    'quantityModel'=>['quantity'=>'Entero reportado, 0 o null (sin dato/guion).',
+                        'stockMarker'=>'CANTIDAD, VACIO o GUION',
+                        'warehouseStock'=>'NO ES STOCK PUCCHUN'],
+                ],
+                'data'=>$rows,
+            ]);
+        }catch(\InvalidArgumentException $error){$this->error('INVALID_FILTER',$error->getMessage(),422);}
+        catch(Throwable $error){
+            \log_event('api_bayer_catalog_error',['type'=>get_class($error),'dataset'=>$dataset]);
+            $this->error('INTERNAL_ERROR','No se pudo consultar el catálogo Bayer.',500);
+        }
+    }
+
     /** One request for every published integration dataset. */
     public function all(): void
     {
@@ -144,7 +211,12 @@ final class ApiController
             $sales=$this->prepareRows('sales',$service->completeDataset('sales',$filters));
             $shipments=$this->prepareRows('shipments',$service->completeDataset('shipments',$filters));
             $inventory=$this->prepareRows('inventory',$service->completeDataset('inventory',$filters));
-            $total=count($sales)+count($shipments)+count($inventory);
+            $catalog=new BayerCatalogService();
+            $bayerProducts=$catalog->publishedProducts($filters);
+            $bayerInventory=$catalog->publishedInventory($filters);
+            $bayerPrices=$catalog->publishedPrices();
+            $total=count($sales)+count($shipments)+count($inventory)
+                +count($bayerProducts)+count($bayerInventory)+count($bayerPrices);
 
             $this->recordAccess('api_all');
             $this->respond([
@@ -153,12 +225,22 @@ final class ApiController
                         'sales'=>count($sales),
                         'shipments'=>count($shipments),
                         'inventory'=>count($inventory),
+                        'bayerProducts'=>count($bayerProducts),
+                        'bayerInventory'=>count($bayerInventory),
+                        'bayerPrices'=>count($bayerPrices),
+                    ],
+                    'sources'=>[
+                        'sales'=>'PUCCHUN','shipments'=>'PUCCHUN','inventory'=>'PUCCHUN',
+                        'bayerProducts'=>'BAYER','bayerInventory'=>'BAYER','bayerPrices'=>'BAYER',
                     ],
                 ],
                 'data'=>[
                     'sales'=>$sales,
                     'shipments'=>$shipments,
                     'inventory'=>$inventory,
+                    'bayerProducts'=>$bayerProducts,
+                    'bayerInventory'=>$bayerInventory,
+                    'bayerPrices'=>$bayerPrices,
                 ],
             ]);
         } catch (\InvalidArgumentException $error) {
