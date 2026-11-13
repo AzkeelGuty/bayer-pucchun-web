@@ -51,46 +51,49 @@ final class SunatInvoiceBuilder
         return $row;
     }
 
-    /** Precios explícitos por factura: bruto con IGV o neto antes de IGV. */
+    /** Mantiene las mismas reglas de cálculo en céntimos que el ERP. */
     public static function totals(array $lines,string $mode): array
     {
-        if(!in_array($mode,['PRECIO_INCLUYE_IGV','PRECIO_SIN_IGV'],true))
-            throw new HttpException(422,'Seleccione si los precios incluyen IGV.');
+        $internalMode=match($mode){
+            'PRECIO_INCLUYE_IGV'=>'INCLUIDO',
+            'PRECIO_SIN_IGV'=>'ADICIONAL',
+            default=>throw new HttpException(422,'Seleccione si los precios incluyen IGV.'),
+        };
         $unitMap=['UND'=>'NIU','UN'=>'NIU','NIU'=>'NIU','KGM'=>'KGM','KG'=>'KGM',
             'GRM'=>'GRM','G'=>'GRM','LTR'=>'LTR','LT'=>'LTR','L'=>'LTR',
             'MTR'=>'MTR','M'=>'MTR','TNE'=>'TNE'];
-        $results=[]; $totalBase=0.;$totalTax=0.;$grand=0.;
-        foreach($lines as $line) {
-            $quantity=(float)($line['cantidad']??0);
-            $price=(float)($line['valor_unitario']??0);
-            if(!is_finite($quantity)||!is_finite($price)||$quantity<=0||$price<=0||$quantity>1e7||$price>1e9)
+        try {
+            $sum=CommercialTotalsService::summarize($lines,$internalMode);
+        }catch(\InvalidArgumentException $error){
+            throw new HttpException(422,$error->getMessage());
+        }
+        $results=[];
+        foreach($lines as $i=>$line){
+            $q=CommercialTotalsService::quantity($line['cantidad']??null);
+            $price=CommercialTotalsService::priceCents($line['valor_unitario']??null);
+            if($price<=0||$q>10000000||$price>100000000000)
                 throw new HttpException(422,'Los productos a emitir necesitan cantidad y precio positivos.');
             $unit=strtoupper(trim((string)($line['unidad_codigo']??'')));
             if(!isset($unitMap[$unit]))
                 throw new HttpException(422,'Configurar unidad SUNAT válida para '.$unit.'.');
-            if($mode==='PRECIO_INCLUYE_IGV') {
-                $gross=round($quantity*$price,2);
-                $base=round($gross/1.18,2);
-                $igv=round($gross-$base,2);
-            } else {
-                $base=round($quantity*$price,2);
-                $igv=round($base*0.18,2);
-                $gross=round($base+$igv,2);
-            }
+            $amount=$sum['lineas'][$i];
+            $base=$amount['subtotal']/100;
+            $igv=$amount['igv']/100;
+            $gross=$amount['total']/100;
             $results[]=[
                 'codigo'=>(string)($line['producto_codigo']??''),
                 'nombre'=>(string)($line['producto_nombre']??''),
-                'unidad'=>$unitMap[$unit],'cantidad'=>$quantity,
-                'valor_unitario'=>round($base/$quantity,6),
-                'precio_unitario'=>round($gross/$quantity,6),
+                'unidad'=>$unitMap[$unit],'cantidad'=>$q,
+                'valor_unitario'=>round($base/$q,6),
+                'precio_unitario'=>round($gross/$q,6),
                 'base'=>$base,'igv'=>$igv,'total'=>$gross,
             ];
-            $totalBase+=$base; $totalTax+=$igv; $grand+=$gross;
         }
-        $base=round($totalBase,2);$igv=round($totalTax,2);$grand=round($grand,2);
-        if($grand<=0||$grand>999999999.99)
+        $total=$sum['total']/100;
+        if($total<=0||$total>999999999.99)
             throw new HttpException(422,'Importe fuera del rango admitido.');
-        return ['lineas'=>$results,'gravada'=>$base,'igv'=>$igv,'total'=>$grand,'moneda'=>'PEN'];
+        return ['lineas'=>$results,'gravada'=>$sum['subtotal']/100,
+            'igv'=>$sum['igv']/100,'total'=>$total,'moneda'=>'PEN'];
     }
 
     public static function documentName(string $ruc,string $serie,int $correlativo): string
