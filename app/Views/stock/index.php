@@ -71,9 +71,9 @@ $lastStock=$total>0 ? min($total,$page*$perPage) : 0;
                     <td><span class="badge-status status-<?= e(strtolower($r['estado_registro'])) ?>"><?= e($r['estado_registro']) ?></span></td>
                     <td>
                         <div class="d-flex gap-2 align-items-center flex-wrap">
-                            <a class="btn btn-sm btn-outline-primary" href="<?= url('/stock/ver?id=' . $r['id']) ?>">Ver</a>
+                            <a class="btn btn-sm btn-app-blue btn-with-icon" href="<?= url('/stock/ver?id=' . $r['id']) ?>"><i class="bi bi-eye" aria-hidden="true"></i><span>Ver</span></a>
                             <?php if (has_role('ADMIN', 'DIGITADOR') && in_array($r['estado_registro'], ['BORRADOR','OBSERVADO'], true)): ?>
-                                <a class="btn btn-sm btn-outline-primary" href="<?= url('/stock/editar?id=' . $r['id']) ?>"><?= $r['estado_registro']==='OBSERVADO' ? 'Corregir' : 'Editar' ?></a>
+                                <a class="btn btn-sm btn-app-amber btn-with-icon" href="<?= url('/stock/editar?id=' . $r['id']) ?>"><i class="bi bi-pencil-square" aria-hidden="true"></i><span><?= $r['estado_registro']==='OBSERVADO' ? 'Corregir' : 'Editar' ?></span></a>
                             <?php endif; ?>
                             <?php if (has_role('ADMIN', 'SUPERVISOR')) workflow_control('stock',$r,'/stock'); ?>
                         </div>
