@@ -10,17 +10,9 @@
     <?php endif; ?>
 </p>
 
-<div class="alert alert-info" role="status">
-    <strong>Estado tributario · Emisión en SUNAT y el traslado de bienes:</strong>
-    <?php if(($h['estado_sunat']??'SIN_VERIFICAR')==='NO_EMITIDA'): ?>
-        Pendiente de emisión electrónica ante SUNAT.
-    <?php else: ?>
-        Sin emisión electrónica confirmada en el ERP.
-    <?php endif; ?>
-    <?php if(!empty($h['documento_origen_id'])): ?>
-        <a href="<?=url('/documentos/ver?id='.(int)$h['documento_origen_id'])?>" class="ms-2">Ver documento de origen</a>
-    <?php endif; ?>
-</div>
+<?php if(!empty($h['documento_origen_id'])): ?>
+<p><a class="btn btn-outline-primary btn-with-icon" href="<?=url('/documentos/ver?id='.(int)$h['documento_origen_id'])?>"><i class="bi bi-file-earmark-text" aria-hidden="true"></i><span>Ver documento de origen</span></a></p>
+<?php endif; ?>
 <div class="card mb-3"><div class="card-body">
     <h6 class="card-title">Cabecera</h6>
     <div class="row">
@@ -29,21 +21,14 @@
         <div class="col-md-3"><strong>Vendedor</strong><div><?= e($vendedores[$h['vendedor_id']]['nombre'] ?? $h['vendedor_id']) ?></div></div>
         <div class="col-md-3"><strong>Sucursal</strong><div><?= e($sucursales[$h['sucursal_id']]['nombre'] ?? $h['sucursal_id']) ?></div></div>
     </div>
-    <div class="row mt-3">
-        <div class="col-md-9">
-            <strong>Destino de entrega</strong>
-            <div><?= e(implode(' · ', array_filter([
-                $distritos[$h['distrito_id']]['nombre'] ?? null,
-                $provincias[$h['provincia_id']]['nombre'] ?? null,
-                $departamentos[$h['departamento_id']]['nombre'] ?? null,
-            ])) ?: 'Sin destino registrado') ?></div>
-        </div>
-        <div class="col-md-3">
-            <strong>Versión del registro</strong>
-            <div><?= e($h['version']) ?></div>
-            <small class="text-muted">Control interno de cambios. Aumenta al editar o cambiar el estado; no es el número de guía.</small>
-        </div>
-    </div>
+    <div class="row mt-3"><div class="col-12">
+        <strong>Destino de entrega</strong>
+        <div><?= e(implode(' · ', array_filter([
+            $distritos[$h['distrito_id']]['nombre'] ?? null,
+            $provincias[$h['provincia_id']]['nombre'] ?? null,
+            $departamentos[$h['departamento_id']]['nombre'] ?? null,
+        ])) ?: 'Sin destino registrado') ?></div>
+    </div></div>
     <?php if ($h['estado_registro'] === 'OBSERVADO' && $h['observation_reason']): ?>
         <div class="alert alert-warning mt-3 mb-0"><strong>Motivo de observación:</strong> <?= e($h['observation_reason']) ?></div>
     <?php endif; ?>
