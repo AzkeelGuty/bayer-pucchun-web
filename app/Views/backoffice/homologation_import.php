@@ -34,7 +34,7 @@
         <div class="form-text">
           Se utilizarán <code>codigo_interno</code> y <code>nombre_bayer</code> del Excel.
           Los productos se crean inactivos, sin inventar unidades ni marcas.
-          Si <code>unidad_codigo</code> contiene un código válido, se asigna como unidad inicial; de lo contrario, se revisa posteriormente en Catálogos maestros.
+          <code>unidad_codigo</code> identifica la unidad de la homologación Bayer, no necesariamente la unidad base del producto Pucchún. Revise y asigne la unidad base en Catálogos maestros antes de activarlo.
           Esta opción no modifica productos que ya existen.
         </div>
       </div>
