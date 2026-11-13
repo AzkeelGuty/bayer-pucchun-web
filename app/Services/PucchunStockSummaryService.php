@@ -21,6 +21,10 @@ final class PucchunStockSummaryService
                      DATE_FORMAT(sc.fecha_stock,'%Y-%m-%d') stockDate,
                      sc.id snapshotId
               FROM stock_cabecera sc
+              JOIN stock_detalle sd ON sd.stock_id=sc.id
+              JOIN almacenes a ON a.id=sc.almacen_id
+              JOIN productos p ON p.id=sd.producto_id
+              JOIN unidades_medida u ON u.id=sd.unidad_id
               WHERE sc.estado_registro='PUBLICADO'
                 AND NOT EXISTS (
                   SELECT 1 FROM stock_cabecera newer
@@ -29,10 +33,6 @@ final class PucchunStockSummaryService
                     AND (newer.fecha_stock>sc.fecha_stock OR
                          (newer.fecha_stock=sc.fecha_stock AND newer.id>sc.id))
                 )
-              JOIN stock_detalle sd ON sd.stock_id=sc.id
-              JOIN almacenes a ON a.id=sc.almacen_id
-              JOIN productos p ON p.id=sd.producto_id
-              JOIN unidades_medida u ON u.id=sd.unidad_id
               GROUP BY a.codigo,a.nombre,p.codigo,p.nombre,u.codigo,sc.fecha_stock,sc.id
               ORDER BY a.nombre,p.nombre,u.codigo
               LIMIT ".$limit;
