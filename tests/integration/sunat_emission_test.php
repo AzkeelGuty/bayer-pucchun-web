@@ -69,7 +69,7 @@ try{
     $service=new SunatEmissionService($pdo);
     ensure($service->findForDocument($id)===null,'Sin intento registrado inicialmente');
     ensure(!(new SunatReadinessService())->isReady(),'No se emite sin credenciales y certificado real');
-    rejects(fn()=>$service->emitInvoice($id,1,'PRECIO_SIN_IGV',true),HttpException::class);
+    rejects(fn()=>$service->emitInvoice($id,1,'PRECIO_SIN_IGV',true,true),HttpException::class);
     ensure((int)$pdo->query('SELECT COUNT(*) FROM sunat_emisiones')->fetchColumn()===0,
         'Sin configuración real NO se crea emisión ni número fiscal');
 
