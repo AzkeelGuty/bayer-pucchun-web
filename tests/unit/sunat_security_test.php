@@ -39,7 +39,6 @@ $check(str_contains($gateway,'getCdrResponse()'),'CDR real es fuente de resultad
 $check(str_contains($issuer,'SIN_RESPUESTA'),'Respuesta incierta no supone rechazo ni aceptación');
 $check(str_contains($issuer,'SELECT siguiente FROM sunat_series_fiscales'),'Correlativos reservados con bloqueo');
 $check(str_contains($issuer,'FOR UPDATE'),'Bloqueo transaccional aplicado');
-$check(str_contains($issuer,'UNIQUE'),'No se exige palabra UNIQUE en el servicio');
 $check(!str_contains($view,'SUNAT_SOL_PASSWORD'),'No aparece clave SOL en la vista');
 $check(!str_contains($view,'BEGIN PRIVATE KEY'),'No aparece contenido PEM en la vista');
 $check(str_contains($view,'data-no-soft-nav'),'Formulario de emisión por POST nativo');
