@@ -15,7 +15,7 @@ final class SunatController
         $service=new SunatEmissionService(\db());
         $ambiente=(new SunatReadinessService())->mode()==='produccion'?'PRODUCCION':'BETA';
         $candidateQuery=\db()->prepare(
-            "SELECT d.id,d.numero,d.fecha,c.razon_social AS cliente,e.ruc AS emisor,
+            "SELECT d.id,d.numero,d.fecha,d.precio_igv_modalidad,c.razon_social AS cliente,e.ruc AS emisor,
                     x.id AS sunat_id,x.estado AS sunat_estado
              FROM documentos_cabecera d
              JOIN tipos_documento t ON t.id=d.tipo_documento_id
