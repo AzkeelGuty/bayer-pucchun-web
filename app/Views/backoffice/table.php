@@ -247,7 +247,8 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
                                 <?php elseif($key==='usuario' || $key==='vendedor'): ?>
                                     <span class="table-icon-cell"><i class="bi bi-person-circle"></i><?=e($display)?></span>
                                 <?php elseif($key==='ip'): ?>
-                                    <span class="access-ip"><i class="bi bi-router"></i><?=e(access_ip_label((string)$display))?></span>
+                                    <?php $ipLabel=access_ip_label($row['ip']??null); ?>
+                                    <span class="access-ip" title="<?=e($ipLabel==='—'?'No se registró IP en esta acción histórica.':'Dirección IP registrada en la solicitud')?>"><i class="bi bi-router" aria-hidden="true"></i><?=e($ipLabel==='—'?'No registrada':$ipLabel)?></span>
                                 <?php elseif(str_starts_with($key,'fecha') || in_array($key,['valid_from','valid_until'],true)): ?>
                                     <span class="table-icon-cell table-date-cell"><i class="bi bi-calendar3"></i><?=e($display)?></span>
                                 <?php elseif($key==='accion'): ?>
