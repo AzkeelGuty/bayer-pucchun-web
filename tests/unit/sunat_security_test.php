@@ -28,7 +28,9 @@ $check(str_contains($routes,"new RoleMiddleware(['ADMIN'])"),
     'Rutas SUNAT sólo habilitadas a ADMIN');
 foreach(['/sunat','/sunat/emitir','/sunat/descargar'] as $route)
     $check(str_contains($routes,$route),'Ruta configurada: '.$route);
-$check(str_contains($sidebar,"['/sunat','bi-receipt'"),'Menú visible sólo a ADMIN');
+$check(!str_contains($sidebar,"['/sunat','bi-receipt'"),'No mostrar Emisión SUNAT en el menú lateral');
+$documentView=(string)file_get_contents($root.'/app/Views/documentos/show.php');
+$check(!str_contains($documentView,"url('/sunat')"),'No mostrar acceso SUNAT en detalle de Documentos');
 $check(str_contains($ignore,'/storage/private/'),'No incluir archivos o certificado privado en Git');
 $check(str_contains($config,'SUNAT_ENABLED=false'),'Producción apagada por defecto');
 $check(str_contains($config,'SUNAT_ALLOW_PRODUCTION=false'),'Segundo interruptor para producción');
