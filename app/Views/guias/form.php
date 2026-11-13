@@ -2,7 +2,9 @@
 require base_path('app/Views/components/form_fields.php');
 $editing = isset($record);
 $correcting = $editing && (($record['header']['estado_registro'] ?? '') === 'OBSERVADO');
-$detailRows = $editing ? $record['details'] : [['producto_id' => '', 'unidad_id' => '', 'cantidad' => '1']];
+// Al corregir un error, conservar cantidades y precios recién escritos.
+$postedRows=is_array($_SESSION['_old']['detalle']??null)?array_values($_SESSION['_old']['detalle']):null;
+$detailRows=$postedRows?:($editing ? $record['details'] : [['producto_id' => '', 'unidad_id' => '', 'cantidad' => '1']]);
 $numberValue = $editing ? (string)old('numero') : (string)($numberPreview ?? '');
 $dateValue = (string)old('fecha');
 if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('Y-m-d'));
