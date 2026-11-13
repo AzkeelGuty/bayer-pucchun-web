@@ -59,6 +59,8 @@
                     </select>
                     <label class="small"><input type="checkbox" name="confirma_gravados" value="1" required>
                         Confirmo que todas las líneas están gravadas con IGV 18 %.</label>
+                    <label class="small"><input type="checkbox" name="confirma_contado" value="1" required>
+                        Confirmo que esta venta es al contado.</label>
                     <?php if($config['ambiente']==='produccion'): ?>
                         <input class="form-control form-control-sm" name="confirmacion_produccion"
                             placeholder="Escribir EMITIR" autocomplete="off" required style="max-width:130px">
