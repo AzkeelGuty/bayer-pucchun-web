@@ -42,20 +42,55 @@ final class BayerWorkbookReader
                     $shared[]=$value;
                 }
             }
-            $names=[];
+            $sheets=[];
             $workbook=$zip->getFromName('xl/workbook.xml');
-            if(is_string($workbook)){
-                $xp=$this->xpath($workbook);
-                foreach($xp->query('//m:sheet') as $item)
-                    $names[]=(string)$item->getAttribute('name');
+            $rels=$zip->getFromName('xl/_rels/workbook.xml.rels');
+            if(is_string($workbook) && is_string($rels)){
+                $relPaths=[];
+                $relations=$this->xpath($rels);
+                $relations->registerNamespace('pr','http://schemas.openxmlformats.org/package/2006/relationships');
+                foreach($relations->query('//pr:Relationship') as $rel){
+                    if($rel->getAttribute('TargetMode')==='External' ||
+                        !str_ends_with($rel->getAttribute('Type'),'/worksheet'))continue;
+                    $target=str_replace('\\','/',$rel->getAttribute('Target'));
+                    $path=str_starts_with($target,'/')?ltrim($target,'/'):('xl/'. $target);
+                    // Only internal worksheet parts can provide inventory rows.
+                    if(!preg_match('#^xl/worksheets/[^/]+\.xml$#iD',$path))continue;
+                    $relPaths[$rel->getAttribute('Id')]=$path;
+                }
+                $workbookXp=$this->xpath($workbook);
+                foreach($workbookXp->query('//m:sheet') as $sheet){
+                    $relId=$sheet->getAttributeNS(
+                        'http://schemas.openxmlformats.org/officeDocument/2006/relationships','id');
+                    if($relId!=='' && isset($relPaths[$relId]))
+                        $sheets[]=['name'=>(string)$sheet->getAttribute('name'),
+                                   'path'=>$relPaths[$relId]];
+                }
+                if(!$sheets)throw new HttpException(422,
+                    'El Excel no contiene hojas de inventario con relaciones internas válidas.');
+            }else{
+                // Compatibilidad para libros de prueba antiguos sin archivo .rels.
+                $names=[];
+                if(is_string($workbook)){
+                    $xp=$this->xpath($workbook);
+                    foreach($xp->query('//m:sheet') as $item)
+                        $names[]=(string)$item->getAttribute('name');
+                }
+                for($i=1;$i<=100;$i++){
+                    if($zip->locateName('xl/worksheets/sheet'.$i.'.xml')!==false)
+                        $sheets[]=['name'=>$names[$i-1]??'Hoja '.$i,
+                                   'path'=>'xl/worksheets/sheet'.$i.'.xml'];
+                }
             }
+            if(count($sheets)>100)throw new HttpException(422,'El reporte contiene demasiadas hojas.');
             $result=[];$recognized=0;
-            for($sheetNo=1;$sheetNo<=100;$sheetNo++){
-                $raw=$zip->getFromName('xl/worksheets/sheet'.$sheetNo.'.xml');
-                if(!is_string($raw))continue;
+            foreach($sheets as $sheet){
+                $raw=$zip->getFromName($sheet['path']);
+                if(!is_string($raw))throw new HttpException(422,
+                    'Falta una hoja referenciada por el libro Excel.');
                 if(strlen($raw)>45*1024*1024)throw new HttpException(422,'Hoja Excel demasiado grande.');
                 $matrix=$this->matrix($raw,$shared);
-                $part=$this->parseMatrix($matrix,$names[$sheetNo-1]??'Hoja '.$sheetNo,$fallbackPeriod);
+                $part=$this->parseMatrix($matrix,$sheet['name'],$fallbackPeriod);
                 if($part===null)continue;
                 $recognized++;
                 foreach($part as $entry){
@@ -96,7 +131,7 @@ final class BayerWorkbookReader
                 if($column<1 || $column>180)continue;
                 $type=$cell->getAttribute('t');$value='';
                 if($type==='inlineStr'){
-                    foreach($xp->query('.//m:is/m:t',$cell) as $part)$value.=$part->textContent;
+                    foreach($xp->query('./m:is//m:t',$cell) as $part)$value.=$part->textContent;
                 }else{
                     $value=(string)($xp->query('./m:v',$cell)->item(0)?->textContent??'');
                     if($type==='s')$value=(string)($shared[(int)$value]??'');
