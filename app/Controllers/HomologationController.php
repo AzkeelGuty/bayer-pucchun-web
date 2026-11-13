@@ -109,7 +109,7 @@ final class HomologationController
     {
         \require_role('ADMIN');
         $tab=$this->tab();
-        if($tab==='productos'){(new BayerCatalogController())->import();return;}
+        if($tab==='productos'){(new BayerCatalogController())->analyze();return;}
         try{
             $rows=(new SimpleXlsxTable())->readUpload($_FILES['excel']??[]);
             $registerMissing=$tab==='productos' && (string)($_POST['registrar_productos_faltantes']??'')==='1';
