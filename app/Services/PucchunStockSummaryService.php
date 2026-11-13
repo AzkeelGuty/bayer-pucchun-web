@@ -21,11 +21,14 @@ final class PucchunStockSummaryService
                      DATE_FORMAT(sc.fecha_stock,'%Y-%m-%d') stockDate,
                      sc.id snapshotId
               FROM stock_cabecera sc
-              JOIN (
-                SELECT almacen_id,MAX(id) last_id
-                FROM stock_cabecera WHERE estado_registro='PUBLICADO'
-                GROUP BY almacen_id
-              ) last ON last.last_id=sc.id
+              WHERE sc.estado_registro='PUBLICADO'
+                AND NOT EXISTS (
+                  SELECT 1 FROM stock_cabecera newer
+                  WHERE newer.almacen_id=sc.almacen_id
+                    AND newer.estado_registro='PUBLICADO'
+                    AND (newer.fecha_stock>sc.fecha_stock OR
+                         (newer.fecha_stock=sc.fecha_stock AND newer.id>sc.id))
+                )
               JOIN stock_detalle sd ON sd.stock_id=sc.id
               JOIN almacenes a ON a.id=sc.almacen_id
               JOIN productos p ON p.id=sd.producto_id
