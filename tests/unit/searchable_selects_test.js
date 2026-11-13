@@ -41,6 +41,11 @@ class Element {
     get className(){return this._className||'';}
     set innerHTML(value){this.children=[];this._html=value;}
     get innerHTML(){return this._html||'';}
+    contains(other){
+        let item=other;
+        while(item){if(item===this)return true;item=item.parentNode;}
+        return false;
+    }
     closest(selector){
         let node=this;
         while(node){
