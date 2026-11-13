@@ -50,8 +50,13 @@ final class BayerCatalogService
         $count=$this->pdo->prepare('SELECT COUNT(*) FROM bayer_productos_catalogo'.$whereSql);
         $count->execute($p);
         $limit=max(1,min(100,$limit));$offset=max(0,$offset);
-        $stmt=$this->pdo->prepare('SELECT * FROM bayer_productos_catalogo'.$whereSql.
-            ' ORDER BY codigo_bayer LIMIT '.$limit.' OFFSET '.$offset);
+        $stmt=$this->pdo->prepare(
+            'SELECT b.*,
+                (SELECT x.sugerido_con_igv FROM bayer_precios_referencia x
+                 WHERE x.producto_id=b.id ORDER BY x.vigencia_desde DESC LIMIT 1) precio_referencia
+             FROM bayer_productos_catalogo b'.
+            str_replace(['codigo_bayer','nombre_bayer','marca','stock_estado'],['b.codigo_bayer','b.nombre_bayer','b.marca','b.stock_estado'],$whereSql).
+            ' ORDER BY b.codigo_bayer LIMIT '.$limit.' OFFSET '.$offset);
         $stmt->execute($p);
         return ['rows'=>$stmt->fetchAll(PDO::FETCH_ASSOC),'total'=>(int)$count->fetchColumn()];
     }
@@ -86,9 +91,7 @@ final class BayerCatalogService
              ON DUPLICATE KEY UPDATE
                 nombre_bayer=VALUES(nombre_bayer),
                 marca=CASE WHEN VALUES(marca) IS NULL THEN marca ELSE VALUES(marca) END,
-                publicado=CASE WHEN nombre_bayer<>VALUES(nombre_bayer)
-                               OR (VALUES(marca) IS NOT NULL AND NOT(marca<=>VALUES(marca)))
-                               THEN 0 ELSE publicado END'
+                publicado=0'
         );
         $statement->execute([$code,$name,$brand]);
         $read=$this->pdo->prepare('SELECT id FROM bayer_productos_catalogo WHERE codigo_bayer=?');
@@ -204,6 +207,79 @@ final class BayerCatalogService
             throw new HttpException(422,'Para eliminar escriba exactamente el código Bayer del producto.');
         $s=$this->pdo->prepare('DELETE FROM bayer_productos_catalogo WHERE id=?');
         $s->execute([$id]);
+    }
+
+    /** Aplica la lista Dealer recibida, conservando su IGV individual (0 % o 18 %). */
+    public function importBundledPrices(): array
+    {
+        $path=\base_path('database/data/bayer_lista_precios_dealer_2026_11.csv');
+        if(!is_file($path))throw new HttpException(503,'Falta el archivo validado de precios Bayer.');
+        $handle=fopen($path,'rb');
+        if(!$handle)throw new HttpException(503,'No se pudo abrir la lista de precios.');
+        try{
+            $headers=fgetcsv($handle);
+            if(!is_array($headers)||$headers!==[
+                'codigo_bayer','nombre_bayer','moneda','precio_sugerido_sin_igv',
+                'igv_porcentaje','precio_sugerido_con_igv','descuento_dealer_porcentaje',
+                'vigencia_desde','vigencia_hasta','fuente'
+            ])throw new HttpException(422,'La lista de precios tiene columnas inesperadas.');
+            $rows=[];
+            while(($line=fgetcsv($handle))!==false){
+                if(count($line)!==count($headers))throw new HttpException(422,'Existe una fila incompleta en la lista Bayer.');
+                $rows[]=array_combine($headers,$line);
+                if(count($rows)>2000)throw new HttpException(422,'La lista supera el máximo permitido.');
+            }
+        }finally{fclose($handle);}
+        if(!$rows)throw new HttpException(422,'La lista de precios está vacía.');
+        $this->pdo->beginTransaction();
+        try{
+            $created=0;$changed=0;
+            $exists=$this->pdo->prepare('SELECT id FROM bayer_productos_catalogo WHERE codigo_bayer=?');
+            $create=$this->pdo->prepare(
+                'INSERT INTO bayer_productos_catalogo(codigo_bayer,nombre_bayer,publicado)
+                 VALUES(?,?,0)'
+            );
+            $save=$this->pdo->prepare(
+                'INSERT INTO bayer_precios_referencia
+                    (producto_id,vigencia_desde,vigencia_hasta,moneda,sugerido_sin_igv,
+                     igv_porcentaje,sugerido_con_igv,descuento_dealer,fuente)
+                 VALUES(?,?,?,?,?,?,?,?,?)
+                 ON DUPLICATE KEY UPDATE vigencia_hasta=VALUES(vigencia_hasta),
+                     moneda=VALUES(moneda),sugerido_sin_igv=VALUES(sugerido_sin_igv),
+                     igv_porcentaje=VALUES(igv_porcentaje),sugerido_con_igv=VALUES(sugerido_con_igv),
+                     descuento_dealer=VALUES(descuento_dealer),fuente=VALUES(fuente)'
+            );
+            foreach($rows as $row){
+                $code=trim((string)$row['codigo_bayer']);
+                $name=trim((string)$row['nombre_bayer']);
+                if(!preg_match('/^[0-9]{5,10}$/D',$code)||$name===''||mb_strlen($name)>200||
+                   $row['moneda']!=='PEN'||
+                   !in_array($row['igv_porcentaje'],['0','18'],true))
+                    throw new HttpException(422,'La lista Bayer contiene un identificador, moneda o IGV inesperado.');
+                foreach(['precio_sugerido_sin_igv','precio_sugerido_con_igv','descuento_dealer_porcentaje'] as $key){
+                    if(!preg_match('/^\d{1,10}(?:\.\d{1,2})?$/D',(string)$row[$key]))
+                        throw new HttpException(422,'Precio o descuento inválido del producto '.$code.'.');
+                }
+                if($row['vigencia_desde']!=='2026-11-02'||$row['vigencia_hasta']!=='2026-12-31')
+                    throw new HttpException(422,'Las fechas de la lista de precios no coinciden con el documento recibido.');
+                $exists->execute([$code]);$id=$exists->fetchColumn();
+                if($id===false){
+                    $create->execute([$code,$name]);$id=(int)$this->pdo->lastInsertId();$created++;
+                }
+                $save->execute([
+                    (int)$id,$row['vigencia_desde'],$row['vigencia_hasta'],'PEN',
+                    $row['precio_sugerido_sin_igv'],$row['igv_porcentaje'],
+                    $row['precio_sugerido_con_igv'],$row['descuento_dealer_porcentaje'],
+                    $row['fuente'],
+                ]);
+                $changed++;
+            }
+            $this->pdo->commit();
+        }catch(Throwable $error){
+            if($this->pdo->inTransaction())$this->pdo->rollBack();
+            throw $error;
+        }
+        return ['precios'=>$changed,'productos_nuevos'=>$created];
     }
 
     public function publishedProducts(array $filters=[]): array
