@@ -259,27 +259,27 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
                         <?php endforeach;?>
                         <?php if($isHomologationTable): ?>
                             <td class="text-end"><div class="master-row-actions">
-                                <a class="btn btn-sm btn-outline-primary btn-with-icon" href="<?=url('/homologaciones/editar?tab='.urlencode($activeTab).'&id='.(int)$row['id'])?>"><i class="bi bi-pencil-square" aria-hidden="true"></i><span>Editar</span></a>
+                                <a class="btn btn-sm btn-app-blue btn-with-icon" href="<?=url('/homologaciones/editar?tab='.urlencode($activeTab).'&id='.(int)$row['id'])?>"><i class="bi bi-pencil-square" aria-hidden="true"></i><span>Editar</span></a>
                                 <?php if(($row['estado']??'')==='ACTIVO'): ?>
-                                <form method="post" class="d-inline" action="<?=url('/homologaciones/desactivar')?>" data-master-delete data-master-label="<?=e((string)($row['codigo_bayer']??$row['id']))?>">
+                                <form method="post" class="d-inline" action="<?=url('/homologaciones/desactivar')?>" data-master-delete data-master-delete-mode="deactivate" data-master-label="<?=e((string)($row['codigo_bayer']??$row['id']))?>">
                                     <?=csrf_field()?>
                                     <input type="hidden" name="tab" value="<?=e($activeTab)?>">
                                     <input type="hidden" name="id" value="<?=e((int)$row['id'])?>">
-                                    <button class="btn btn-sm btn-outline-danger btn-with-icon" type="submit"><i class="bi bi-slash-circle" aria-hidden="true"></i><span>Desactivar</span></button>
+                                    <button class="btn btn-sm btn-app-red btn-with-icon" type="submit"><i class="bi bi-trash3" aria-hidden="true"></i><span>Eliminar</span></button>
                                 </form>
                                 <?php endif;?>
                             </div></td>
                         <?php elseif($isMasterTable && !empty($masterManageAvailable)): ?>
                             <td class="text-end">
                                 <div class="master-row-actions">
-                                    <a class="btn btn-sm btn-outline-primary btn-with-icon" href="<?=url('/maestros/editar?tab='.urlencode($activeTab).'&id='.(int)$row['id'])?>">
+                                    <a class="btn btn-sm btn-app-blue btn-with-icon" href="<?=url('/maestros/editar?tab='.urlencode($activeTab).'&id='.(int)$row['id'])?>">
                                         <i class="bi bi-pencil-square"></i><span>Editar</span>
                                     </a>
                                     <form method="post" action="<?=url('/maestros/eliminar')?>" class="d-inline" data-master-delete data-master-label="<?=e((string)($row['nombre']??$row['razon_social']??$row['vendedor']??$row['codigo']??$row['id']))?>">
                                         <?=csrf_field()?>
                                         <input type="hidden" name="tab" value="<?=e($activeTab)?>">
                                         <input type="hidden" name="id" value="<?=e((int)$row['id'])?>">
-                                        <button class="btn btn-sm btn-outline-danger btn-with-icon" type="submit">
+                                        <button class="btn btn-sm btn-app-red btn-with-icon" type="submit">
                                             <i class="bi bi-trash3"></i><span>Eliminar</span>
                                         </button>
                                     </form>
