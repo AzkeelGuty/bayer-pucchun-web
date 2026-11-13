@@ -26,7 +26,7 @@ ensure(Totals::money(427750)==='S/ 4,277.50','Formato de moneda profesional');
 
 rejects(fn()=>Totals::summarize([['cantidad'=>'2','valor_unitario'=>'2.999']],'ADICIONAL'),\InvalidArgumentException::class);
 rejects(fn()=>Totals::summarize([['cantidad'=>'2.5','valor_unitario'=>'10']],'ADICIONAL'),\InvalidArgumentException::class);
-rejects(fn()=>Totals::summarize([['cantidad'=>'2','valor_unitario'=>null],'ADICIONAL'),\InvalidArgumentException::class);
+rejects(fn()=>Totals::summarize([['cantidad'=>'2','valor_unitario'=>null]],'ADICIONAL'),\InvalidArgumentException::class);
 rejects(fn()=>Totals::summarize([
     ['cantidad'=>'2','valor_unitario'=>null],
     ['cantidad'=>'2','valor_unitario'=>'3'],
