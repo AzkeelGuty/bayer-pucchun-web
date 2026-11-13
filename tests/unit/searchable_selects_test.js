@@ -137,6 +137,11 @@ check(cliente.select.value==='CLI-100','La selección conserva ID real del catá
 check(!cliente.menu.classList.contains('open'),'Después de seleccionar se cierra menú');
 cliente.input.focus();
 check(!cliente.menu.classList.contains('open'),'El campo seleccionado no reabre menú al enfocar');
+cliente.input.value='CLI';
+cliente.input.dispatch('input');
+check(cliente.input.value==='CLI','Editar una selección no borra el nuevo texto escrito');
+check(cliente.select.value==='','Escribir una selección diferente limpia el valor anterior');
+check(cliente.menu.classList.contains('open'),'Tras editar una selección vuelven a aparecer resultados');
 
 check(activeDocument.querySelectorAll('.incremental-select-menu').length===3,'Tres campos crean tres menús controlados');
 api.reset();
