@@ -8,7 +8,8 @@
     "ext-openssl": "*",
     "ext-dom": "*",
     "ext-soap": "*",
-    "ext-zip": "*"
+    "ext-zip": "*",
+    "ext-intl": "*"
   },
   "autoload": {
     "psr-4": {
