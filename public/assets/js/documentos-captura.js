@@ -2,6 +2,29 @@
     const init = () => {
     const form = document.querySelector('[data-documents-form]');
     if (form) {
+        // La referencia identifica la operación financiera, no es el número SUNAT.
+        // Explicar el campo según el medio elegido sin hacerlo obligatorio.
+        const paymentMethod = form.querySelector('#doc-medio-pago');
+        const paymentReference = form.querySelector('#doc-referencia-pago');
+        const paymentHelp = form.querySelector('[data-payment-reference-help]');
+        const paymentHints = {
+            EFECTIVO: ['No requerido para efectivo', 'En efectivo puedes dejarlo vacío. Es un dato opcional de control comercial.'],
+            YAPE: ['Ej.: número de operación Yape', 'Ingresa el número de operación que muestra Yape al confirmar el pago.'],
+            PLIN: ['Ej.: número de operación Plin', 'Ingresa el número de operación que muestra Plin al confirmar el pago.'],
+            TRANSFERENCIA: ['Ej.: número de operación bancaria', 'Ingresa el código o identificador de la transferencia bancaria.'],
+            TARJETA: ['Ej.: código de autorización', 'Ingresa el código de autorización o referencia del pago con tarjeta.'],
+            OTRO: ['Ej.: referencia de la operación', 'Ingresa el identificador disponible para este medio de pago.']
+        };
+        const refreshPaymentHelp = () => {
+            if (!paymentMethod || !paymentReference || !paymentHelp) return;
+            const [placeholder, description] = paymentHints[paymentMethod.value] ||
+                ['N.º de operación, si corresponde', 'Código que identifica el pago. Es opcional y no reemplaza el número del comprobante.'];
+            paymentReference.placeholder = placeholder;
+            paymentHelp.textContent = description;
+        };
+        paymentMethod?.addEventListener('change', refreshPaymentHelp);
+        refreshPaymentHelp();
+
         const body = form.querySelector('[data-details-body]');
         const add = form.querySelector('[data-add-detail]');
         const template = body.querySelector('[data-detail-row]').cloneNode(true);
