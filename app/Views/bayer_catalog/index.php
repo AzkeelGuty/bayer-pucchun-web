@@ -26,6 +26,14 @@ $qs=['tab'=>'productos','q'=>$q,'estado'=>$estado];
     <div class="form-text mt-0">El código es el que figura en el reporte Bayer. No es necesario ingresar partner ni un segundo código.</div>
   </div>
   <div class="d-flex flex-wrap gap-2">
+    <form method="post" action="<?=url('/bayer-productos/precios-cargar')?>" class="d-inline"
+      onsubmit="return confirm('¿Cargar la lista Dealer Bayer del 02/11/2026 (99 referencias) sin modificar el stock?')">
+      <?=csrf_field()?>
+      <input type="hidden" name="confirmacion" value="CARGAR">
+      <button class="btn btn-outline-primary btn-with-icon" type="submit">
+        <i class="bi bi-currency-exchange"></i> Cargar precios Bayer 2026
+      </button>
+    </form>
     <a class="btn btn-primary btn-with-icon" href="<?=url('/bayer-productos/editar')?>"><i class="bi bi-plus-lg"></i> Agregar uno</a>
     <a class="btn btn-success btn-with-icon" href="<?=url('/bayer-productos/importar')?>"><i class="bi bi-file-earmark-spreadsheet"></i> Importar Excel original</a>
     <a class="btn btn-outline-primary btn-with-icon" data-native-navigation href="<?=url('/bayer-productos/plantilla')?>"><i class="bi bi-download"></i> Plantilla XLSX</a>
@@ -55,7 +63,7 @@ $qs=['tab'=>'productos','q'=>$q,'estado'=>$estado];
   <div class="table-responsive">
     <table class="table app-table align-middle">
       <thead><tr><th>Código Bayer</th><th>Producto / presentación</th><th>Marca</th>
-        <th class="text-end">Stock Bayer</th><th>Mes</th><th>Estado Bayer</th><th>Stock Pucchún</th><th>API</th><th>Acciones</th></tr></thead>
+        <th class="text-end">Stock Bayer</th><th>Mes</th><th class="text-end">Precio sugerido c/IGV</th><th>Estado Bayer</th><th>Stock Pucchún</th><th>API</th><th>Acciones</th></tr></thead>
       <tbody>
       <?php foreach($rows as $item):
         $status=(string)$item['stock_estado'];
@@ -68,6 +76,7 @@ $qs=['tab'=>'productos','q'=>$q,'estado'=>$estado];
         <td><?=e($item['marca']??'')?></td>
         <td class="text-end fw-semibold"><?=e($stock)?></td>
         <td><?=e($item['stock_periodo']??'')?></td>
+        <td class="text-end"><?=($item['precio_referencia']!==null)?'S/ '.e((string)$item['precio_referencia']):''?></td>
         <td>
           <?php if($status==='DESACTIVADO'): ?>
             <span class="badge bg-danger">Desactivado (—)</span>
@@ -105,7 +114,7 @@ $qs=['tab'=>'productos','q'=>$q,'estado'=>$estado];
         </div></td>
       </tr>
       <?php endforeach; ?>
-      <?php if(!$rows): ?><tr><td colspan="9"><div class="empty-state">
+      <?php if(!$rows): ?><tr><td colspan="10"><div class="empty-state">
         <strong>No se encontraron productos Bayer</strong>
         <span>Importa el Excel original del proveedor para cargar códigos, presentaciones y stock por mes.</span>
       </div></td></tr><?php endif; ?>
