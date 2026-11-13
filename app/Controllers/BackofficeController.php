@@ -181,6 +181,12 @@ final class BackofficeController
         \require_role('ADMIN');
         $rawTab=$_GET['tab']??'productos';
         $key=is_string($rawTab)?$rawTab:'productos';
+        if($key==='productos'){
+            // Productos Bayer tiene códigos, inventarios y precios propios.
+            // Los antiguos registros de homologación se preservan para compatibilidad.
+            (new BayerCatalogController())->index();
+            return;
+        }
         $maps=[
             'productos'=>['Productos Bayer',"SELECT h.id,p.nombre partner,pr.codigo codigo_interno,pr.nombre producto,h.material_id codigo_bayer,h.material_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_productos_bayer h JOIN partners p ON p.id=h.partner_id JOIN productos pr ON pr.id=h.producto_id"],
             'clientes'=>['Clientes Bayer',"SELECT h.id,p.nombre partner,c.nro_doc codigo_interno,c.razon_social cliente,h.customer_id codigo_bayer,h.customer_name nombre_bayer,IF(h.estado=1,'ACTIVO','INACTIVO') estado,h.valid_from,h.valid_until FROM homologacion_clientes h JOIN partners p ON p.id=h.partner_id JOIN clientes c ON c.id=h.cliente_id"],
