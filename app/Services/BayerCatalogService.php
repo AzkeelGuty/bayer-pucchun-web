@@ -168,6 +168,10 @@ final class BayerCatalogService
            mb_strlen($name)>200||mb_strlen($brand)>100)
             throw new HttpException(422,'Código Bayer, nombre o marca incorrectos.');
         if($id===null){
+            $st=$this->pdo->prepare('SELECT id FROM bayer_productos_catalogo WHERE codigo_bayer=?');
+            $st->execute([$code]);
+            if($st->fetchColumn()!==false)
+                throw new HttpException(409,'El código Bayer ya está registrado. Use Editar.');
             try{return $this->upsertProduct($code,$name,$brand);}
             catch(\PDOException $error){throw new HttpException(409,'El código Bayer ya está registrado.');}
         }
@@ -179,6 +183,16 @@ final class BayerCatalogService
         try{$s->execute([$code,$name,$brand,$id]);}
         catch(\PDOException $error){throw new HttpException(409,'El código Bayer ya está registrado.');}
         return $id;
+    }
+
+    /** Requiere confirmación expresa desde ADMIN; se publica todo el catálogo revisado. */
+    public function publishAll(): int
+    {
+        $stmt=$this->pdo->prepare(
+            "UPDATE bayer_productos_catalogo SET publicado=1 WHERE publicado=0 AND estado_catalogo='ACTIVO'"
+        );
+        $stmt->execute();
+        return $stmt->rowCount();
     }
 
     public function changeStatus(int $id,string $action): void
