@@ -231,7 +231,10 @@ abstract class OperationalRepository
                 } elseif ($field === 'cantidad') {
                     $line[$field] = self::quantity($value, static::HEADER === 'stock_cabecera');
                 } elseif ($field === 'valor_unitario') {
-                    $line[$field] = self::decimal($value ?? 0, 2, true);
+                    // Una guía puede ser exclusivamente de traslado, sin precios.
+                    // No convertir el precio ausente en S/ 0.00.
+                    $line[$field] = $value === null && static::HEADER === 'guias_cabecera'
+                        ? null : self::decimal($value ?? 0, 2, true);
                 }
             }
             $lines[] = $line;
