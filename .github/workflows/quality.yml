@@ -40,8 +40,11 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
-          extensions: pdo_mysql, mbstring, json, zip
+          extensions: pdo_mysql, mbstring, json, zip, soap, dom, openssl, intl
           coverage: none
+
+      - name: Install SUNAT XML dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: PHP syntax
         shell: bash
@@ -75,6 +78,7 @@ jobs:
           php tests/unit/erp_actions_ui_test.php
           php tests/unit/payment_tax_labels_test.php
           php tests/unit/sunat_security_test.php
+          php tests/unit/sunat_greenter_xml_test.php
           php tests/unit/workflow_test.php
           php tests/unit/guide_workflow_test.php
           php tests/unit/stock_workflow_test.php
