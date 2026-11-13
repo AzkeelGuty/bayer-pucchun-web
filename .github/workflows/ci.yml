@@ -94,6 +94,7 @@ jobs:
           php tests/integration/homologation_missing_products_test.php
           php tests/unit/bayer_native_preview_test.php
           php tests/integration/bayer_native_catalog_test.php
+          php tests/integration/bayer_prices_excel_test.php
           php tests/integration/bulk_workflow_test.php
           php tests/integration/api_auth_test.php
           php tests/integration/core_security_test.php

@@ -50,20 +50,44 @@ Se mantiene disponible una **plantilla alternativa simple de cinco columnas**: `
 
 **Nota:** si el proveedor almacenó un código originalmente con ceros iniciales como número en Excel, Excel pudo haberlos descartado antes de subirlo; el sistema no puede recuperarlos sin la fuente original. Los códigos deben permanecer como texto cuando existan ceros significativos.
 
-## Lista de precios Bayer de noviembre-diciembre 2026
+## Actualización de precios Bayer mediante XLSX o CSV
 
-Se añadió el archivo `database/data/bayer_lista_precios_dealer_2026_11.csv`, con **99 referencias** extraídas del documento «Lista Precios Dealers Soles 02.11.26.pdf». Contiene código Bayer, nombre, moneda PEN, precio sugerido al agricultor sin/con IGV, porcentaje de IGV y descuento sobre el precio sugerido.
+En **Productos Bayer → Importar / actualizar precios Excel**, subir el archivo original
+con las siguientes columnas reconocibles:
 
-En la tabla **Productos Bayer**, utiliza el botón **Cargar precios Bayer 2026** y confirma la operación. La carga:
+- `codigo_bayer`: identificador único oficial de Bayer, tratado como texto.
+- `nombre_bayer`: descripción de la presentación comercial (informativa).
+- `moneda`: PEN (o columna opcional, por defecto PEN).
+- `precio_sugerido_sin_igv`, `igv_porcentaje` y `precio_sugerido_con_igv`.
+- `descuento_dealer_porcentaje`: opcional.
+- `vigencia_desde`: fecha de la lista (`YYYY-MM-DD`).
+- `vigencia_hasta`: fecha final opcional, se deja en blanco si el documento no la indica.
+- `presentacion_referencia`: opcional, solo informativa; no es unidad de stock ni divisor de precio.
 
-- utiliza el código Bayer real como llave;
-- crea productos ausentes **sin inventar stock**;
-- conserva los porcentajes 0 % y 18 % del documento según cada artículo;
-- registra vigencia **2026-11-02 a 2026-12-31**;
-- no actualiza los precios de venta o stock interno Pucchún;
-- es idempotente (volver a aplicarla no duplica precios).
+El programa **analiza** el XLSX o CSV sin escribir datos en la base de datos; identifica
+las hojas de precios y muestra los primeros 20 registros y los códigos presentes o ausentes.
+Después de seleccionar una hoja y marcar la confirmación, se actualizan únicamente sus códigos.
+**Cancelar y descartar** elimina el archivo temporal y no ejecuta ninguna importación.
 
-El precio sugerido del proveedor **no es automáticamente precio de venta de Pucchún**.
+Cada lista se relaciona por **código Bayer + fecha inicial**. Volver a importar el
+mismo archivo no duplica precios. Cuando cambia el precio en una fecha existente,
+actualiza ese registro. Si la fecha es nueva, crea una nueva vigencia y conserva la
+anterior como histórico. Los productos cuyos códigos no existan se reportan y la
+carga entera se rechaza sin crear productos inventados. Los cambios quedan pendientes
+de publicación en la API hasta revisión.
+
+**Presentaciones:** 12X1L, 4X4L, 20X250ML, 1X20KG y 35X200GR son referencias
+de envase/presentación del producto. El precio está asociado al código de esa
+presentación: **no se multiplica ni divide por litros, mililitros, kilogramos o gramos**.
+No se exige `unidad_codigo` para registrar precios. Los inventarios Bayer y Pucchún
+no se modifican durante la actualización comercial.
+
+El antiguo botón **Cargar precios Bayer 2026** y su confirmación nativa fueron
+retirados del menú. La lista CSV interna antigua se conserva como referencia histórica
+y compatibilidad de pruebas, pero no se activa automáticamente desde la interfaz.
+El archivo de importación se genera a partir del PDF «Lista Precios Dealers Soles
+02.11.26.pdf»: 99 filas con los importes originales, incluidos los IGV de 0 %.
+La fecha de término queda opcional porque el PDF no especifica un final de vigencia.
 
 ## Estados, publicación y eliminación
 
@@ -112,6 +136,7 @@ Una importación Bayer **no envía información a ningún servidor de Bayer**: s
 ```bat
 php tests\integration\bayer_native_catalog_test.php
 php tests\unit\bayer_native_preview_test.php
+php tests\integration\bayer_prices_excel_test.php
 php tests\integration\api_auth_test.php
 php tests\integration\homologations_web_test.php
 ```
