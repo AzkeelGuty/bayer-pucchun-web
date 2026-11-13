@@ -18,6 +18,19 @@ El backend v2 incluye:
 
 **Pendiente funcional:** terminar la conexión de los formularios de captura y workflow con Schema v2 antes de considerar completa la versión funcional.
 
+
+## Emisión electrónica SUNAT (módulo independiente)
+
+El panel `/sunat`, exclusivo de `ADMIN`, permite revisar la habilitación del emisor y emitir facturas **gravadas al IGV** mediante Greenter (UBL 2.1 / firma XML / servicio SUNAT), tras configurar datos tributarios auténticos. Guarda XML y CDR en almacenamiento privado y separa la numeración fiscal del identificador interno `INT-...`.
+
+- **Deshabilitado por defecto:** requiere `SUNAT_ENABLED=true`, certificado digital y credenciales SOL reales.
+- **Producción requiere autorización adicional:** `SUNAT_ALLOW_PRODUCTION=true`.
+- **No se han incluido certificados ni credenciales de ninguna empresa.** Sin ellos no es posible enviar un comprobante real.
+- Esta primera modalidad no emite boletas, notas ni GRE; cada procedimiento requiere sus datos, validaciones y comunicaciones específicas.
+- **Para bases existentes:** después de aplicar las migraciones 009, 010 y 011, aplicar `database/migrations/012_sunat_emision_cpe.sql`. Instalar dependencias con `composer install`.
+
+Instalación, pruebas y alcance: **[docs/EMISION_SUNAT_INTEGRACION.md](docs/EMISION_SUNAT_INTEGRACION.md)**.
+
 ## Arquitectura
 
 ```text
