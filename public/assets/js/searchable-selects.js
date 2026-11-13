@@ -378,11 +378,14 @@
             }, 0);
         });
         input.addEventListener('input', () => {
+            const typed = input.value;
             const current = select.selectedOptions && select.selectedOptions[0];
             const currentLabel = current && current.value ? current.textContent.trim() : '';
-            if (input.value !== currentLabel && select.value !== '') {
+            if (typed !== currentLabel && select.value !== '') {
                 select.value = '';
                 select.dispatchEvent(new Event('change', {bubbles: true}));
+                // La sincronización del select no debe borrar lo que el usuario escribió.
+                input.value = typed;
             }
             input.setCustomValidity('');
             wrapper.classList.remove('has-value');
