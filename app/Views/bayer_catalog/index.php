@@ -33,14 +33,9 @@ $qs=['tab'=>'productos','q'=>$q,'estado'=>$estado];
       <button class="btn btn-success btn-with-icon" type="submit"><i class="bi bi-cloud-upload"></i>
         Publicar todos en API</button>
     </form>
-    <form method="post" action="<?=url('/bayer-productos/precios-cargar')?>" class="d-inline"
-      onsubmit="return confirm('¿Cargar la lista Dealer Bayer del 02/11/2026 (99 referencias) sin modificar el stock?')">
-      <?=csrf_field()?>
-      <input type="hidden" name="confirmacion" value="CARGAR">
-      <button class="btn btn-outline-primary btn-with-icon" type="submit">
-        <i class="bi bi-currency-exchange"></i> Cargar precios Bayer 2026
-      </button>
-    </form>
+    <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/bayer-productos/precios/importar')?>">
+      <i class="bi bi-file-earmark-spreadsheet"></i> Importar / actualizar precios Excel
+    </a>
     <a class="btn btn-primary btn-with-icon" href="<?=url('/bayer-productos/editar')?>"><i class="bi bi-plus-lg"></i> Agregar uno</a>
     <a class="btn btn-success btn-with-icon" href="<?=url('/bayer-productos/importar')?>"><i class="bi bi-file-earmark-spreadsheet"></i> Importar Excel original</a>
     <a class="btn btn-outline-primary btn-with-icon" data-native-navigation href="<?=url('/bayer-productos/plantilla')?>"><i class="bi bi-download"></i> Plantilla XLSX</a>
