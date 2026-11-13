@@ -1,11 +1,11 @@
 <?php
-use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController,MasterDataController,HomologationController,LookupController,SunatController};
+use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController,MasterDataController,HomologationController,LookupController,SunatController,BayerCatalogController};
 use App\Middleware\{AuthMiddleware,RoleMiddleware};
 use App\Policies\AccessPolicy;
 
 $router->before(static function (string $path): void {
     (new AuthMiddleware())->refresh();
-    if (preg_match('~^/(documentos|guias|stock|dashboard|usuarios|roles|permisos|maestros|homologaciones|validacion|publicaciones|reportes|configuracion|auditoria|evolucion|lookups|sunat)(/|$)~', $path)) {
+    if (preg_match('~^/(documentos|guias|stock|dashboard|usuarios|roles|permisos|maestros|homologaciones|validacion|publicaciones|reportes|configuracion|auditoria|evolucion|lookups|sunat|bayer-productos)(/|$)~', $path)) {
         require_role(...AccessPolicy::INTERNAL);
     }
     if (preg_match('~^/(usuarios|roles|permisos|configuracion)(/|$)~', $path)) {
@@ -52,6 +52,20 @@ $router->post('/maestros/eliminar',[MasterDataController::class,'destroy'],[new 
 $router->get('/maestros/importar',[MasterDataController::class,'importPage'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/maestros/importar',[MasterDataController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/maestros/plantilla',[MasterDataController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
+// Inventario y catálogo del proveedor Bayer: fuente separada del stock físico Pucchún.
+$router->get('/bayer-productos',[BayerCatalogController::class,'index'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/editar',[BayerCatalogController::class,'form'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/guardar',[BayerCatalogController::class,'save'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/importar',[BayerCatalogController::class,'importPage'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/importar',[BayerCatalogController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/plantilla',[BayerCatalogController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/precios-cargar',[BayerCatalogController::class,'loadPrices'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/ver',[BayerCatalogController::class,'detail'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/estado',[BayerCatalogController::class,'status'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/publicar-todo',[BayerCatalogController::class,'publishAll'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/eliminar',[BayerCatalogController::class,'confirmDelete'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/eliminar',[BayerCatalogController::class,'delete'],[new RoleMiddleware(['ADMIN'])]);
+
 $router->get('/homologaciones',[BackofficeController::class,'homologations'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/homologaciones/nuevo',[HomologationController::class,'create'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/homologaciones/editar',[HomologationController::class,'edit'],[new RoleMiddleware(['ADMIN'])]);
@@ -91,3 +105,13 @@ $router->get('/api/v1/bayer/all',[ApiController::class,'all']);
 $router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
 $router->get('/api/v1/bayer/shipments',[ApiController::class,'shipments']);
 $router->get('/api/v1/bayer/inventory',[ApiController::class,'inventory']);
+$router->get('/api/v1/bayer/products',[ApiController::class,'bayerProducts']);
+$router->get('/api/v1/bayer/reported-inventory',[ApiController::class,'bayerReportedInventory']);
+$router->get('/api/v1/bayer/prices',[ApiController::class,'bayerPrices']);
+// Rutas explícitas Pucchún: conservar las antiguas para integraciones vigentes.
+$router->get('/api/v1/pucchun/all',[ApiController::class,'pucchunAll']);
+$router->get('/api/v1/pucchun/sales',[ApiController::class,'sales']);
+$router->get('/api/v1/pucchun/shipments',[ApiController::class,'shipments']);
+$router->get('/api/v1/pucchun/inventory',[ApiController::class,'inventory']);
+$router->get('/api/v1/pucchun/latest-stock',[ApiController::class,'pucchunLatestStock']);
+

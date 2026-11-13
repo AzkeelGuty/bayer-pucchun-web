@@ -62,6 +62,7 @@ try {
         11 => '011_permisos_flujo_aprobacion.sql',
         12 => '012_sunat_emision_cpe.sql',
         13 => '013_calculos_totales_documentos_guias.sql',
+        14 => '014_catalogo_bayer_nativo.sql',
     ];
     foreach ($names as $version => $filename) {
         check_health(in_array($version, $versions, true), 'Migracion ' . str_pad((string) $version, 3, '0', STR_PAD_LEFT), 'database/migrations/' . $filename);
@@ -102,6 +103,9 @@ try {
         'numeraciones_internas' => ['ambito', 'siguiente'],
         'sunat_series_fiscales' => ['ruc_emisor','serie','ambiente','siguiente'],
         'sunat_emisiones' => ['documento_id','ambiente','estado','codigo_cdr','xml_archivo','cdr_archivo'],
+        'bayer_productos_catalogo' => ['codigo_bayer','nombre_bayer','stock_reportado','stock_estado','publicado'],
+        'bayer_inventario_periodos' => ['producto_id','periodo','cantidad','marcador'],
+        'bayer_precios_referencia' => ['producto_id','sugerido_sin_igv','igv_porcentaje','sugerido_con_igv'],
         'documentos_cabecera' => ['id','precio_igv_modalidad'],
         'guias_cabecera' => ['id','precio_igv_modalidad'],
         'guias_detalle' => ['guia_id','valor_unitario'],

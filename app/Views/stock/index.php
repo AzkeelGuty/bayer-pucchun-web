@@ -56,6 +56,31 @@ $lastStock=$total>0 ? min($total,$page*$perPage) : 0;
     </div>
 </form>
 
+<?php if(has_role('ADMIN')): ?>
+<div class="card mb-3"><div class="card-body">
+    <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center mb-2">
+      <div>
+        <h2 class="h5 mb-1">Último inventario físico Pucchún publicado</h2>
+        <p class="text-muted small mb-0">Cantidades por almacén, producto y unidad del último snapshot publicado. El reporte de Bayer es independiente.</p>
+      </div>
+      <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/homologaciones?tab=productos')?>">
+        <i class="bi bi-boxes"></i><span>Consultar inventario Bayer</span>
+      </a>
+    </div>
+    <div class="table-responsive"><table class="table table-sm align-middle">
+      <thead><tr><th>Almacén</th><th>Producto</th><th>Unidad</th><th class="text-end">Cantidad Pucchún</th><th>Fecha</th></tr></thead><tbody>
+      <?php foreach(($latestStock??[]) as $r): ?>
+      <tr><td><?=e($r['warehouseName'])?></td><td><?=e($r['materialId'].' · '.$r['materialName'])?></td>
+       <td><?=e($r['measureUnit'])?></td><td class="text-end fw-semibold"><?=e(format_quantity($r['quantity']))?></td>
+       <td><?=e($r['stockDate'])?></td></tr>
+      <?php endforeach; ?>
+      <?php if(empty($latestStock)): ?>
+      <tr><td colspan="5" class="text-muted">Todavía no hay inventarios Pucchún publicados. La ausencia de datos no se representa como stock cero.</td></tr>
+      <?php endif; ?>
+      </tbody></table></div>
+</div></div>
+<?php endif; ?>
+
 <div class="card"><div class="card-body">
     <p class="text-muted small"><?=e($total)?> registros de stock encontrados<?= $total>0 ? ' · Mostrando '.e($firstStock).'–'.e($lastStock) : '' ?> · Página <?=e($page)?> de <?=e($pages)?></p>
     <div class="table-responsive">
