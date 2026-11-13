@@ -19,11 +19,11 @@
 
 Los meses se conservan en `bayer_inventario_periodos`. La tabla muestra el último período por código Bayer; importar un mes anterior no debe reemplazar el último período. Los reportes mantienen trazabilidad mensual y **no se suman meses diferentes**.
 
-## Importar Excel original del proveedor
+## Importar XLSX o CSV original del proveedor
 
 **Homologaciones Bayer → Productos Bayer → Importar Excel original**.
 
-Se admite el archivo XLSX original del reporte «REPORTE DE INVENTARIOS CANAL - CLIENTE». El sistema inspecciona hasta 100 hojas y busca automáticamente encabezados como:
+Se admite el archivo XLSX o CSV original del reporte «REPORTE DE INVENTARIOS CANAL - CLIENTE» sin reorganizarlo. El sistema reconoce hasta 100 hojas y busca automáticamente encabezados como:
 
 - `CODIGO`
 - `PRODUCTO / PRESENTACION`
@@ -33,6 +33,19 @@ Se admite el archivo XLSX original del reporte «REPORTE DE INVENTARIOS CANAL - 
 
 No importa que el encabezado esté en la fila 13 o más abajo. Si el archivo no trae período, el administrador puede indicarlo en el selector **Mes del inventario**. Si hay stock y no es posible conocer el período, la importación lo rechaza en lugar de inventar una fecha.
 
+### Vista previa por pestaña y confirmación
+
+1. Subir el Excel original **XLSX**, con todas sus hojas mensuales (por ejemplo, SET_26, OCT_26, NOV_26), o el **CSV** original.
+2. Pulsar **Analizar archivo**. No se modifica ninguna tabla ni producto durante el análisis.
+3. Elegir una pestaña reconocida en el selector. La pantalla muestra el período, el número de productos, los estados y las primeras 20 filas.
+4. Marcar la confirmación y pulsar **Importar pestaña seleccionada**. Solo esa hoja se registra. Las demás no se importan.
+5. Para incorporar otro mes, subir nuevamente el original y seleccionar la otra pestaña.
+
+El CSV usa una sola fuente llamada «Archivo CSV» y admite separadores coma, punto y coma o tabulador, incluidos archivos con BOM UTF-8. El archivo temporal se conserva fuera del directorio público durante un máximo de **30 minutos** y puede descartarse con el botón correspondiente.
+
+El máximo es **12 MB por archivo** y **10 000 productos por hoja**. Los archivos con varias pestañas pueden superar los 10 000 productos-período en total, siempre que cada pestaña esté dentro de su límite.
+
+Los períodos se determinan prioritariamente con columnas Year y Month; cuando no existen, a partir del nombre de la pestaña; y solo como alternativa con el mes ingresado. La vista previa indica cantidades inválidas, meses ausentes y duplicados antes de permitir la confirmación. Los datos Pucchún permanecen independientes.
 Se mantiene disponible una **plantilla alternativa simple de cinco columnas**: `codigo_bayer`, `nombre_bayer`, `marca`, `cantidad_unidades`, `periodo`. Ya no solicita `partner_codigo`, `codigo_interno`, `valid_from`, `valid_until` ni `unidad_codigo` para Productos Bayer.
 
 **Nota:** si el proveedor almacenó un código originalmente con ceros iniciales como número en Excel, Excel pudo haberlos descartado antes de subirlo; el sistema no puede recuperarlos sin la fuente original. Los códigos deben permanecer como texto cuando existan ceros significativos.
@@ -98,6 +111,7 @@ Una importación Bayer **no envía información a ningún servidor de Bayer**: s
 
 ```bat
 php tests\integration\bayer_native_catalog_test.php
+php tests\unit\bayer_native_preview_test.php
 php tests\integration\api_auth_test.php
 php tests\integration\homologations_web_test.php
 ```
