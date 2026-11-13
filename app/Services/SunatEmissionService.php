@@ -17,10 +17,17 @@ final class SunatEmissionService
         $this->gateway??=new SunatInvoiceGateway();
     }
 
-    public function findForDocument(int $id): ?array
+    public function findForDocument(int $id,?string $ambiente=null): ?array
     {
-        $st=$this->pdo->prepare('SELECT * FROM sunat_emisiones WHERE documento_id=?');
-        $st->execute([$id]);
+        if($ambiente!==null && !in_array($ambiente,['BETA','PRODUCCION'],true))
+            throw new HttpException(422,'Ambiente tributario inválido.');
+        if($ambiente!==null){
+            $st=$this->pdo->prepare('SELECT * FROM sunat_emisiones WHERE documento_id=? AND ambiente=? LIMIT 1');
+            $st->execute([$id,$ambiente]);
+        } else {
+            $st=$this->pdo->prepare('SELECT * FROM sunat_emisiones WHERE documento_id=? ORDER BY id DESC LIMIT 1');
+            $st->execute([$id]);
+        }
         $row=$st->fetch(PDO::FETCH_ASSOC);
         return $row?:null;
     }
@@ -56,7 +63,7 @@ final class SunatEmissionService
             $st->execute([$documentId]);$header=$st->fetch(PDO::FETCH_ASSOC);
             if(!$header||$header['estado_registro']!=='PUBLICADO'||$header['estado_comprobante']!=='VIGENTE')
                 throw new HttpException(409,'El documento ya no está publicado y vigente.');
-            if($this->findForDocument($documentId))
+            if($this->findForDocument($documentId,$ambiente))
                 throw new HttpException(409,'El documento ya tiene un intento SUNAT registrado. Consulte su estado antes de repetir.');
 
             $st=$this->pdo->prepare(
@@ -127,7 +134,7 @@ final class SunatEmissionService
             );
             $st->execute([$id]);
         }
-        return $this->findForDocument($documentId)
+        return $this->findForDocument($documentId,$ambiente)
             ?? throw new \RuntimeException('No se pudo recuperar el estado de emisión.');
     }
 
