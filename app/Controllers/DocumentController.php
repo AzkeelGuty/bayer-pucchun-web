@@ -36,7 +36,8 @@ final class DocumentController
         }
         if($defaultType===null && $types) $defaultType=$types[0];
 
-        $header=['fecha'=>date('Y-m-d'),'numero'=>'','estado_comprobante'=>'VIGENTE'];
+        $header=['fecha'=>date('Y-m-d'),'numero'=>'','estado_comprobante'=>'VIGENTE',
+            'precio_igv_modalidad'=>null];
         if(is_array($defaultType)){
             $header['tipo_documento_id']=$defaultType['id']??'';
             $header['numero']=(new InternalNumberingService(\db()))->previewDocument((int)$header['tipo_documento_id']);
@@ -73,7 +74,8 @@ final class DocumentController
         $canGenerateGuide=in_array($type,['FAC','BOL'],true)
             && in_array((string)$r['header']['estado_registro'],['BORRADOR','VALIDADO','PUBLICADO'],true)
             && (string)($r['header']['estado_comprobante']??'VIGENTE')==='VIGENTE';
-        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>$catalogs,'guideId'=>$guideId,'canGenerateGuide'=>$canGenerateGuide]);
+        $totals=\App\Services\CommercialTotalsService::summarize($r['details'],$r['header']['precio_igv_modalidad']??null);
+        \view('documentos.show',['document'=>$r['header'],'details'=>$r['details'],'catalogs'=>$catalogs,'guideId'=>$guideId,'canGenerateGuide'=>$canGenerateGuide,'totals'=>$totals]);
     }
     private function form(array $header,array $details,bool $editing=false,array $errors=[],?array $catalogs=null): void {
         $catalogs??=(new DocumentScreenService())->catalogsFor($header,$details);
@@ -153,7 +155,7 @@ final class DocumentController
                 $errors['header.numero']='VAL-004: ya existe ese número para el tipo seleccionado.';
         }
         if($errors) { http_response_code(422); $this->form(array_merge($header,['id'=>$id,'version'=>$version]),$details,$editing,$errors); return; }
-        $header=array_intersect_key($header,array_flip(['tipo_documento_id','numero','fecha','cliente_id','vendedor_id','sucursal_id','estado_comprobante','medio_pago','referencia_pago']));
+        $header=array_intersect_key($header,array_flip(['tipo_documento_id','numero','fecha','cliente_id','vendedor_id','sucursal_id','estado_comprobante','medio_pago','referencia_pago','precio_igv_modalidad']));
         $lines=[]; foreach($details as $line) $lines[]=array_intersect_key($line+['valor_unitario'=>'0'],array_flip(['producto_id','unidad_id','cantidad','valor_unitario']));
         try {
             if($editing) $this->repository->updateDraft($id,$version,$header,$lines,(int)\auth_user()['id']);
