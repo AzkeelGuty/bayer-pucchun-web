@@ -26,8 +26,99 @@ final class BayerWorkbookReader
         return $this->readFile((string)$file['tmp_name'],$fallbackPeriod);
     }
 
+    /**
+     * Conserva la API histórica para pruebas y otros consumidores existentes.
+     * La vista previa, en cambio, recorre las hojas de forma independiente.
+     */
     public function readFile(string $path,?string $fallbackPeriod=null): array
     {
+        $all=[];
+        $this->eachXlsxSheet($path,$fallbackPeriod,static function(string $name,array $rows)use(&$all):void{
+            foreach($rows as $row){
+                $all[]=$row;
+                if(count($all)>self::MAX_ROWS)
+                    throw new HttpException(422,'El reporte supera los 10000 registros permitidos.');
+            }
+        });
+        return $all;
+    }
+
+    /**
+     * Muestra todas las hojas reconocidas sin importarlas, incluso cuando el
+     * libro completo contiene más de diez mil registros en varios meses.
+     */
+    public function inspectFile(string $path,string $extension,?string $fallbackPeriod=null): array
+    {
+        $sheets=[];
+        $visit=function(string $name,array $rows)use(&$sheets):void{
+            if($rows!==[])$sheets[]=$this->summarizeSheet($name,$rows);
+        };
+        if($extension==='xlsx'){
+            $this->eachXlsxSheet($path,$fallbackPeriod,$visit);
+        }elseif($extension==='csv'){
+            $visit('Archivo CSV',$this->readCsvFile($path,$fallbackPeriod));
+        }else{
+            throw new HttpException(422,'Solo se admiten archivos XLSX o CSV.');
+        }
+        if(!$sheets)throw new HttpException(422,'No se encontraron productos Bayer para previsualizar.');
+        return $sheets;
+    }
+
+    /** Solo devuelve los registros de la hoja que escogió el administrador. */
+    public function readSelectedFile(
+        string $path,string $extension,string $sheetName,?string $fallbackPeriod=null
+    ): array {
+        $selected=null;
+        if($extension==='xlsx'){
+            $this->eachXlsxSheet($path,$fallbackPeriod,
+                static function(string $name,array $rows)use(&$selected):void{$selected=$rows;},
+                $sheetName);
+        }elseif($extension==='csv' && $sheetName==='Archivo CSV'){
+            $selected=$this->readCsvFile($path,$fallbackPeriod);
+        }
+        if(!is_array($selected)||!$selected)
+            throw new HttpException(422,'La hoja elegida no contiene productos Bayer reconocidos.');
+        if(count($selected)>self::MAX_ROWS)
+            throw new HttpException(422,'La hoja elegida supera los 10000 registros permitidos.');
+        return $selected;
+    }
+
+    private function summarizeSheet(string $name,array $rows): array
+    {
+        $sample=[];$periods=[];$errors=0;$statuses=[
+            'CON_STOCK'=>0,'SIN_STOCK'=>0,'SIN_DATO'=>0,'DESACTIVADO'=>0
+        ];
+        $seen=[];
+        foreach($rows as $row){
+            $period=$row['periodo']??'';
+            if($period!=='')$periods[$period]=true;
+            $status='SIN_DATO';
+            if(($row['tiene_columna_stock']??'0')==='1'){
+                if(!preg_match('/^20[0-9]{2}-(0[1-9]|1[0-2])$/D',$period))$errors++;
+                try{$status=BayerCatalogService::marker((string)$row['cantidad'])['estado'];}
+                catch(HttpException $error){$errors++;$status='INVALIDO';}
+                $unique=$row['codigo_bayer'].'|'.$period;
+            }else{
+                $unique=$row['codigo_bayer'].'|CATALOGO';
+            }
+            if(isset($seen[$unique]))$errors++;
+            $seen[$unique]=true;
+            if(isset($statuses[$status]))$statuses[$status]++;
+            if(count($sample)<20)$sample[]=$row+['estado_previo'=>$status];
+        }
+        return [
+            'name'=>$name,'count'=>count($rows),'periods'=>array_keys($periods),
+            'errors'=>$errors,'statuses'=>$statuses,'sample'=>$sample
+        ];
+    }
+
+    /**
+     * Encuentra cada pestaña a través de sus relaciones OOXML, nunca por
+     * posición. La vista previa no acumula en RAM todas las pestañas.
+     */
+    private function eachXlsxSheet(
+        string $path,?string $fallbackPeriod,callable $visitor,?string $onlySheet=null
+    ): void {
         if(!class_exists(ZipArchive::class))throw new HttpException(503,'Habilite la extensión PHP zip.');
         $zip=new ZipArchive();
         if($zip->open($path)!==true)throw new HttpException(422,'El Excel XLSX no se puede abrir.');
@@ -35,6 +126,8 @@ final class BayerWorkbookReader
             $shared=[];
             $strings=$zip->getFromName('xl/sharedStrings.xml');
             if(is_string($strings)){
+                if(strlen($strings)>45*1024*1024)
+                    throw new HttpException(422,'La tabla de textos del Excel supera el máximo.');
                 $xp=$this->xpath($strings);
                 foreach($xp->query('//m:si') as $si){
                     $value='';
@@ -53,23 +146,22 @@ final class BayerWorkbookReader
                     if($rel->getAttribute('TargetMode')==='External' ||
                         !str_ends_with($rel->getAttribute('Type'),'/worksheet'))continue;
                     $target=str_replace('\\','/',$rel->getAttribute('Target'));
-                    $path=str_starts_with($target,'/')?ltrim($target,'/'):('xl/'. $target);
-                    // Only internal worksheet parts can provide inventory rows.
-                    if(!preg_match('#^xl/worksheets/[^/]+\.xml$#iD',$path))continue;
-                    $relPaths[$rel->getAttribute('Id')]=$path;
+                    $sheetPath=str_starts_with($target,'/')?ltrim($target,'/'):('xl/'.$target);
+                    if(!preg_match('#^xl/worksheets/[^/]+\.xml$#iD',$sheetPath))continue;
+                    $relPaths[$rel->getAttribute('Id')]=$sheetPath;
                 }
                 $workbookXp=$this->xpath($workbook);
                 foreach($workbookXp->query('//m:sheet') as $sheet){
                     $relId=$sheet->getAttributeNS(
                         'http://schemas.openxmlformats.org/officeDocument/2006/relationships','id');
-                    if($relId!=='' && isset($relPaths[$relId]))
+                    if($relId!==''&&isset($relPaths[$relId]))
                         $sheets[]=['name'=>(string)$sheet->getAttribute('name'),
                                    'path'=>$relPaths[$relId]];
                 }
                 if(!$sheets)throw new HttpException(422,
                     'El Excel no contiene hojas de inventario con relaciones internas válidas.');
             }else{
-                // Compatibilidad para libros de prueba antiguos sin archivo .rels.
+                // Compatibilidad de libros sin relaciones generados por herramientas antiguas.
                 $names=[];
                 if(is_string($workbook)){
                     $xp=$this->xpath($workbook);
@@ -83,27 +175,77 @@ final class BayerWorkbookReader
                 }
             }
             if(count($sheets)>100)throw new HttpException(422,'El reporte contiene demasiadas hojas.');
-            $result=[];$recognized=0;
+            $recognized=0;
             foreach($sheets as $sheet){
+                if($onlySheet!==null && $sheet['name']!==$onlySheet)continue;
                 $raw=$zip->getFromName($sheet['path']);
                 if(!is_string($raw))throw new HttpException(422,
                     'Falta una hoja referenciada por el libro Excel.');
-                if(strlen($raw)>45*1024*1024)throw new HttpException(422,'Hoja Excel demasiado grande.');
+                if(strlen($raw)>45*1024*1024)
+                    throw new HttpException(422,'Hoja Excel demasiado grande.');
                 $matrix=$this->matrix($raw,$shared);
                 $part=$this->parseMatrix($matrix,$sheet['name'],$fallbackPeriod);
+                unset($matrix,$raw);
                 if($part===null)continue;
                 $recognized++;
-                foreach($part as $entry){
-                    $result[]=$entry;
-                    if(count($result)>self::MAX_ROWS)
-                        throw new HttpException(422,'El reporte supera los 10000 registros permitidos.');
-                }
+                if(count($part)>self::MAX_ROWS)
+                    throw new HttpException(422,'La hoja '.$sheet['name'].' supera los 10000 registros.');
+                $visitor($sheet['name'],$part);
             }
             if($recognized===0)throw new HttpException(422,
-                'No se identificaron columnas CODIGO y PRODUCTO/PRESENTACION en ninguna hoja de Bayer.');
-            if(!$result)throw new HttpException(422,'Se reconoció el formato, pero no contiene productos.');
-            return $result;
-        } finally { $zip->close(); }
+                'No se identificaron columnas CODIGO y PRODUCTO/PRESENTACION en la hoja solicitada.');
+        } finally {$zip->close();}
+    }
+
+    /** CSV exportado por Excel: coma, punto y coma o tabulador; BOM y CP1252. */
+    public function readCsvFile(string $path,?string $fallbackPeriod=null): array
+    {
+        if(!is_file($path)||filesize($path)>12*1024*1024)
+            throw new HttpException(422,'El CSV no existe o supera 12 MB.');
+        $delimiter=null;
+        foreach([',',';',"\t"] as $candidate){
+            $handle=fopen($path,'rb');
+            if(!$handle)throw new HttpException(422,'No se pudo abrir el archivo CSV.');
+            try{
+                $matrix=[];
+                for($line=1;$line<=100 && ($cells=fgetcsv($handle,0,$candidate,'"','\\'))!==false;$line++){
+                    $matrix[$line]=$this->csvCells($cells);
+                }
+                if($this->parseMatrix($matrix,'Archivo CSV',$fallbackPeriod)!==null){
+                    $delimiter=$candidate;break;
+                }
+            }finally{fclose($handle);}
+        }
+        if($delimiter===null)
+            throw new HttpException(422,'El CSV no contiene encabezados CODIGO y PRODUCTO/PRESENTACION.');
+        $handle=fopen($path,'rb');
+        if(!$handle)throw new HttpException(422,'No se pudo abrir el CSV.');
+        try{
+            $matrix=[];
+            for($line=1;($cells=fgetcsv($handle,0,$delimiter,'"','\\'))!==false;$line++){
+                if($line>15000)throw new HttpException(422,'El CSV supera el tamaño de filas permitido.');
+                $matrix[$line]=$this->csvCells($cells);
+            }
+        }finally{fclose($handle);}
+        $rows=$this->parseMatrix($matrix,'Archivo CSV',$fallbackPeriod);
+        if($rows===null||$rows===[])
+            throw new HttpException(422,'El CSV no contiene productos Bayer reconocidos.');
+        if(count($rows)>self::MAX_ROWS)
+            throw new HttpException(422,'El CSV supera los 10000 productos por carga.');
+        return $rows;
+    }
+
+    private function csvCells(array $cells): array
+    {
+        $result=[];
+        foreach(array_slice($cells,0,180) as $index=>$cell){
+            $value=trim((string)$cell);
+            if($index===0)$value=preg_replace('/^\xEF\xBB\xBF/','',$value)??$value;
+            if(!mb_check_encoding($value,'UTF-8'))
+                $value=mb_convert_encoding($value,'UTF-8','Windows-1252');
+            $result[$index+1]=$value;
+        }
+        return $result;
     }
 
     private function xpath(string $raw): DOMXPath
