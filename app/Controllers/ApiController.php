@@ -113,6 +113,7 @@ final class ApiController
                     '/api/v1/pucchun/sales',
                     '/api/v1/pucchun/shipments',
                     '/api/v1/pucchun/inventory',
+                    '/api/v1/pucchun/latest-stock',
                 ],
                 'optionalFilters'=>['from','to','branch','q','document_status'],
                 'quantityModel'=>[
@@ -162,6 +163,25 @@ final class ApiController
         catch(Throwable $error){
             \log_event('api_pucchun_all_error',['type'=>get_class($error)]);
             $this->error('INTERNAL_ERROR','No se pudo completar la consulta Pucchún.',500);
+        }
+    }
+
+    public function pucchunLatestStock(): void
+    {
+        $this->guard();
+        try{
+            $rows=(new \App\Services\PucchunStockSummaryService())->latest(1000);
+            $this->recordAccess('api_pucchun_latest_stock');
+            $this->respond([
+                'meta'=>$this->meta('pucchun_latest_stock',count($rows),[])+[
+                    'source'=>'PUCCHUN',
+                    'note'=>'Último snapshot PUBLICADO de cada almacén; no es inventario Bayer.',
+                ],
+                'data'=>$rows,
+            ]);
+        }catch(Throwable $error){
+            \log_event('api_pucchun_stock_error',['type'=>get_class($error)]);
+            $this->error('INTERNAL_ERROR','No se pudo consultar el último stock Pucchún.',500);
         }
     }
 
