@@ -199,7 +199,7 @@ final class HomologationService
      *
      * @return array{id:int,created:bool}
      */
-    private function resolveImportProduct(string $code,string $name,?int $unitId,int $row,bool $allowCreation): array
+    private function resolveImportProduct(string $code,string $name,int $row,bool $allowCreation): array
     {
         $find=$this->pdo->prepare('SELECT id FROM productos WHERE codigo=? LIMIT 1');
         $find->execute([$code]);
@@ -220,9 +220,9 @@ final class HomologationService
                 "Fila $row: para registrar el producto '$code' debe completar nombre_bayer (máximo 150 caracteres).");
         try{
             $insert=$this->pdo->prepare(
-                "INSERT INTO productos(codigo,nombre,tipo_art,unidad_base_id,estado) VALUES(?,?,'PRODUCTO',?,0)"
+                "INSERT INTO productos(codigo,nombre,tipo_art,unidad_base_id,estado) VALUES(?,?,'PRODUCTO',NULL,0)"
             );
-            $insert->execute([$code,$name,$unitId]);
+            $insert->execute([$code,$name]);
             return ['id'=>(int)$this->pdo->lastInsertId(),'created'=>true];
         }catch(PDOException $error){
             // Concurrencia: si otro administrador lo creó, reutilizar ese código.
@@ -261,7 +261,7 @@ final class HomologationService
                     $unitCode=trim((string)($row['unidad_codigo']??''));
                     $unitId=$unitCode===''?null:$this->resolveCode('unidades_medida','codigo',$unitCode,$line);
                     $result=$this->resolveImportProduct(
-                        $localCode,(string)($row['nombre_bayer']??''),$unitId,$line,$createMissingProducts
+                        $localCode,(string)($row['nombre_bayer']??''),$line,$createMissingProducts
                     );
                     $local=$result['id'];
                     if($result['created'])$createdProducts++;
