@@ -75,6 +75,7 @@ if (has_role('BAYER')) {
         $sections['ADMINISTRACIÓN']=[
             ['/seguridad','bi-people','Usuarios y accesos'],
             ['/configuracion/identidad','bi-palette','Identidad visual'],
+            ['/sunat','bi-receipt','Emisión SUNAT'],
             ['/evolucion','bi-plug','API REST / ERP'],
         ];
     }
