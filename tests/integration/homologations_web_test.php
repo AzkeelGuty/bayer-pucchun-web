@@ -33,6 +33,7 @@ function view(string $name,array $data=[]): void
 $db=new TestDatabase();
 try{
     $db->load('database/schemas/002_schema_v2.sql');
+    $db->load('database/migrations/014_catalogo_bayer_nativo.sql');
     $db->load('database/migrations/013_calculos_totales_documentos_guias.sql');
     $db->load('database/migrations/004_catalogos_masivos_busqueda.sql');
     fixtures($db->pdo);
