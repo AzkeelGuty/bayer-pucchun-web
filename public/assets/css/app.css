@@ -1313,6 +1313,26 @@ body.bp-soft-navigating .app-main{cursor:progress}
 .btn.btn-app-green{background:var(--bp-green);border-color:var(--bp-green)}
 .btn.btn-app-amber{background:#a35a00;border-color:#a35a00}
 .btn.btn-app-red{background:#b42318;border-color:#b42318}
+/* Colores sólidos para botones de filas, incluso sin .btn-app-action.
+   Estado disabled sigue gestionado por sus reglas de opacidad. */
+.btn.btn-app-blue:not(:disabled):not(.disabled):not([aria-disabled="true"]),
+.btn.btn-app-green:not(:disabled):not(.disabled):not([aria-disabled="true"]),
+.btn.btn-app-amber:not(:disabled):not(.disabled):not([aria-disabled="true"]),
+.btn.btn-app-red:not(:disabled):not(.disabled):not([aria-disabled="true"]){
+    color:#fff!important;opacity:1;filter:none;
+}
+.btn.btn-app-blue:hover:not(:disabled),
+.btn.btn-app-green:hover:not(:disabled),
+.btn.btn-app-amber:hover:not(:disabled),
+.btn.btn-app-red:hover:not(:disabled){
+    color:#fff!important;transform:translateY(-1px);
+    box-shadow:0 4px 12px rgba(16,48,80,.14);
+}
+.btn.btn-app-blue:focus-visible,
+.btn.btn-app-green:focus-visible,
+.btn.btn-app-amber:focus-visible,
+.btn.btn-app-red:focus-visible{outline:3px solid #8acbff;outline-offset:2px}
+
 .btn.btn-app-action:not(:disabled):not(.disabled):not([aria-disabled="true"]){
     color:#fff!important;opacity:1;filter:none;
 }
