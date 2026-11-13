@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS sunat_emisiones (
     fecha_envio DATETIME NULL,
     fecha_respuesta DATETIME NULL,
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_sunat_documento (documento_id),
+    UNIQUE KEY uq_sunat_documento_ambiente (documento_id,ambiente),
     UNIQUE KEY uq_sunat_fiscal (ruc_emisor,tipo_cpe,serie,correlativo,ambiente),
     KEY ix_sunat_estado (estado,creado_en),
     CONSTRAINT fk_sunat_documento FOREIGN KEY (documento_id) REFERENCES documentos_cabecera(id),
