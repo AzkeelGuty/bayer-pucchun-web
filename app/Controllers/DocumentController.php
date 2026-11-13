@@ -125,6 +125,8 @@ final class DocumentController
         $details=is_array($_POST['details']??null)?array_values($_POST['details']):[];
         $id=(int)\input('id',0); $version=(int)\input('version',0);
         if($editing) { $r=$this->record($id); if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
+        // Conservar referencia de pago histórica al editar, aunque esté oculta.
+        if($editing && !array_key_exists('referencia_pago',$header)) $header['referencia_pago']=$r['header']['referencia_pago']??null;
         $screen=new DocumentScreenService();
         $catalogs=$screen->catalogsFor($header,$details);
         $clients=[];
