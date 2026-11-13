@@ -284,6 +284,9 @@
             const product = row.querySelector('[data-role="producto"]')?.value || '';
             if (!product) return;
             let key = product;
+            // En las guías valorizadas, el mismo producto puede tener precios distintos.
+            const price=row.querySelector('input[name$="[valor_unitario]"]');
+            if(price)key+=':VALOR:'+price.value;
             if (config.hasLote) {
                 const lote = row.querySelector('[data-role="lote"]')?.value || '';
                 if (!lote && !forceBlankLot) return;
