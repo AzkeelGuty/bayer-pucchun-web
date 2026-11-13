@@ -8,10 +8,11 @@ CREATE TABLE IF NOT EXISTS sunat_series_fiscales (
     ruc_emisor CHAR(11) NOT NULL,
     tipo_cpe CHAR(2) NOT NULL,
     serie CHAR(4) NOT NULL,
+    ambiente ENUM('BETA','PRODUCCION') NOT NULL,
     siguiente BIGINT UNSIGNED NOT NULL DEFAULT 1,
     creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     actualizado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_sunat_serie (ruc_emisor,tipo_cpe,serie),
+    UNIQUE KEY uq_sunat_serie (ruc_emisor,tipo_cpe,serie,ambiente),
     CONSTRAINT ck_sunat_correlativo CHECK (siguiente >= 1)
 ) ENGINE=InnoDB;
 
