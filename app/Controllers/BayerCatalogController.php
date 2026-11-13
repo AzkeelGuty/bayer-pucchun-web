@@ -106,6 +106,19 @@ final class BayerCatalogController
         ],'plantilla_productos_bayer.xlsx');
     }
 
+    public function publishAll(): void
+    {
+        \require_role('ADMIN');
+        if((string)\input('confirmacion','')!=='PUBLICAR'){
+            \flash('error','Confirme la publicación masiva de productos Bayer revisados.');
+            \redirect('/homologaciones?tab=productos');
+        }
+        $count=$this->service()->publishAll();
+        \audit('bayer_productos','publicar_masivo');
+        \flash('success',$count.' productos Bayer activos publicados para consulta API.');
+        \redirect('/homologaciones?tab=productos');
+    }
+
     public function status(): void
     {
         \require_role('ADMIN');
