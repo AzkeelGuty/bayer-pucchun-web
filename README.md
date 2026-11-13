@@ -19,6 +19,18 @@ El backend v2 incluye:
 **Pendiente funcional:** terminar la conexión de los formularios de captura y workflow con Schema v2 antes de considerar completa la versión funcional.
 
 
+## Catálogo Bayer independiente y API de ambos sistemas
+
+**Productos Bayer** ya no exige partner, código Pucchún, código Bayer adicional, vigencias ni unidad en su plantilla.
+Importa directamente el XLSX original del proveedor, incluyendo varias hojas y stock mensual (`-` desactivado, celda vacía sin dato, `0` sin stock). También incorpora 99 precios Dealer de la lista del 02/11/2026.
+
+Los datos Bayer permanecen separados del stock físico Pucchún. Los nuevos endpoints GET con Bearer permiten consultar ambos orígenes:
+`/api/v1/bayer/products`, `/api/v1/bayer/reported-inventory`, `/api/v1/bayer/prices`,
+`/api/v1/pucchun/all` y `/api/v1/pucchun/latest-stock` (además de los existentes).
+
+**Despliegue:** aplicar la nueva migración `014_catalogo_bayer_nativo.sql` después de 013.
+Guía completa: [Importación Bayer original, inventarios, precios y API](docs/IMPORTACION_BAYER_NATIVA_Y_API.md).
+
 ## Cálculos de Documentos y Guías
 
 El ERP calcula por producto **cantidad × valor unitario** y muestra subtotal, IGV/IPM (18 %) y total en Documentos. Es obligatorio elegir si los valores unitarios incluyen IGV para evitar cobrarlo dos veces. Las Guías presentan cantidades agrupadas por unidad y valorización comercial **opcional**.
