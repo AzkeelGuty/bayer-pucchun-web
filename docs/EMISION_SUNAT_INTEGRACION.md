@@ -73,7 +73,7 @@ Estos son **nombres de variables** y marcadores explicativos, no credenciales ut
 1. Crear una **factura** del ERP con cliente RUC y precios documentados.
 2. Validarla y publicarla **internamente**.
 3. Ir a **Administración → Emisión SUNAT**.
-4. Confirmar si cada `valor_unitario` **incluye IGV** o si es **sin IGV**, y marcar que todas las líneas son gravadas al 18 %. Si hay líneas exoneradas, detracciones o tributos especiales **no usar la modalidad inicial**.
+4. Confirmar si cada `valor_unitario` **incluye IGV** o si es **sin IGV**, y marcar que todas las líneas son gravadas al 18 % y que la venta es al contado. Si hay líneas exoneradas, detracciones o tributos especiales **no usar la modalidad inicial**.
 5. Presionar **Emitir factura**. El ERP reserva la numeración fiscal en una transacción, genera UBL 2.1, firma con certificado real y envía a SUNAT. Guarda XML firmado y CDR en `storage/private/sunat/emisiones`. Los archivos se descargan exclusivamente desde una sesión de administrador.
 6. Revisar `ACEPTADO`, `ACEPTADO_OBSERVADO`, `RECHAZADO` o `SIN_RESPUESTA` y el código del CDR.
 
@@ -83,6 +83,7 @@ Estos son **nombres de variables** y marcadores explicativos, no credenciales ut
 
 - `INT-FAC-00000001` es identificador interno, no es `F001-1`. El CDR sólo valida el segundo.
 - La validación interna del ERP no confiere validez tributaria.
+- Las facturas de producción deben encontrarse dentro del plazo de envío. Esta modalidad bloquea automáticamente fechas anteriores a tres días calendarios o futuras.
 - CDR recibida de BETA no tiene efectos de producción.
 - Si una factura es tributariamente aceptada, su anulación o modificación requiere el procedimiento SUNAT pertinente, no sólo cambiar el estado interno a ANULADO.
 - La pasarela no realiza una consulta de recuperación automática de CDR ni el envío de resumen diario de boletas.
