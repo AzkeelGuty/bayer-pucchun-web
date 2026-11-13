@@ -27,10 +27,11 @@ class BayerDataValidator
         }
 
         if(isset($data['quantity'])){
-            $quantity=(string)$data['quantity'];
-            $valid=preg_match('/^\d+(?:\.\d{1,3})?$/',$quantity)===1;
-            if(!$valid || ($dataset==='stock' ? (float)$quantity<0 : (float)$quantity<=0)) {
-                $errors['quantity']=$dataset==='stock' ? 'Cantidad inválida' : 'La cantidad debe ser mayor que cero';
+            $allowZero=$dataset==='stock';
+            if(\quantity_integer_value($data['quantity'],$allowZero)===null){
+                $errors['quantity']=$allowZero
+                    ? 'La cantidad debe ser un entero igual o mayor que cero'
+                    : 'La cantidad debe ser un entero mayor que cero';
             }
         }
 

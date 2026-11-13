@@ -1,0 +1,143 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Exceptions\HttpException;
+use App\Services\{HomologationService,SimpleXlsxTable};
+use Throwable;
+
+final class HomologationController
+{
+    public function __construct(private ?HomologationService $service=null)
+    {
+        $this->service ??= new HomologationService();
+    }
+
+    private function tab(): string
+    {
+        $tab=strtolower(trim((string)\input('tab','productos')));
+        $this->service->definition($tab);
+        return $tab;
+    }
+
+    private function form(bool $editing): void
+    {
+        \require_role('ADMIN');
+        $tab=$this->tab();
+        $id=(int)\input('id',0);
+        $record=$editing?$this->service->find($tab,$id):[];
+        if(is_array($_SESSION['_homologation_old']??null)) $record=$_SESSION['_homologation_old'];
+        $error=(string)($_SESSION['_homologation_error']??'');
+        unset($_SESSION['_homologation_old'],$_SESSION['_homologation_error']);
+        \view('backoffice.homologation_form',[
+            'tab'=>$tab,'meta'=>$this->service->definition($tab),
+            'record'=>$record,'editing'=>$editing,'id'=>$id,
+            'options'=>$this->service->options($tab,$record),'error'=>$error,
+        ]);
+    }
+
+    public function create(): void
+    {
+        if($this->tab()==='productos'){(new BayerCatalogController())->form();return;}
+        $this->form(false);
+    }
+    public function edit(): void
+    {
+        if($this->tab()==='productos'){
+            \flash('error','Los códigos Bayer ahora se administran en su catálogo propio. Busque el producto por su código.');
+            \redirect('/homologaciones?tab=productos');
+        }
+        $this->form(true);
+    }
+
+    private function persist(bool $editing): void
+    {
+        \require_role('ADMIN');
+        $tab=$this->tab();
+        if($tab==='productos'){
+            \flash('error','Use el formulario de Productos Bayer, sin partner ni código Pucchún.');
+            \redirect('/bayer-productos/editar');
+        }
+        $id=$editing?(int)\input('id',0):null;
+        $record=is_array($_POST['record']??null)?$_POST['record']:[];
+        try{
+            $saved=$this->service->save($tab,$record,(int)\auth_user()['id'],$id);
+            \audit('homologaciones',$editing?'editar_'.$tab:'crear_'.$tab,$saved);
+            \flash('success',$editing?'Homologación actualizada correctamente.':'Homologación creada correctamente.');
+            \redirect('/homologaciones?tab='.rawurlencode($tab));
+        }catch(HttpException $error){
+            $_SESSION['_homologation_old']=$record;
+            $_SESSION['_homologation_error']=$error->getMessage();
+            $target=$editing?'/homologaciones/editar?tab='.rawurlencode($tab).'&id='.(int)$id
+                :'/homologaciones/nuevo?tab='.rawurlencode($tab);
+            \redirect($target);
+        }
+    }
+
+    public function store(): void { $this->persist(false); }
+    public function update(): void { $this->persist(true); }
+
+    public function deactivate(): void
+    {
+        \require_role('ADMIN');
+        $tab=$this->tab();
+        if($tab==='productos'){
+            \flash('error','Utilice Desactivar desde el catálogo propio de Productos Bayer.');
+            \redirect('/homologaciones?tab=productos');
+        }
+        $id=(int)\input('id',0);
+        try{
+            $this->service->deactivate($tab,$id,(int)\auth_user()['id']);
+            \audit('homologaciones','desactivar_'.$tab,$id);
+            \flash('success','Homologación desactivada. Se conserva el historial.');
+        }catch(HttpException $error){
+            \flash('error',$error->getMessage());
+        }
+        \redirect('/homologaciones?tab='.rawurlencode($tab));
+    }
+
+    public function importPage(): void
+    {
+        \require_role('ADMIN');
+        $tab=$this->tab();
+        if($tab==='productos'){\redirect('/bayer-productos/importar');}
+        \view('backoffice.homologation_import',['tab'=>$tab,'meta'=>$this->service->definition($tab)]);
+    }
+
+    public function import(): void
+    {
+        \require_role('ADMIN');
+        $tab=$this->tab();
+        if($tab==='productos'){(new BayerCatalogController())->analyze();return;}
+        try{
+            $rows=(new SimpleXlsxTable())->readUpload($_FILES['excel']??[]);
+            $registerMissing=$tab==='productos' && (string)($_POST['registrar_productos_faltantes']??'')==='1';
+            $result=$this->service->importRows($tab,$rows,(int)\auth_user()['id'],$registerMissing);
+            \audit('homologaciones','importar_'.$tab);
+            $message=$result['total'].' filas procesadas: '.$result['inserted'].' homologaciones nuevas y '.$result['updated'].' actualizadas.';
+            if(($result['created_products']??0)>0){
+                $message.=' Se registraron '.$result['created_products']
+                    .' productos nuevos INACTIVOS en Catálogos maestros. Revise y complete sus unidades de medida antes de activarlos.';
+            }
+            \flash('success',$message);
+            \redirect('/homologaciones?tab='.rawurlencode($tab));
+        }catch(HttpException $error){
+            \flash('error',$error->getMessage());
+            \redirect('/homologaciones/importar?tab='.rawurlencode($tab));
+        }catch(Throwable $error){
+            \log_event('homologation_import_error',['type'=>get_class($error)]);
+            \flash('error','No se pudo completar la importación. Ninguna fila fue confirmada.');
+            \redirect('/homologaciones/importar?tab='.rawurlencode($tab));
+        }
+    }
+
+    public function template(): void
+    {
+        \require_role('ADMIN');
+        $tab=$this->tab();
+        if($tab==='productos'){(new BayerCatalogController())->template();return;}
+        $meta=$this->service->definition($tab);
+        (new SimpleXlsxTable())->outputTemplate($meta['title'],$meta['import'],'plantilla_homologacion_'.$tab.'_bayer.xlsx');
+    }
+}

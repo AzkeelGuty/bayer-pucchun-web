@@ -1,66 +1,146 @@
 <?php
 require base_path('app/Views/components/form_fields.php');
 $editing = isset($record);
-$detailRows = $editing ? $record['details'] : [['producto_id' => '', 'unidad_id' => '', 'cantidad' => '']];
+$correcting = $editing && (($record['header']['estado_registro'] ?? '') === 'OBSERVADO');
+// Al corregir un error, conservar cantidades y precios recién escritos.
+$postedRows=is_array($_SESSION['_old']['detalle']??null)?array_values($_SESSION['_old']['detalle']):null;
+$detailRows=$postedRows?:($editing ? $record['details'] : [['producto_id' => '', 'unidad_id' => '', 'cantidad' => '1']]);
+$numberValue = $editing ? (string)old('numero') : (string)($numberPreview ?? '');
+$dateValue = (string)old('fecha');
+if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('Y-m-d'));
+$lookupClientes=e(url('/lookups?type=clientes'));
+$lookupVendedores=e(url('/lookups?type=vendedores'));
+$lookupSucursales=e(url('/lookups?type=sucursales'));
+$lookupProvincias=e(url('/lookups?type=provincias'));
+$lookupDistritos=e(url('/lookups?type=distritos'));
+$lookupProductos=e(url('/lookups?type=productos'));
 ?>
-<h2><?= $editing ? 'Editar guía (borrador)' : 'Nueva guía' ?></h2>
-<p class="text-muted">Complete los datos y agregue las líneas de detalle. <?= $editing ? 'Los cambios se guardan en <strong>Borrador</strong>.' : 'El registro se guardará como <strong>Borrador</strong>.' ?></p>
-<form method="post" action="<?= url($editing ? '/guias/actualizar' : '/guias/guardar') ?>" class="row g-3">
+<link rel="stylesheet" href="<?=asset_url('assets/css/commercial-totals.css')?>">
+<section class="module-header">
+    <div>
+        <div class="page-eyebrow">GUÍAS · <?= $editing ? 'EDICIÓN' : 'CAPTURA' ?></div>
+        <h1 class="page-title"><?= $correcting ? 'Corregir guía' : ($editing ? 'Editar borrador' : 'Nueva guía') ?></h1>
+        <p class="page-subtitle">Selecciona los catálogos y agrega los productos de la guía.</p>
+    </div>
+    <a class="btn btn-outline-primary" href="<?= url('/guias') ?>">Volver al listado</a>
+</section>
+
+<form method="post" action="<?= url($editing ? '/guias/actualizar' : '/guias/guardar') ?>" class="card">
     <?= csrf_field() ?>
     <?php if ($editing): ?>
         <input type="hidden" name="id" value="<?= $record['header']['id'] ?>">
         <input type="hidden" name="version" value="<?= $record['header']['version'] ?>">
     <?php endif; ?>
-    <?php field('numero', 'Número (serie-correlativo, ej. T001-000001)'); ?>
-    <?php field('fecha', 'Fecha', 'date'); ?>
-    <div class="col-md-4"></div>
-
-    <?php select('cliente_id', 'Cliente', $clientes, 'id', 'razon_social'); ?>
-    <?php select('vendedor_id', 'Vendedor', $vendedores, 'id', 'nombre'); ?>
-    <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre'); ?>
-
-    <div class="col-12" data-ubigeo-scope>
-        <h6 class="mt-2">Ubicación (opcional en borrador; completa o vacía)</h6>
+    <div class="card-body p-4">
+        <h2 class="h5 mb-3">Datos generales</h2>
         <div class="row g-3">
-            <?php select('departamento_id', 'Departamento', $departamentos, 'id', 'nombre', false, 'data-role="departamento" data-old="' . e((string) old('departamento_id')) . '"'); ?>
-            <?php select('provincia_id', 'Provincia', [], 'id', 'nombre', false, 'data-role="provincia" data-old="' . e((string) old('provincia_id')) . '"'); ?>
-            <?php select('distrito_id', 'Distrito', [], 'id', 'nombre', false, 'data-role="distrito" data-old="' . e((string) old('distrito_id')) . '"'); ?>
-        </div>
-    </div>
+            <div class="col-md-4">
+                <label class="form-label" for="guide-number">Número interno (automático)</label>
+                <input class="form-control <?=form_error('numero')?'is-invalid':''?>" id="guide-number" name="numero" maxlength="25" value="<?=e($numberValue)?>" readonly required>
+                <div class="invalid-feedback"><?=e(form_error('numero'))?></div>
+                <div class="form-text"><i class="bi bi-shield-check me-1"></i>Número interno asignado automáticamente al guardar.</div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="guide-date">Fecha</label>
+                <input class="form-control <?=form_error('fecha')?'is-invalid':''?>" id="guide-date" type="date" name="fecha" value="<?=e($dateValue)?>" required>
+                <div class="invalid-feedback"><?=e(form_error('fecha'))?></div>
+            </div>
+            <div class="col-md-4"></div>
 
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mt-2">
-            <h6 class="mb-0">Detalle</h6>
-            <button type="button" id="add-line-btn" class="btn btn-sm btn-outline-primary">+ Agregar línea</button>
+            <?php select('cliente_id', 'Cliente', $clientes, 'id', 'label', true, 'data-role="cliente" data-search-select data-search-url="'.$lookupClientes.'" data-search-placeholder="Escribe DNI/RUC o inicio del nombre..." data-search-min="1"'); ?>
+            <?php select('vendedor_id', 'Vendedor', $vendedores, 'id', 'nombre', true, 'data-search-select data-search-url="'.$lookupVendedores.'" data-search-placeholder="Escribe código o inicio del vendedor..." data-search-min="1"'); ?>
+            <?php select('sucursal_id', 'Sucursal', $sucursales, 'id', 'nombre', true, 'data-search-select data-search-url="'.$lookupSucursales.'" data-search-placeholder="Escribe código o inicio de la sucursal..." data-search-min="1"'); ?>
+
+            <div class="col-12" data-ubigeo-scope data-destination-shell data-client-location-url="<?=e(url('/guias/cliente-ubicacion'))?>">
+                <label class="form-label mb-2">Destino de entrega</label>
+                <div class="destination-card">
+                    <div class="destination-copy">
+                        <strong data-destination-summary>Selecciona un cliente para completar el destino.</strong>
+                        <small data-destination-note>El sistema usa la ubicación registrada del cliente y solo pide cambios cuando sea necesario.</small>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-success btn-sm" data-destination-save-client hidden><i class="bi bi-link-45deg"></i> Guardar ubicación en cliente</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-destination-toggle hidden>Cambiar destino</button>
+                    </div>
+                </div>
+                <div class="row g-3 mt-1" data-destination-fields hidden>
+                    <?php select('departamento_id', 'Departamento', $departamentos, 'id', 'nombre', false, 'data-role="departamento" data-old="' . e((string) old('departamento_id')) . '" data-search-select data-search-placeholder="Escribe inicio del departamento..." data-search-min="1"'); ?>
+                    <?php select('provincia_id', 'Provincia', $provincias, 'id', 'nombre', false, 'data-role="provincia" data-old="' . e((string) old('provincia_id')) . '" data-search-select data-search-url="' . e(url('/lookups?type=provincias')) . '" data-search-parent="[data-role=departamento]" data-search-placeholder="Escribe inicio de la provincia..." data-search-min="1"'); ?>
+                    <?php select('distrito_id', 'Distrito', $distritos, 'id', 'nombre', false, 'data-role="distrito" data-old="' . e((string) old('distrito_id')) . '" data-search-select data-search-url="' . e(url('/lookups?type=distritos')) . '" data-search-parent="[data-role=provincia]" data-search-placeholder="Escribe inicio del distrito..." data-search-min="1"'); ?>
+                </div>
+            </div>
         </div>
-        <table class="table table-sm align-middle" id="detalle-table">
-            <thead><tr><th>Producto</th><th>Unidad</th><th style="width:140px">Cantidad</th><th></th></tr></thead>
-            <tbody>
-                <?php foreach ($detailRows as $i => $line): ?>
-                <tr>
-                    <td><?php select_inline("detalle[$i][producto_id]", $productos, 'id', 'nombre', 'data-role="producto"', 'Seleccione…', true, (string) $line['producto_id']); ?></td>
-                    <td><?php select_inline("detalle[$i][unidad_id]", $unidades, 'id', 'nombre', '', 'Seleccione…', true, (string) $line['unidad_id']); ?></td>
-                    <td><input type="number" step="0.001" min="0.001" class="form-control form-control-sm" name="detalle[<?= $i ?>][cantidad]" value="<?= e($line['cantidad']) ?>" required></td>
-                    <td><button type="button" class="btn btn-sm btn-outline-danger remove-line-btn">Quitar</button></td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+
+
+        <div class="commercial-options mt-4 p-3">
+            <?php $guideMode=(string)old('precio_igv_modalidad');
+                if($guideMode==='' && $editing)$guideMode=(string)($record['header']['precio_igv_modalidad']??''); ?>
+            <label class="form-label" for="guide-precio-igv">Valorización comercial (opcional)</label>
+            <select class="form-select" id="guide-precio-igv" name="precio_igv_modalidad" data-igv-mode style="max-width:425px">
+                <option value="">Solo traslado de bienes (sin importes)</option>
+                <option value="ADICIONAL" <?=$guideMode==='ADICIONAL'?'selected':''?>>Precios sin IGV: añadir 18 %</option>
+                <option value="INCLUIDO" <?=$guideMode==='INCLUIDO'?'selected':''?>>Precios con IGV incluido</option>
+            </select>
+            <p class="text-muted small mb-0 mt-2">Las cantidades se registran siempre. Si valorizas la guía, introduce el valor unitario en cada producto. Esta valorización es referencial y no sustituye el comprobante de venta.</p>
+            <?php if(form_error('precio_igv_modalidad')): ?><div class="text-danger small"><?=e(form_error('precio_igv_modalidad'))?></div><?php endif;?>
+        </div>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4 mb-3">
+            <h2 class="h5 mb-0">Detalle</h2>
+            <button type="button" id="add-line-btn" class="btn btn-outline-primary">+ Añadir producto a la guía</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table app-table align-middle" id="detalle-table">
+                <caption class="visually-hidden">Detalle de la guía</caption>
+                <thead><tr><th>Producto</th><th>Unidad</th><th style="width:140px">Cantidad</th><th>Valor unitario (S/)</th><th class="text-end">Importe</th><th>Acción</th></tr></thead>
+                <tbody>
+                    <?php foreach ($detailRows as $i => $line): ?>
+                    <tr>
+                        <td><?php select_inline("detalle[$i][producto_id]", $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-url="'.$lookupProductos.'" data-search-placeholder="Escribe código o inicio del producto..." data-search-min="1"', 'Seleccione…', true, (string) $line['producto_id']); ?></td>
+                        <td><?php select_inline("detalle[$i][unidad_id]", $unidades, 'id', 'nombre', 'data-auto-unit aria-readonly="true" tabindex="-1"', 'Seleccione…', true, (string) $line['unidad_id']); ?></td>
+                        <td><input type="number" step="1" min="1" inputmode="numeric" class="form-control form-control-sm" name="detalle[<?= $i ?>][cantidad]" value="<?= e(($line['cantidad']??'')!=='' ? format_quantity($line['cantidad']) : '') ?>" required></td>
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="detalle[<?= $i ?>][valor_unitario]" value="<?=e((string)($line['valor_unitario']??''))?>" placeholder="Opcional" aria-label="Valor unitario referencial"></td>
+                        <td class="text-end align-middle"><output class="commercial-line-amount" data-line-amount>—</output></td>
+                        <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
         <template id="detalle-row-template">
             <tr>
-                <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'nombre', 'data-role="producto"'); ?></td>
-                <td><?php select_inline('detalle[__IDX__][unidad_id]', $unidades, 'id', 'nombre'); ?></td>
-                <td><input type="number" step="0.001" min="0.001" class="form-control form-control-sm" name="detalle[__IDX__][cantidad]" required></td>
-                <td><button type="button" class="btn btn-sm btn-outline-danger remove-line-btn">Quitar</button></td>
+                <td><?php select_inline('detalle[__IDX__][producto_id]', $productos, 'id', 'label', 'data-role="producto" data-search-select data-search-url="'.$lookupProductos.'" data-search-placeholder="Escribe código o inicio del producto..." data-search-min="1"'); ?></td>
+                <td><?php select_inline('detalle[__IDX__][unidad_id]', $unidades, 'id', 'nombre', 'data-auto-unit aria-readonly="true" tabindex="-1"'); ?></td>
+                <td><input type="number" step="1" min="1" inputmode="numeric" class="form-control form-control-sm" name="detalle[__IDX__][cantidad]" value="1" required></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="detalle[__IDX__][valor_unitario]" placeholder="Opcional" aria-label="Valor unitario referencial"></td>
+                <td class="text-end align-middle"><output class="commercial-line-amount" data-line-amount>—</output></td>
+                <td><button type="button" class="btn btn-outline-danger btn-sm remove-line-btn" aria-label="Quitar línea">Quitar</button></td>
             </tr>
         </template>
+        <?php if(form_error('valor_unitario')): ?><div class="alert alert-danger mt-2"><?=e(form_error('valor_unitario'))?></div><?php endif;?>
+        <section class="commercial-summary mt-3" data-commercial-totals aria-label="Resumen de la guía">
+            <div class="commercial-summary-heading"><i class="bi bi-box-seam" aria-hidden="true"></i>
+                <strong>Resumen de la guía de remisión</strong></div>
+            <div class="commercial-summary-grid">
+                <div class="commercial-summary-note"><span data-total-items>0 productos</span>
+                    <span data-unit-quantities>—</span>
+                    <span class="text-muted small">Cantidades agrupadas por unidad de medida.</span></div>
+                <dl class="commercial-summary-values" data-money-available hidden>
+                    <div><dt>Subtotal sin IGV</dt><dd data-total-subtotal>S/ 0.00</dd></div>
+                    <div><dt>IGV e IPM (18 %)</dt><dd data-total-igv>S/ 0.00</dd></div>
+                    <div class="commercial-grand-total"><dt>Valor comercial referencial</dt><dd data-total-payable>S/ 0.00</dd></div>
+                </dl>
+            </div>
+            <p class="commercial-summary-help" data-total-hint>Guía de traslado: no se han declarado valores comerciales.</p>
+        </section>
     </div>
-
-    <div class="col-12"><button class="btn btn-primary"><?= $editing ? 'Actualizar borrador' : 'Guardar borrador' ?></button></div>
+    <div class="card-footer d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary" type="submit"><?= $correcting ? 'Guardar corrección' : ($editing ? 'Actualizar borrador' : 'Guardar borrador') ?></button>
+        <a class="btn btn-outline-primary" href="<?= url('/guias') ?>">Cancelar</a>
+    </div>
 </form>
 <script>
-window.BP_GEO = <?= json_encode(['provincias' => $provincias, 'distritos' => $distritos], JSON_UNESCAPED_UNICODE) ?>;
 window.BP_DETAIL_REPEATER = {tableId: 'detalle-table', templateId: 'detalle-row-template', addButtonId: 'add-line-btn', hasLote: false};
 </script>
-<script src="<?= url('/assets/js/forms.js') ?>"></script>
+<script src="<?= asset_url('assets/js/forms.js') ?>"></script>
+<script src="<?=asset_url('assets/js/commercial-totals.js')?>"></script>
 <?php unset($_SESSION['_old'], $_SESSION['_errors']); ?>

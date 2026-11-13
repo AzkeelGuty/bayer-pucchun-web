@@ -2,6 +2,18 @@
   "name": "mis/bayer-pucchun-web",
   "description": "Plataforma web Bayer-Pucchún para captura, validación, analítica y entrega de información.",
   "type": "project",
-  "require": {"php": ">=8.1"},
-  "autoload": {"psr-4": {"App\\": "app/"}}
+  "require": {
+    "php": ">=8.1",
+    "greenter/lite": "^5.3",
+    "ext-openssl": "*",
+    "ext-dom": "*",
+    "ext-soap": "*",
+    "ext-zip": "*",
+    "ext-intl": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  }
 }

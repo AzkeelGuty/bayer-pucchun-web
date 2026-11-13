@@ -37,21 +37,64 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: pdo_mysql, mbstring, json, zip
+          extensions: pdo_mysql, mbstring, json, zip, soap, dom, openssl, intl
           coverage: none
+
+      - name: Install SUNAT XML dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: PHP syntax check
         run: |
           find app config public routes scripts tests -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: JavaScript searchable selects
+        run: |
+          node --check public/assets/js/searchable-selects.js
+          node tests/unit/searchable_selects_test.js
+          node tests/unit/commercial_totals_test.js
 
       - name: Unit tests
         run: |
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/validator_test.php
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/core_security_test.php
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/csrf_test.php
+          php tests/unit/export_branding_path_test.php
+          php tests/unit/workflow_test.php
+          php tests/unit/workflow_action_buttons_test.php
+          php tests/unit/button_palette_test.php
+          php tests/unit/erp_actions_ui_test.php
+          php tests/unit/payment_tax_labels_test.php
+          php tests/unit/sunat_security_test.php
+          php tests/unit/sunat_greenter_xml_test.php
+          php tests/unit/guide_workflow_test.php
+          php tests/unit/stock_workflow_test.php
+          php tests/unit/workflow_transitions_test.php
+          php tests/unit/document_permissions_test.php
+          php tests/unit/guide_permissions_test.php
+          php tests/unit/stock_permissions_test.php
+          php tests/unit/workflow_permissions_test.php
+          php tests/unit/document_ownership_test.php
+          php tests/unit/repository_ownership_test.php
+          php tests/unit/guide_ownership_test.php
+          php tests/unit/stock_ownership_test.php
 
       - name: Integration tests
         run: |
           php tests/integration/schema_v2_test.php
+          php tests/integration/operational_permissions_migration_test.php
           php tests/integration/repositories_test.php
+          php tests/integration/master_catalogs_test.php
+          php tests/integration/commerce_workflows_test.php
+          php tests/integration/internal_numbering_test.php
+          php tests/integration/validation_actions_test.php
+          php tests/integration/audit_ip_test.php
+          php tests/integration/sunat_emission_test.php
+          php tests/integration/commercial_totals_test.php
+          php tests/integration/homologations_web_test.php
+          php tests/integration/homologation_missing_products_test.php
+          php tests/unit/bayer_native_preview_test.php
+          php tests/integration/bayer_native_catalog_test.php
+          php tests/integration/bayer_prices_excel_test.php
+          php tests/integration/bulk_workflow_test.php
+          php tests/integration/api_auth_test.php
           php tests/integration/core_security_test.php

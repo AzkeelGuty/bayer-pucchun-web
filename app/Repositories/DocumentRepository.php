@@ -8,8 +8,46 @@ class DocumentRepository extends OperationalRepository
     protected const HEADER = 'documentos_cabecera';
     protected const DETAIL = 'documentos_detalle';
     protected const PARENT_KEY = 'documento_id';
-    protected const HEADER_FIELDS = ['tipo_documento_id', 'numero', 'fecha', 'cliente_id', 'vendedor_id', 'sucursal_id'];
+    protected const HEADER_FIELDS = ['tipo_documento_id', 'numero', 'fecha', 'cliente_id', 'vendedor_id', 'sucursal_id', 'estado_comprobante'];
     protected const DETAIL_FIELDS = ['producto_id', 'unidad_id', 'cantidad', 'valor_unitario'];
+    protected const OPTIONAL_FIELDS = ['medio_pago','referencia_pago','precio_igv_modalidad'];
+
+    protected function normalize(array $header, array $details): array
+    {
+        $status=is_scalar($header['estado_comprobante']??null)
+            ? strtoupper(trim((string)$header['estado_comprobante']))
+            : 'VIGENTE';
+        if($status==='') $status='VIGENTE';
+        if(!in_array($status,['VIGENTE','ANULADO'],true)){
+            throw new \InvalidArgumentException('Estado de comprobante inválido.');
+        }
+        $header['estado_comprobante']=$status;
+        $method=is_scalar($header['medio_pago']??null)?strtoupper(trim((string)$header['medio_pago'])):'';
+        if($method!=='' && !in_array($method,['EFECTIVO','YAPE','PLIN','TRANSFERENCIA','TARJETA','OTRO'],true)){
+            throw new \InvalidArgumentException('Medio de pago inválido.');
+        }
+        $reference=is_scalar($header['referencia_pago']??null)?trim((string)$header['referencia_pago']):'';
+        if(mb_strlen($reference)>80) throw new \InvalidArgumentException('Referencia de pago demasiado extensa.');
+        $header['medio_pago']=$method!==''?$method:null;
+        $header['referencia_pago']=$reference!==''?$reference:null;
+        $mode=$header['precio_igv_modalidad']??null;
+        if($mode!==null && !in_array($mode,['INCLUIDO','ADICIONAL'],true))
+            throw new \InvalidArgumentException('Seleccione si los valores unitarios incluyen IGV.');
+        $header['precio_igv_modalidad']=$mode;
+        \App\Services\CommercialTotalsService::summarize($details,$mode);
+        return parent::normalize($header,$details);
+    }
+
+
+    /** Asigna el número definitivo en la misma transacción que crea la cabecera y sus líneas. */
+    public function createAutoNumbered(array $header,array $details,int $actorId): int
+    {
+        return $this->atomic(function () use($header,$details,$actorId): int {
+            $header['numero']=(new \App\Services\InternalNumberingService($this->pdo))
+                ->nextDocument((int)($header['tipo_documento_id']??0));
+            return parent::create($header,$details,$actorId);
+        });
+    }
 
     public function findByNumber(int $typeId, string $number): ?array
     {
@@ -17,9 +55,28 @@ class DocumentRepository extends OperationalRepository
         return $id === false ? null : $this->find((int) $id);
     }
 
+    public function updateVoucherStatus(int $id, int $version, string $status, int $actorId): int
+    {
+        foreach ([$id,$version,$actorId] as $value) self::positiveId($value);
+        $status=strtoupper(trim($status));
+        if(!in_array($status,['VIGENTE','ANULADO'],true)){
+            throw new \InvalidArgumentException('Estado de comprobante inválido.');
+        }
+        $st=$this->execute(
+            'UPDATE documentos_cabecera
+             SET estado_comprobante=?,version=version+1,updated_at=CURRENT_TIMESTAMP,updated_by=?
+             WHERE id=? AND version=?',
+            [$status,$actorId,$id,$version]
+        );
+        if($st->rowCount()!==1){
+            throw new \RuntimeException('Registro inexistente, estado de origen distinto o version desactualizada.');
+        }
+        return $version+1;
+    }
+
     public function all(array $filters = [], int $limit = 300, int $offset = 0): array
     {
-        return $this->listing('SELECT h.id,h.numero,h.fecha,h.estado_registro,h.version,c.razon_social cliente,v.nombres vendedor,s.nombre sucursal,
+        return $this->listing('SELECT h.id,h.numero,h.fecha,h.estado_comprobante,h.estado_registro,h.version,c.razon_social cliente,v.nombres vendedor,s.nombre sucursal,
             COALESCE(d.items,0) items,COALESCE(d.cantidad,0) cantidad
             FROM documentos_cabecera h JOIN clientes c ON c.id=h.cliente_id
             JOIN vendedores v ON v.id=h.vendedor_id JOIN sucursales s ON s.id=h.sucursal_id

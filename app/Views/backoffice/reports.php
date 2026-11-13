@@ -26,6 +26,13 @@ $formats=[
     'pdf'=>['label'=>'PDF','detail'=>'Reporte visual','icon'=>'bi-filetype-pdf','class'=>'pdf'],
 ];
 $datasetLabel=static fn(string $type): string => $datasets[$type]['label'] ?? ucfirst($type);
+$reportPage=max(1,(int)($pagination['page']??1));
+$reportPages=max(1,(int)($pagination['pages']??1));
+$reportTotal=max(0,(int)($pagination['total']??count($rows)));
+$reportPerPage=max(1,(int)($pagination['perPage']??15));
+$reportFirst=$reportTotal>0?(($reportPage-1)*$reportPerPage)+1:0;
+$reportLast=$reportTotal>0?min($reportTotal,$reportPage*$reportPerPage):0;
+$reportPageUrl=static fn(int $page): string => url('/reportes'.($page>1?'?page='.$page:''));
 ?>
 <section class="page-header reports-page-header">
     <div>
@@ -78,7 +85,7 @@ $datasetLabel=static fn(string $type): string => $datasets[$type]['label'] ?? uc
 <div class="card mt-4 export-history-card" data-live-refresh="3000" data-live-refresh-key="export-history">
     <div class="card-header bg-white security-table-title security-table-title-between">
         <div><i class="bi bi-clock-history"></i><strong>Últimas exportaciones</strong></div>
-        <small><i class="bi bi-arrow-repeat me-1"></i>Actualización automática · Registro de descargas generadas desde la plataforma</small>
+        <small><?=e($reportTotal)?> registros<?= $reportTotal>0 ? ' · Mostrando '.e($reportFirst).'–'.e($reportLast) : '' ?> · Página <?=e($reportPage)?> de <?=e($reportPages)?></small>
     </div>
     <div class="card-body p-0">
         <?php if(!$rows): ?>
@@ -94,7 +101,7 @@ $datasetLabel=static fn(string $type): string => $datasets[$type]['label'] ?? uc
                         <tr>
                             <th>ID</th>
                             <th>Archivo</th>
-                            <th>Dataset</th>
+                            <th>Conjunto de datos</th>
                             <th>Formato</th>
                             <th>Registros</th>
                             <th>Resultado</th>
@@ -133,4 +140,11 @@ $datasetLabel=static fn(string $type): string => $datasets[$type]['label'] ?? uc
             </div>
         <?php endif;?>
     </div>
+    <?php if($reportPages>1): ?>
+    <nav class="catalog-pagination" aria-label="Paginación de exportaciones">
+        <a class="btn btn-sm btn-outline-primary <?=$reportPage<=1?'disabled':''?>" href="<?=$reportPage>1?e($reportPageUrl($reportPage-1)):'#'?>" <?=$reportPage<=1?'aria-disabled="true" tabindex="-1"':''?>><i class="bi bi-chevron-left"></i><span>Anterior</span></a>
+        <span>Página <?=e($reportPage)?> de <?=e($reportPages)?></span>
+        <a class="btn btn-sm btn-outline-primary <?=$reportPage>=$reportPages?'disabled':''?>" href="<?=$reportPage<$reportPages?e($reportPageUrl($reportPage+1)):'#'?>" <?=$reportPage>=$reportPages?'aria-disabled="true" tabindex="-1"':''?>><span>Siguiente</span><i class="bi bi-chevron-right"></i></a>
+    </nav>
+    <?php endif; ?>
 </div>
