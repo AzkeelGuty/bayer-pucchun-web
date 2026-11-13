@@ -11,11 +11,11 @@
 </p>
 
 <div class="alert alert-info" role="status">
-    <strong>Estado tributario:</strong>
+    <strong>Estado tributario · Emisión en SUNAT y el traslado de bienes:</strong>
     <?php if(($h['estado_sunat']??'SIN_VERIFICAR')==='NO_EMITIDA'): ?>
-        Pendiente de emisión en SUNAT. Esta es una guía interna y su referencia no acredita el traslado de bienes.
+        Pendiente de emisión electrónica ante SUNAT.
     <?php else: ?>
-        Sin constancia de emisión tributaria verificada dentro del ERP.
+        Sin emisión electrónica confirmada en el ERP.
     <?php endif; ?>
     <?php if(!empty($h['documento_origen_id'])): ?>
         <a href="<?=url('/documentos/ver?id='.(int)$h['documento_origen_id'])?>" class="ms-2">Ver documento de origen</a>
@@ -38,7 +38,11 @@
                 $departamentos[$h['departamento_id']]['nombre'] ?? null,
             ])) ?: 'Sin destino registrado') ?></div>
         </div>
-        <div class="col-md-3"><strong>Versión</strong><div><?= e($h['version']) ?></div></div>
+        <div class="col-md-3">
+            <strong>Versión del registro</strong>
+            <div><?= e($h['version']) ?></div>
+            <small class="text-muted">Control interno de cambios. Aumenta al editar o cambiar el estado; no es el número de guía.</small>
+        </div>
     </div>
     <?php if ($h['estado_registro'] === 'OBSERVADO' && $h['observation_reason']): ?>
         <div class="alert alert-warning mt-3 mb-0"><strong>Motivo de observación:</strong> <?= e($h['observation_reason']) ?></div>
