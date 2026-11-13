@@ -15,7 +15,7 @@
     <div class="row">
         <div class="col-md-4"><strong>Fecha de stock</strong><div><?= e($h['fecha_stock']) ?></div></div>
         <div class="col-md-4"><strong>Almacén</strong><div><?= e($almacenes[$h['almacen_id']]['nombre'] ?? $h['almacen_id']) ?></div></div>
-        <div class="col-md-4"><strong>Versión del registro</strong><div><?= e($h['version']) ?></div><small class="text-muted">Control interno de cambios; aumenta al editar o cambiar el estado del stock.</small></div>
+        
     </div>
     <?php if ($h['estado_registro'] === 'OBSERVADO' && $h['observation_reason']): ?>
         <div class="alert alert-warning mt-3 mb-0"><strong>Motivo de observación:</strong> <?= e($h['observation_reason']) ?></div>
