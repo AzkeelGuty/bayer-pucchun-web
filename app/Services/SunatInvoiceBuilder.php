@@ -92,8 +92,8 @@ final class SunatInvoiceBuilder
         $total=$sum['total']/100;
         if($total<=0||$total>999999999.99)
             throw new HttpException(422,'Importe fuera del rango admitido.');
-        return ['lineas'=>$results,'gravada'=>$sum['subtotal']/100,
-            'igv'=>$sum['igv']/100,'total'=>$total,'moneda'=>'PEN'];
+        return ['lineas'=>$results,'gravada'=>(float)($sum['subtotal']/100),
+            'igv'=>(float)($sum['igv']/100),'total'=>(float)$total,'moneda'=>'PEN'];
     }
 
     public static function documentName(string $ruc,string $serie,int $correlativo): string
