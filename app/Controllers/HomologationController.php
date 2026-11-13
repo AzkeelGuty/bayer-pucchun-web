@@ -37,13 +37,28 @@ final class HomologationController
         ]);
     }
 
-    public function create(): void { $this->form(false); }
-    public function edit(): void { $this->form(true); }
+    public function create(): void
+    {
+        if($this->tab()==='productos'){(new BayerCatalogController())->form();return;}
+        $this->form(false);
+    }
+    public function edit(): void
+    {
+        if($this->tab()==='productos'){
+            \flash('error','Los códigos Bayer ahora se administran en su catálogo propio. Busque el producto por su código.');
+            \redirect('/homologaciones?tab=productos');
+        }
+        $this->form(true);
+    }
 
     private function persist(bool $editing): void
     {
         \require_role('ADMIN');
         $tab=$this->tab();
+        if($tab==='productos'){
+            \flash('error','Use el formulario de Productos Bayer, sin partner ni código Pucchún.');
+            \redirect('/bayer-productos/editar');
+        }
         $id=$editing?(int)\input('id',0):null;
         $record=is_array($_POST['record']??null)?$_POST['record']:[];
         try{
@@ -67,6 +82,10 @@ final class HomologationController
     {
         \require_role('ADMIN');
         $tab=$this->tab();
+        if($tab==='productos'){
+            \flash('error','Utilice Desactivar desde el catálogo propio de Productos Bayer.');
+            \redirect('/homologaciones?tab=productos');
+        }
         $id=(int)\input('id',0);
         try{
             $this->service->deactivate($tab,$id,(int)\auth_user()['id']);
@@ -82,6 +101,7 @@ final class HomologationController
     {
         \require_role('ADMIN');
         $tab=$this->tab();
+        if($tab==='productos'){\redirect('/bayer-productos/importar');}
         \view('backoffice.homologation_import',['tab'=>$tab,'meta'=>$this->service->definition($tab)]);
     }
 
@@ -89,6 +109,7 @@ final class HomologationController
     {
         \require_role('ADMIN');
         $tab=$this->tab();
+        if($tab==='productos'){(new BayerCatalogController())->import();return;}
         try{
             $rows=(new SimpleXlsxTable())->readUpload($_FILES['excel']??[]);
             $registerMissing=$tab==='productos' && (string)($_POST['registrar_productos_faltantes']??'')==='1';
@@ -115,6 +136,7 @@ final class HomologationController
     {
         \require_role('ADMIN');
         $tab=$this->tab();
+        if($tab==='productos'){(new BayerCatalogController())->template();return;}
         $meta=$this->service->definition($tab);
         (new SimpleXlsxTable())->outputTemplate($meta['title'],$meta['import'],'plantilla_homologacion_'.$tab.'_bayer.xlsx');
     }
