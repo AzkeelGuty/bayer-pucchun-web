@@ -37,6 +37,8 @@ class Element {
     }
     remove() {if(this.parentNode) this.parentNode.children=this.parentNode.children.filter(x=>x!==this);this.isConnected=false;}
     replaceChildren(...nodes){this.children=[];nodes.forEach(node=>this.appendChild(node));}
+    set className(value){this._className=value;this.classList.set=new Set(String(value).split(/\s+/).filter(Boolean));}
+    get className(){return this._className||'';}
     set innerHTML(value){this.children=[];this._html=value;}
     get innerHTML(){return this._html||'';}
     setAttribute(key,value){this.attributes[key]=String(value);}
@@ -136,6 +138,7 @@ check(!cliente.menu.classList.contains('open'),'Después de seleccionar se cierr
 cliente.input.focus();
 check(!cliente.menu.classList.contains('open'),'El campo seleccionado no reabre menú al enfocar');
 
+check(activeDocument.querySelectorAll('.incremental-select-menu').length===3,'Tres campos crean tres menús controlados');
 api.reset();
 check(activeDocument.querySelectorAll('.incremental-select-menu').length===0,'La navegación limpia los menús flotantes');
 check(!cliente.select.dataset.searchEnhanced,'Permite re-inicializar tras cambio de página');
