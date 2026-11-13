@@ -41,6 +41,14 @@ class Element {
     get className(){return this._className||'';}
     set innerHTML(value){this.children=[];this._html=value;}
     get innerHTML(){return this._html||'';}
+    closest(selector){
+        let node=this;
+        while(node){
+            if(selector==='form' && node.tagName==='FORM') return node;
+            node=node.parentNode;
+        }
+        return null;
+    }
     setAttribute(key,value){this.attributes[key]=String(value);}
     removeAttribute(key){delete this.attributes[key];if(key==='data-search-enhanced')delete this.dataset.searchEnhanced;}
     getAttribute(key){return this.attributes[key]??null;}
