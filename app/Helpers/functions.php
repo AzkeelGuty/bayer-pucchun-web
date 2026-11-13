@@ -217,7 +217,7 @@ function access_ip_label(?string $ip): string
 {
     $ip = trim((string) $ip);
     if ($ip === '') return '—';
-    if ($ip === '::1') return '127.0.0.1';
+    if ($ip === '::1') return '::1'; // Loopback IPv6: no convertirlo ficticiamente a IPv4.
     if (str_starts_with(strtolower($ip), '::ffff:')) {
         $mapped = substr($ip, 7);
         if (filter_var($mapped, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) return $mapped;
