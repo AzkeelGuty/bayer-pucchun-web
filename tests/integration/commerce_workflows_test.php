@@ -14,6 +14,7 @@ if(!function_exists('has_role')){
 $db=new TestDatabase();
 try{
     $db->load('database/schemas/002_schema_v2.sql');
+    $db->load('database/migrations/013_calculos_totales_documentos_guias.sql');
     $db->load('database/migrations/009_guias_desde_documentos_y_pagos.sql');
     $db->load('database/migrations/009_guias_desde_documentos_y_pagos.sql');
     $db->load('database/migrations/010_numeracion_interna_automatica.sql');
