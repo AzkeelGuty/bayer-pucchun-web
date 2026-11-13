@@ -78,6 +78,20 @@ final class BayerCatalogController
         }
     }
 
+    public function loadPrices(): void
+    {
+        \require_role('ADMIN');
+        try{
+            if((string)\input('confirmacion','')!=='CARGAR')
+                throw new HttpException(422,'Confirme la importación de los precios escribiendo CARGAR.');
+            $result=$this->service()->importBundledPrices();
+            \audit('bayer_precios','cargar_lista_2026');
+            \flash('success','Se cargaron '.$result['precios'].' precios Dealer Bayer y '.
+                $result['productos_nuevos'].' productos nuevos sin stock reportado.');
+        }catch(HttpException $error){\flash('error',$error->getMessage());}
+        \redirect('/homologaciones?tab=productos');
+    }
+
     public function template(): void
     {
         \require_role('ADMIN');
