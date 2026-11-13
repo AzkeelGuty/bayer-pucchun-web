@@ -39,6 +39,7 @@ $field=function(string $name,string $label,string $key,mixed $value,string $cata
 $correcting=$editing && (($header['estado_registro']??'')==='OBSERVADO');
 ?>
 <link rel="stylesheet" href="<?=asset_url('assets/css/documentos-captura.css')?>">
+<link rel="stylesheet" href="<?=asset_url('assets/css/commercial-totals.css')?>">
 <section class="module-header"><div><div class="page-eyebrow">DOCUMENTOS · <?= $editing?'EDICIÓN':'CAPTURA'?></div><h1 class="page-title"><?=$correcting?'Corregir documento':($editing?'Editar borrador':'Nuevo documento')?></h1><p class="page-subtitle">Selecciona los catálogos y agrega los productos del documento.</p></div><a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Volver al listado</a></section>
 <?php if($errors): ?><div class="alert alert-danger" role="alert" tabindex="-1" data-error-summary><strong>Revisa la información antes de guardar.</strong><ul class="mb-0"><?php foreach($errors as $key=>$error): ?><li><?=e($error)?></li><?php endforeach;?></ul></div><?php endif;?>
 <form class="card doc-screen" method="post" action="<?=url($editing?'/documentos/actualizar':'/documentos/guardar')?>" data-documents-form <?=$editing?'':'data-auto-number-form data-number-preview-url="'.e(url('/documentos/siguiente-numero')).'"'?>>
@@ -72,9 +73,36 @@ $correcting=$editing && (($header['estado_registro']??'')==='OBSERVADO');
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[cliente_id]','Cliente','header.cliente_id',$header['cliente_id']??'','cliente_id'); ?></div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[vendedor_id]','Vendedor','header.vendedor_id',$header['vendedor_id']??'','vendedor_id'); ?></div>
 <div class="col-12 col-md-6 col-xl-4"><?php $field('header[sucursal_id]','Sucursal','header.sucursal_id',$header['sucursal_id']??'','sucursal_id'); ?></div>
+<div class="col-12">
+    <label class="form-label" for="doc-precio-igv">El valor unitario incluye IGV (18 %)</label>
+    <?php $mode=(string)($header['precio_igv_modalidad']??'');$modeError=$errors['header.precio_igv_modalidad']??''; ?>
+    <select class="form-select<?=$modeError?' is-invalid':''?>" id="doc-precio-igv"
+        name="header[precio_igv_modalidad]" data-igv-mode required style="max-width:420px">
+        <option value="">Seleccione cómo se ingresan los precios…</option>
+        <option value="ADICIONAL" <?=$mode==='ADICIONAL'?'selected':''?>>No: se agrega IGV al subtotal</option>
+        <option value="INCLUIDO" <?=$mode==='INCLUIDO'?'selected':''?>>Sí: el precio ya incluye IGV</option>
+    </select>
+    <?php if($modeError): ?><div class="invalid-feedback"><?=e($modeError)?></div><?php endif;?>
+</div>
 </div><div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4 mb-3"><h2 class="h5 mb-0">Productos</h2><button type="button" class="btn btn-outline-primary" data-add-detail>+ Añadir producto al documento</button></div>
-<div class="table-responsive"><table class="table align-middle doc-lines"><caption class="visually-hidden">Productos del documento</caption><thead><tr><th>Producto</th><th>Unidad</th><th>Cantidad</th><th>Valor unitario</th><th>Acción</th></tr></thead><tbody data-details-body>
-<?php foreach($details as $i=>$line): $line=is_array($line)?$line:[]; ?><tr data-detail-row><td><?php $field("details[$i][producto_id]",'Producto','details.'.$i.'.producto_id',$line['producto_id']??'','producto_id');?></td><td><?php $field("details[$i][unidad_id]",'Unidad','details.'.$i.'.unidad_id',$line['unidad_id']??'','unidad_id');?></td><td><?php $field("details[$i][cantidad]",'Cantidad','details.'.$i.'.cantidad',(($line['cantidad']??'')!==''?format_quantity($line['cantidad']):''),'','number','min="1" step="1" inputmode="numeric"');?></td><td><?php $field("details[$i][valor_unitario]",'Valor unitario','details.'.$i.'.valor_unitario',$line['valor_unitario']??'0','','number','min="0" step="0.01"');?></td><td><button type="button" class="btn btn-outline-danger btn-sm" data-remove-detail aria-label="Quitar producto">Quitar</button></td></tr><?php endforeach;?>
+<div class="table-responsive"><table class="table align-middle doc-lines"><caption class="visually-hidden">Productos del documento</caption><thead><tr><th>Producto</th><th>Unidad</th><th>Cantidad</th><th>Valor unitario</th><th class="text-end">Importe</th><th>Acción</th></tr></thead><tbody data-details-body>
+<?php foreach($details as $i=>$line): $line=is_array($line)?$line:[]; ?><tr data-detail-row><td><?php $field("details[$i][producto_id]",'Producto','details.'.$i.'.producto_id',$line['producto_id']??'','producto_id');?></td><td><?php $field("details[$i][unidad_id]",'Unidad','details.'.$i.'.unidad_id',$line['unidad_id']??'','unidad_id');?></td><td><?php $field("details[$i][cantidad]",'Cantidad','details.'.$i.'.cantidad',(($line['cantidad']??'')!==''?format_quantity($line['cantidad']):''),'','number','min="1" step="1" inputmode="numeric"');?></td><td><?php $field("details[$i][valor_unitario]",'Valor unitario','details.'.$i.'.valor_unitario',$line['valor_unitario']??'0','','number','min="0" step="0.01"');?></td><td class="text-end align-middle"><output class="commercial-line-amount" data-line-amount>—</output></td><td><button type="button" class="btn btn-outline-danger btn-sm" data-remove-detail aria-label="Quitar producto">Quitar</button></td></tr><?php endforeach;?>
 </tbody></table></div>
+<?php if(!empty($errors['details.total'])): ?><div class="alert alert-danger mt-2"><?=e($errors['details.total'])?></div><?php endif;?>
+<section class="commercial-summary mt-3" data-commercial-totals aria-label="Resumen de importes del documento">
+    <div class="commercial-summary-heading"><i class="bi bi-calculator" aria-hidden="true"></i>
+        <strong>Resumen del documento</strong></div>
+    <div class="commercial-summary-grid">
+        <div class="commercial-summary-note"><span data-total-items>0 productos</span>
+            <span data-unit-quantities>—</span></div>
+        <dl class="commercial-summary-values">
+            <div><dt>Subtotal sin IGV</dt><dd data-total-subtotal>S/ 0.00</dd></div>
+            <div><dt>IGV e IPM (18 %)</dt><dd data-total-igv>S/ 0.00</dd></div>
+            <div class="commercial-grand-total"><dt>Total a pagar</dt><dd data-total-payable>S/ 0.00</dd></div>
+        </dl>
+    </div>
+    <p class="commercial-summary-help" data-total-hint>Seleccione si el valor unitario incluye IGV.</p>
+</section>
 </div><div class="card-footer d-flex gap-2 flex-wrap"><button class="btn btn-primary" type="submit" data-save><?=$correcting?'Guardar corrección':'Guardar borrador'?></button><a class="btn btn-outline-primary" href="<?=url('/documentos')?>">Cancelar</a></div></form>
 <script src="<?=asset_url('assets/js/documentos-captura.js')?>" defer></script>
+<script src="<?=asset_url('assets/js/commercial-totals.js')?>" defer></script>
