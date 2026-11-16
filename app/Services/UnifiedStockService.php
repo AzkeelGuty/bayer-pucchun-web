@@ -1,59 +1,73 @@
 <?php
 declare(strict_types=1);
-
 namespace App\Services;
 
 use PDO;
 
 /**
- * Consulta informativa con fuentes separadas. La cantidad de Bayer procede
- * de su último mes reportado; la de Pucchún suma los últimos snapshots
- * PUBLICADOS de cada almacén, nunca mezcla identidades entre catálogos.
+ * Inventario consolidado de consulta:
+ * Pucchún: último snapshot PUBLICADO por almacén y producto (la asignación
+ * de referencia se usa únicamente cuando falta un snapshot).
+ * Bayer: reporte del canal vinculado al almacén de referencia opcional.
+ * Nunca se suman stocks entre ambos sistemas.
  */
 final class UnifiedStockService
 {
-    private PDO $pdo;
-    public function __construct(?PDO $pdo=null){$this->pdo=$pdo??\db();}
+    public function __construct(private ?PDO $pdo=null){$this->pdo??=\db();}
 
     private static function unifiedSql(): string
     {
         return "SELECT 'PUCCHUN' AS fuente,p.codigo AS codigo,p.nombre AS producto,
-                    COALESCE(u.codigo,'') AS unidad,z.cantidad AS cantidad,
-                    DATE_FORMAT(z.ultima_fecha,'%Y-%m-%d') AS periodo,
-                    CASE WHEN z.cantidad IS NULL THEN 'SIN_DATO'
-                         WHEN z.cantidad<0 THEN 'NEGATIVO'
-                         WHEN z.cantidad=0 THEN 'SIN_STOCK'
-                         WHEN z.cantidad<=? THEN 'BAJO'
-                         ELSE 'CON_STOCK' END AS estado
+                   COALESCE(u.codigo,'') AS unidad,z.cantidad AS cantidad,
+                   DATE_FORMAT(z.ultima_fecha,'%Y-%m-%d') AS periodo,
+                   COALESCE(z.almacen_id,r.almacen_id) AS almacen_id,
+                   COALESCE(a.nombre,'Sin almacén asignado') AS almacen,
+                   CASE WHEN z.cantidad IS NULL THEN 'SIN_DATO'
+                        WHEN z.cantidad<0 THEN 'RIESGO'
+                        WHEN z.cantidad=0 THEN 'SIN_STOCK'
+                        WHEN z.cantidad<=? THEN 'BAJO'
+                        ELSE 'CON_STOCK' END AS estado
                 FROM productos p
                 LEFT JOIN (
-                    SELECT sd.producto_id,sd.unidad_id,SUM(sd.cantidad) cantidad,
-                           MAX(sc.fecha_stock) ultima_fecha
+                    SELECT sd.producto_id,sd.unidad_id,sc.almacen_id,
+                           SUM(sd.cantidad) cantidad,MAX(sc.fecha_stock) ultima_fecha
                     FROM stock_cabecera sc
                     JOIN stock_detalle sd ON sd.stock_id=sc.id
                     WHERE sc.estado_registro='PUBLICADO'
                       AND NOT EXISTS (
                         SELECT 1 FROM stock_cabecera newer
-                         WHERE newer.almacen_id=sc.almacen_id
-                           AND newer.estado_registro='PUBLICADO'
-                           AND (newer.fecha_stock>sc.fecha_stock OR
-                             (newer.fecha_stock=sc.fecha_stock AND newer.id>sc.id))
+                        WHERE newer.almacen_id=sc.almacen_id
+                          AND newer.estado_registro='PUBLICADO'
+                          AND (newer.fecha_stock>sc.fecha_stock OR
+                               (newer.fecha_stock=sc.fecha_stock AND newer.id>sc.id))
                       )
-                    GROUP BY sd.producto_id,sd.unidad_id
+                    GROUP BY sd.producto_id,sd.unidad_id,sc.almacen_id
                 ) z ON z.producto_id=p.id
+                LEFT JOIN pucchun_producto_almacen r ON r.producto_id=p.id
+                LEFT JOIN almacenes a ON a.id=COALESCE(z.almacen_id,r.almacen_id)
                 LEFT JOIN unidades_medida u ON u.id=COALESCE(z.unidad_id,p.unidad_base_id)
                 UNION ALL
                 SELECT 'BAYER' AS fuente,b.codigo_bayer AS codigo,
                        b.nombre_bayer AS producto,'' AS unidad,
                        b.stock_reportado AS cantidad,b.stock_periodo AS periodo,
+                       r.almacen_id AS almacen_id,
+                       COALESCE(a.nombre,'Sin almacén asignado') AS almacen,
                        CASE WHEN b.estado_catalogo='INACTIVO'
-                                 OR b.stock_estado='DESACTIVADO' THEN 'DESACTIVADO'
+                                  OR b.stock_estado='DESACTIVADO'
+                                  OR b.stock_reportado<0 THEN 'RIESGO'
                             WHEN b.stock_reportado IS NULL THEN 'SIN_DATO'
-                            WHEN b.stock_reportado<0 THEN 'NEGATIVO'
                             WHEN b.stock_reportado=0 THEN 'SIN_STOCK'
                             WHEN b.stock_reportado<=? THEN 'BAJO'
                             ELSE 'CON_STOCK' END AS estado
-                FROM bayer_productos_catalogo b";
+                FROM bayer_productos_catalogo b
+                LEFT JOIN bayer_producto_almacen r ON r.producto_id=b.id
+                LEFT JOIN almacenes a ON a.id=r.almacen_id";
+    }
+
+    public function warehouses(): array
+    {
+        $s=$this->pdo->query('SELECT id,codigo,nombre FROM almacenes WHERE estado=1 ORDER BY nombre,codigo');
+        return $s->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function browse(array $filters=[],int $perPage=15,int $page=1): array
@@ -63,53 +77,56 @@ final class UnifiedStockService
         $low=max(1,min(999999,(int)($filters['bajo']??10)));
         $source=strtoupper((string)($filters['fuente']??''));
         $state=strtoupper((string)($filters['estado']??''));
-        $q=trim((string)($filters['q']??''));
+        // Compatibilidad con enlaces previos NEGATIVO/DESACTIVADO.
+        if(in_array($state,['NEGATIVO','DESACTIVADO'],true))$state='RIESGO';
+        $q=mb_substr(trim((string)($filters['q']??'')),0,100);
+        $warehouse=(int)($filters['almacen_id']??0);
         if(!in_array($source,['BAYER','PUCCHUN'],true))$source='';
-        if(!in_array($state,['BAJO','SIN_STOCK','NEGATIVO','SIN_DATO',
-             'CON_STOCK','DESACTIVADO'],true))$state='';
-        $q=mb_substr($q,0,100);
+        if(!in_array($state,['RIESGO','BAJO','SIN_STOCK','SIN_DATO','CON_STOCK'],true))$state='';
+        if($warehouse<1)$warehouse=0;
 
         $base=' FROM ('.self::unifiedSql().') catalogo ';
-        $conditions=[];$args=[$low,$low];
-        if($source!==''){
-            $conditions[]='catalogo.fuente=?';$args[]=$source;
-        }
+        $conditions=[];$params=[$low,$low];
+        if($source!==''){$conditions[]='catalogo.fuente=?';$params[]=$source;}
+        if($warehouse>0){$conditions[]='catalogo.almacen_id=?';$params[]=$warehouse;}
         if($q!==''){
             $conditions[]='(catalogo.codigo LIKE ? OR catalogo.producto LIKE ?)';
-            $args[]='%'.$q.'%';$args[]='%'.$q.'%';
+            $params[]='%'.$q.'%';$params[]='%'.$q.'%';
         }
-        $baseWhere=$conditions?' WHERE '.implode(' AND ',$conditions):'';
+        $whereBase=$conditions?' WHERE '.implode(' AND ',$conditions):'';
+        // Totales únicos por catálogo y código: un SKU Pucchún puede estar en
+        // varios almacenes o unidades, pero no se contabiliza varias veces.
+        $unique="CONCAT(catalogo.fuente, ':', catalogo.codigo)";
         $stats=$this->pdo->prepare(
-            'SELECT COUNT(*) AS total,
-             COALESCE(SUM(estado=\'BAJO\'),0) AS bajo,
-             COALESCE(SUM(estado=\'SIN_STOCK\'),0) AS cero,
-             COALESCE(SUM(estado=\'NEGATIVO\'),0) AS negativo,
-             COALESCE(SUM(estado=\'SIN_DATO\'),0) AS sin_dato,
-             COALESCE(SUM(estado=\'DESACTIVADO\'),0) AS desactivado'
-            .$base.$baseWhere
+            "SELECT COUNT(*) AS total_filas,
+              COUNT(DISTINCT $unique) AS total_productos,
+              COUNT(DISTINCT CASE WHEN fuente='BAYER' THEN codigo END) AS total_bayer,
+              COUNT(DISTINCT CASE WHEN fuente='PUCCHUN' THEN codigo END) AS total_pucchun,
+              COUNT(DISTINCT CASE WHEN estado='CON_STOCK' THEN $unique END) AS disponible,
+              COUNT(DISTINCT CASE WHEN estado='BAJO' THEN $unique END) AS bajo,
+              COUNT(DISTINCT CASE WHEN estado='SIN_STOCK' THEN $unique END) AS cero,
+              COUNT(DISTINCT CASE WHEN estado='RIESGO' THEN $unique END) AS riesgo,
+              COUNT(DISTINCT CASE WHEN estado='SIN_DATO' THEN $unique END) AS sin_dato"
+            .$base.$whereBase
         );
-        $stats->execute($args);
+        $stats->execute($params);
         $summary=$stats->fetch(PDO::FETCH_ASSOC)?:[];
-        if($state!==''){
-            $conditions[]='catalogo.estado=?';
-            $args[]=$state;
-        }
+        if($state!==''){$conditions[]='catalogo.estado=?';$params[]=$state;}
         $where=$conditions?' WHERE '.implode(' AND ',$conditions):'';
         $count=$this->pdo->prepare('SELECT COUNT(*)'.$base.$where);
-        $count->execute($args);
+        $count->execute($params);
         $total=(int)$count->fetchColumn();
         $pages=max(1,(int)ceil($total/$perPage));
         $page=min($page,$pages);
         $offset=($page-1)*$perPage;
-
-        $rows=$this->pdo->prepare('SELECT fuente,codigo,producto,unidad,cantidad,periodo,estado'
+        $rows=$this->pdo->prepare('SELECT fuente,codigo,producto,unidad,cantidad,periodo,almacen_id,almacen,estado'
             .$base.$where
-            .' ORDER BY FIELD(estado,\'NEGATIVO\',\'SIN_STOCK\',\'BAJO\',\'DESACTIVADO\','
-            .'\'SIN_DATO\',\'CON_STOCK\'),fuente,codigo'
-            .' LIMIT '.$perPage.' OFFSET '.$offset);
-        $rows->execute($args);
+            ." ORDER BY FIELD(estado,'RIESGO','SIN_STOCK','BAJO','SIN_DATO','CON_STOCK'),
+                  fuente,almacen,codigo LIMIT ".$perPage." OFFSET ".$offset);
+        $rows->execute($params);
         return ['rows'=>$rows->fetchAll(PDO::FETCH_ASSOC),'summary'=>$summary,
-            'total'=>$total,'pages'=>$pages,'page'=>$page,'perPage'=>$perPage,
-            'filters'=>['fuente'=>$source,'estado'=>$state,'q'=>$q,'bajo'=>$low]];
+                'total'=>$total,'pages'=>$pages,'page'=>$page,'perPage'=>$perPage,
+                'filters'=>['fuente'=>$source,'estado'=>$state,'q'=>$q,'bajo'=>$low,
+                            'almacen_id'=>$warehouse]];
     }
 }
