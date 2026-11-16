@@ -258,6 +258,9 @@ final class BayerCatalogService
         $this->pdo->beginTransaction();
         try{
             $saved=$this->save($data,$id);
+            if(array_key_exists('almacen_referencia_id',$data))
+                (new ProductWarehouseService($this->pdo))
+                    ->assign('BAYER',$saved,$data['almacen_referencia_id']);
             if($stockUpdate!==null){
                 $entry=$stockUpdate['data'];
                 $snap=$this->pdo->prepare(
