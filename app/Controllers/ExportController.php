@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Exceptions\HttpException;
-use App\Services\{BayerDataService,ExportPresentation,SimpleXlsxExporter,SimplePdfExporter};
+use App\Services\{BayerDataService,UnifiedStockService,ExportPresentation,SimpleXlsxExporter,SimplePdfExporter};
 
 final class ExportController
 {
@@ -20,11 +20,13 @@ final class ExportController
         $type=(string)\input('type','documents');
         if(!in_array($type,['documents','guides','stock'],true)) throw new HttpException(422,'Dataset inválido.');
         $filters=[];
-        foreach(['from','to','branch','q','document_status'] as $key){
+        foreach(['from','to','branch','q','document_status','fuente','estado','almacen_id','bajo'] as $key){
             $value=trim((string)\input($key,''));
             if($value!=='') $filters[$key]=$value;
         }
-        $count=(new BayerDataService())->countDataset($type,$filters);
+        $count=$type==='stock'
+            ? count((new UnifiedStockService())->reportRows($filters))
+            : (new BayerDataService())->countDataset($type,$filters);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['success'=>true,'count'=>$count],JSON_UNESCAPED_UNICODE);
         exit;
@@ -40,20 +42,22 @@ final class ExportController
         if(!in_array($format,['xlsx','json','txt','pdf'],true)) throw new HttpException(422,'Formato inválido.');
 
         $filters=[];
-        foreach(['from','to','branch','q'] as $key){
+        foreach(['from','to','branch','q','fuente','estado','almacen_id','bajo'] as $key){
             $value=trim((string)\input($key,''));
             if($value!=='') $filters[$key]=$value;
         }
 
         $started=microtime(true);
-        $rows=(new BayerDataService())->completeDataset($type,$filters);
+        $rows=$type==='stock'
+            ? (new UnifiedStockService())->reportRows($filters)
+            : (new BayerDataService())->completeDataset($type,$filters);
         $generatedAt=date('Y-m-d H:i:s');
         $meta=ExportPresentation::metadata($type,$filters,$rows,(array)\auth_user(),$generatedAt);
 
         $slug=match($type){
             'documents'=>'documentos',
             'guides'=>'guias_remision',
-            'stock'=>'stock',
+            'stock'=>'stock_consolidado',
             default=>$type,
         };
         $base='pucchun_'.$slug.'_'.date('Ymd_His');
