@@ -1721,3 +1721,24 @@ a.user-chip:focus-visible{outline:3px solid #8acbff;outline-offset:3px}
     .security-role-list .role-row{flex-wrap:wrap}
     .security-role-list .security-role-count{margin-left:47px}
 }
+
+
+/* Reportes de stock: conservar paleta institucional azul/verde/naranja/rojo. */
+.report-stock-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0 0 16px}
+.report-stock-stat{display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:6px;
+    background:#f6f9fc;border:1px solid #dbe7f1;border-radius:9px;padding:8px;
+    font-size:.68rem;color:#47647e;min-width:0}
+.report-stock-stat i{color:var(--bp-blue);font-size:.95rem}
+.report-stock-stat span{overflow-wrap:anywhere;line-height:1.2}
+.report-stock-stat strong{color:var(--bp-navy);font-weight:850;font-size:.88rem;font-variant-numeric:tabular-nums}
+.report-stock-stat:nth-child(3){background:#f0faf4;border-color:#cdebd7}
+.report-stock-stat:nth-child(3) i,.report-stock-stat:nth-child(3) strong{color:#087642}
+.report-stock-stat:nth-child(4){background:#fff8eb;border-color:#f5dfb4}
+.report-stock-stat:nth-child(4) i,.report-stock-stat:nth-child(4) strong{color:#a15f00}
+.report-stock-stat:nth-child(5),.report-stock-stat:nth-child(6){background:#fff2f2;border-color:#f5d5d5}
+.report-stock-stat:nth-child(5) i,.report-stock-stat:nth-child(5) strong,
+.report-stock-stat:nth-child(6) i,.report-stock-stat:nth-child(6) strong{color:#b42318}
+.report-stock-export .form-label{font-size:.72rem;font-weight:750;color:var(--bp-navy)}
+.report-stock-export .form-select{border-color:#d5e2ee}
+.report-stock-export .export-format{font:inherit;text-align:left;width:100%;cursor:pointer}
+.report-stock-export .export-format:focus-visible{outline:3px solid #8acbff;outline-offset:3px}
