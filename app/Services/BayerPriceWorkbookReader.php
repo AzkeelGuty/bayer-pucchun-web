@@ -135,30 +135,21 @@ final class BayerPriceWorkbookReader
 
     public function parseMatrix(array $matrix,string $sheet): ?array
     {
-        $synonyms=[
-            'codigo_bayer'=>['codigo_bayer','codigo','codigo_producto','codigo_material','material_id'],
-            'nombre_bayer'=>['nombre_bayer','descripcion','producto_presentacion','producto_descripcion','producto'],
-            'moneda'=>['moneda','currency'],
-            'precio_sugerido_sin_igv'=>['precio_sugerido_sin_igv','precio_sin_igv','sugerido_sin_igv','precio_neto'],
-            'igv_porcentaje'=>['igv_porcentaje','igv','tasa_igv','igv_pct'],
-            'precio_sugerido_con_igv'=>['precio_sugerido_con_igv','precio_con_igv','sugerido_con_igv','precio_bruto'],
-            'descuento_dealer_porcentaje'=>['descuento_dealer_porcentaje','descuento_dealer','descuento_porcentaje','descuento'],
-            'vigencia_desde'=>['vigencia_desde','fecha_lista','fecha_inicio','desde'],
-            'vigencia_hasta'=>['vigencia_hasta','fecha_fin','hasta']
-        ];
         $header=null;$start=0;
         foreach($matrix as $line=>$cells){
             $keys=[];
             foreach($cells as $col=>$value){
-                $key=self::normalize((string)$value);
-                foreach($synonyms as $field=>$names)
-                    if(in_array($key,$names,true))$keys[$field]=(int)$col;
+                $field=ProductExcelHeaderAliases::resolve((string)$value,'bayer_precios');
+                if($field===null)continue;
+                if(isset($keys[$field]))
+                    throw new HttpException(422,
+                        'La hoja '.$sheet.' contiene columnas duplicadas para '.$field.'.');
+                $keys[$field]=(int)$col;
             }
-            // Código y al menos un campo de precio; IGV y vigencia son opcionales
-            // en el encabezado y se verifican al confirmar.
+            // Cabecera de precios: código oficial más al menos un importe.
             if(isset($keys['codigo_bayer']) &&
-                (isset($keys['precio_sugerido_sin_igv']) ||
-                 isset($keys['precio_sugerido_con_igv']))){
+               (isset($keys['precio_sugerido_sin_igv']) ||
+                isset($keys['precio_sugerido_con_igv']))){
                 $header=$keys;$start=(int)$line;break;
             }
         }
