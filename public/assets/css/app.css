@@ -1667,3 +1667,57 @@ input[data-internal-number],#guide-number[readonly]{
     .stock-product-totals{grid-template-columns:1fr}
     .stock-product-total:first-child{grid-column:auto}
 }
+
+
+/* Administración de usuarios y perfiles (edición, foto y seguridad). */
+a.user-chip{text-decoration:none;color:inherit;transition:box-shadow .16s,border-color .16s}
+a.user-chip:hover{border-color:#91b7d7;box-shadow:0 3px 12px rgba(8,51,84,.10);color:inherit}
+a.user-chip:focus-visible{outline:3px solid #8acbff;outline-offset:3px}
+.user-avatar,.user-table-avatar,.user-profile-photo-large{overflow:hidden;flex-shrink:0}
+.user-avatar img,.user-table-avatar img,.user-profile-photo-large img{
+    display:block;width:100%;height:100%;object-fit:cover
+}
+.user-table-avatar{width:42px;height:42px;border-radius:12px}
+.user-table-cell>div{min-width:0}
+.user-table-cell strong,.user-table-cell small{overflow-wrap:anywhere}
+.security-user-position{color:#5a7690!important;font-style:italic}
+.security-user-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.security-user-actions form{display:inline-flex}
+.security-user-actions .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:84px}
+.security-count-pill{display:inline-flex;align-items:center;gap:6px;
+    background:#eef5fb;color:#175b8f;border:1px solid #d7e7f3;
+    border-radius:999px;padding:4px 10px;font-size:.76rem;font-weight:750}
+.security-role-list .role-row{display:flex;align-items:center;gap:11px}
+.security-role-icon{display:grid;place-items:center;flex-shrink:0;
+    width:36px;height:36px;border-radius:11px;background:#ebf3fb;color:#12639e;font-size:1.02rem}
+.security-role-list .security-role-info{flex:1;min-width:0;display:flex;flex-direction:column}
+.security-role-list .security-role-info strong{font-size:.82rem;font-weight:800}
+.security-role-list .security-role-count{font-weight:700;display:inline-flex;align-items:center;gap:4px;
+    background:#f1f6fb;color:#52718c;padding:5px 7px;border-radius:8px;white-space:nowrap}
+.user-profile-banner{display:flex;align-items:center;gap:20px;padding:22px 24px;
+    border:1px solid #d1e2f0;border-radius:16px;background:linear-gradient(115deg,#fff,#eef6fc);
+    box-shadow:0 7px 24px rgba(8,53,88,.05)}
+.user-profile-photo-large{display:grid;place-items:center;width:100px;height:100px;border-radius:22px;
+    background:#e2f0fb;color:#125e9d;border:4px solid #fff;
+    box-shadow:0 7px 18px rgba(7,65,103,.13);font-size:2.7rem;font-weight:850}
+.user-profile-summary{min-width:0}
+.user-profile-summary h2{margin:0 0 6px;color:var(--bp-navy);font-weight:850;font-size:1.38rem;overflow-wrap:anywhere}
+.user-profile-summary p{display:flex;align-items:center;gap:7px;margin:0 0 12px;
+    font-size:.85rem;color:#516b83;overflow-wrap:anywhere}
+.user-role-pill{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;
+    background:#e6f2fb;color:#164f7d;border-radius:9px;font-size:.76rem;font-weight:800}
+.user-profile-banner+.row .card{border:1px solid #d8e7f0}
+.user-profile-banner+.row .security-card-heading{margin-bottom:22px}
+.user-profile-banner+.row .form-label{font-weight:750}
+.user-profile-banner+.row .form-text{line-height:1.45}
+@media(max-width:700px){
+    .user-profile-banner{padding:16px;gap:12px}
+    .user-profile-photo-large{width:70px;height:70px;border-radius:17px;font-size:2rem}
+    .user-profile-summary h2{font-size:1.15rem}
+}
+@media(max-width:540px){
+    .security-user-actions{min-width:125px}
+    .security-user-actions .btn{width:100%}
+    .security-role-list .role-row{flex-wrap:wrap}
+    .security-role-list .security-role-count{margin-left:47px}
+}
