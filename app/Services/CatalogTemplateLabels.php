@@ -64,6 +64,13 @@ final class CatalogTemplateLabels
         return match(true){
             $key==='codigo_bayer' && $scope==='productos'=>'CÓDIGO BAYER',
             $key==='nombre_bayer' && $scope==='productos'=>'PRODUCTO / PRESENTACIÓN',
+            $key==='cantidad_unidades' && $scope==='productos'=>'CANTIDAD / UNIDADES',
+            $key==='precio_sugerido_sin_igv' && $scope==='productos'=>'PRECIO SIN IGV',
+            $key==='precio_sugerido_con_igv' && $scope==='productos'=>'PRECIO CON IGV',
+            $key==='igv_porcentaje' && $scope==='productos'=>'IGV',
+            $key==='vigencia_desde' && $scope==='productos'=>'FECHA INICIO',
+            $key==='vigencia_hasta' && $scope==='productos'=>'FECHA FIN',
+            $key==='descuento_dealer_porcentaje' && $scope==='productos'=>'DESCUENTO',
             $key==='marca' && $scope==='productos'=>'MARCA',
             $key==='cantidad' && $scope==='productos'=>'CANTIDAD / UNIDADES',
             $key==='periodo' && $scope==='productos'=>'PERÍODO',
