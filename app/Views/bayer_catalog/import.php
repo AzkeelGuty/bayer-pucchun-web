@@ -5,13 +5,13 @@ $labels=['CON_STOCK'=>'Con stock','SIN_STOCK'=>'En cero','SIN_DATO'=>'Sin dato',
     'DESACTIVADO'=>'Desactivado','INVALIDO'=>'Revisar'];
 $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=>'Inventario y precios'];
 ?>
-<section class="module-header">
+<section class="module-header has-back-navigation">
  <div>
   <div class="page-eyebrow">BAYER · IMPORTACIÓN UNIFICADA</div>
   <h1 class="page-title">Importar Excel original Bayer</h1>
   <p class="page-subtitle">Un solo archivo para actualizar productos, inventario mensual y precios por código Bayer.</p>
  </div>
- <a class="btn btn-outline-primary" href="<?=url('/homologaciones?tab=productos')?>">Volver a Productos Bayer</a>
+ <a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?=url('/homologaciones?tab=productos')?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver a Productos Bayer</span></a>
 </section>
 
 <div class="card mb-3"><div class="card-body p-4">
