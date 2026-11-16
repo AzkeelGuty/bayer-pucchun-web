@@ -1742,3 +1742,8 @@ a.user-chip:focus-visible{outline:3px solid #8acbff;outline-offset:3px}
 .report-stock-export .form-select{border-color:#d5e2ee}
 .report-stock-export .export-format{font:inherit;text-align:left;width:100%;cursor:pointer}
 .report-stock-export .export-format:focus-visible{outline:3px solid #8acbff;outline-offset:3px}
+
+.report-dataset-export .form-label{font-size:.72rem;font-weight:750;color:var(--bp-navy)}
+.report-dataset-export .form-control,.report-dataset-export .form-select{border-color:#d5e2ee}
+.report-dataset-export .export-format{font:inherit;text-align:left;width:100%;cursor:pointer}
+.report-dataset-export .export-format:focus-visible{outline:3px solid #8acbff;outline-offset:3px}
