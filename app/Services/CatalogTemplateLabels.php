@@ -62,6 +62,14 @@ final class CatalogTemplateLabels
     public static function label(string $key,string $scope=''): string
     {
         return match(true){
+            $key==='codigo_bayer' && $scope==='productos'=>'CÓDIGO BAYER',
+            $key==='nombre_bayer' && $scope==='productos'=>'PRODUCTO / PRESENTACIÓN',
+            $key==='marca' && $scope==='productos'=>'MARCA',
+            $key==='cantidad' && $scope==='productos'=>'CANTIDAD / UNIDADES',
+            $key==='periodo' && $scope==='productos'=>'PERÍODO',
+            $key==='year' && $scope==='productos'=>'AÑO',
+            $key==='month' && $scope==='productos'=>'MES',
+            $key==='almacen_nombre' && $scope==='productos'=>'ALMACÉN',
             $key==='codigo' && $scope==='productos'=>'Código del producto Pucchún',
             $key==='codigo' && $scope==='clientes'=>'Código del cliente (opcional)',
             $key==='codigo' && $scope==='almacenes'=>'Código de almacén',
