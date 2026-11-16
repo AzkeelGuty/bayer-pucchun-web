@@ -146,8 +146,10 @@ try{
         &&str_contains($routes,"'/bayer-productos/importar/cancelar'"),
         'Las rutas de importar y cancelar son protegidas');
     ensure(!str_contains($view,'type="checkbox"')
-        &&str_contains($view,'name="fecha_precios"')
+        &&!str_contains($view,'name="fecha_precios"')
+        &&!str_contains($view,'name="periodo"')
+        &&str_contains($view,'Cabeceras principales:')
         &&str_contains($view,'type="submit"'),
-        'El asistente único contiene precios sin casilla adicional');
+        'Asistente único procesa precios sin fechas alternativas ni confirmaciones adicionales');
     echo 'BAYER PRICE XLSX/CSV & UPSERT OK ('.$GLOBALS['checks'].' checks)'.PHP_EOL;
 }finally{$db->close();}
