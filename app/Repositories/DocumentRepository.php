@@ -59,19 +59,33 @@ class DocumentRepository extends OperationalRepository
     {
         foreach ([$id,$version,$actorId] as $value) self::positiveId($value);
         $status=strtoupper(trim($status));
-        if(!in_array($status,['VIGENTE','ANULADO'],true)){
+        if(!in_array($status,['VIGENTE','ANULADO'],true))
             throw new \InvalidArgumentException('Estado de comprobante inválido.');
-        }
-        $st=$this->execute(
-            'UPDATE documentos_cabecera
-             SET estado_comprobante=?,version=version+1,updated_at=CURRENT_TIMESTAMP,updated_by=?
-             WHERE id=? AND version=?',
-            [$status,$actorId,$id,$version]
-        );
-        if($st->rowCount()!==1){
-            throw new \RuntimeException('Registro inexistente, estado de origen distinto o version desactualizada.');
-        }
-        return $version+1;
+
+        return $this->atomic(function () use ($id,$version,$status,$actorId): int {
+            $header=$this->lockedHeader($id);
+            if(!$header || (int)$header['version']!==$version)
+                throw new \RuntimeException('Registro inexistente, estado de origen distinto o version desactualizada.');
+            if($status==='VIGENTE' && (string)$header['estado_comprobante']==='ANULADO' &&
+               (string)$header['estado_registro']==='PUBLICADO' &&
+               (new \App\Services\StockMovementService($this->pdo))->installed())
+                throw new \App\Exceptions\HttpException(409,
+                    'No se puede reactivar un comprobante publicado anulado sin generar una nueva operación.');
+            $st=$this->execute(
+                'UPDATE documentos_cabecera
+                 SET estado_comprobante=?,version=version+1,updated_at=CURRENT_TIMESTAMP,updated_by=?
+                 WHERE id=? AND version=?',
+                [$status,$actorId,$id,$version]
+            );
+            if($st->rowCount()!==1)
+                throw new \RuntimeException('Registro inexistente, estado de origen distinto o version desactualizada.');
+            if($status==='ANULADO' &&
+               (string)$header['estado_comprobante']==='VIGENTE' &&
+               (string)$header['estado_registro']==='PUBLICADO'){
+                (new \App\Services\StockMovementService($this->pdo))->reverse('documentos',$id,$actorId);
+            }
+            return $version+1;
+        });
     }
 
     public function all(array $filters = [], int $limit = 300, int $offset = 0): array
