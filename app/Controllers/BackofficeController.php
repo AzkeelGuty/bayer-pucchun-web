@@ -121,6 +121,22 @@ final class BackofficeController
             $st=\db()->prepare($sql);
             $st->execute($params);
             $rows=$st->fetchAll();
+            if($key==='productos'){
+                $ready=(new MasterCatalogService())->availabilityIssue('productos')===null;
+                $service=$ready?new MasterCatalogService():null;
+                foreach($rows as &$product){
+                    if($service!==null){
+                        $detail=$service->find('productos',(int)$product['id']);
+                        $product['precio_venta']=$detail['precio_venta']??null;
+                        $product['stock_actual']=$detail['stock_actual']??'';
+                    }else{
+                        $product['precio_venta']=null;
+                        $product['stock_actual']='';
+                    }
+                }
+                unset($product);
+            }
+
         }
 
         $tabs=[];
