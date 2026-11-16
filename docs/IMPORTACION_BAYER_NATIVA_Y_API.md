@@ -119,6 +119,43 @@ un clic adicional en Buscar. Esto no afecta los formularios de registro o edici�
 - **Eliminar:** requiere confirmar con el código exacto; borra sus referencias Bayer,
   nunca el inventario físico de Pucchún.
 
+## Edición individual de productos, precios e inventario Bayer
+
+En **Productos Bayer → Editar**, el formulario mantiene el código oficial
+`codigo_bayer` bloqueado durante la edición para conservar su relación
+con los precios e inventarios de esa presentación. Se pueden modificar el
+nombre, la marca, la lista de precios y, si se selecciona explícitamente,
+la cantidad informada para un mes.
+
+La sección **Precio sugerido Bayer** permite registrar o modificar
+`precio_sin_igv`, `precio_igv`, `precio_con_igv`,
+`precio_descuento`, `precio_vigencia_desde` y
+`precio_vigencia_hasta`. Moneda: PEN, por presentación comercial.
+El formulario muestra el historial y botones **Editar** por vigencia.
+Editar la misma fecha actualiza el precio de ese código; registrar una
+fecha distinta conserva el precio anterior. Si no hay importes, el guardado
+de datos del producto no crea ni elimina precios.
+
+La sección **Inventario mensual informado por Bayer** ofrece
+**Sin cambios**, **Registrar cantidad (incluido 0)**,
+**Registrar mes sin dato** y **Desactivar en este mes (—)**.
+La opción predeterminada es Sin cambios; solo al elegir una acción se
+modifica el histórico del mes. Registrar meses anteriores no reemplaza
+la cantidad del mes más reciente. Todas estas operaciones son independientes
+del stock físico Pucchún.
+
+Producto, precio e inventario opcional se guardan en una sola transacción:
+un dato inválido impide confirmar cambios parciales. El historial y los
+precios de productos activos se consultan por la API autenticada.
+
+## Botones de retorno y navegación
+
+Se unificaron los botones **Volver al listado**, **Volver al catálogo**
+y **Volver al panel** en vistas de edición, importación, detalle
+y configuración. Se muestran a la **izquierda, antes del título**,
+con flecha hacia atrás y fondo azul institucional.
+Los botones Cancelar de los formularios se mantienen independientes.
+
 ## API REST de los dos sistemas
 
 Se conserva el login Bearer actual (`POST /api/v1/auth/login`), su expiración y las rutas anteriores.
@@ -158,6 +195,7 @@ php tests\integration\bayer_native_catalog_test.php
 php tests\unit\bayer_native_preview_test.php
 php tests\integration\bayer_prices_excel_test.php
 php tests\integration\bayer_unified_stock_api_test.php
+php tests\integration\bayer_product_editor_navigation_test.php
 php tests\integration\api_auth_test.php
 php tests\integration\homologations_web_test.php
 ```
