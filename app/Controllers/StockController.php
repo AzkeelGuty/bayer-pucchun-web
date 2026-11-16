@@ -77,7 +77,7 @@ final class StockController
             'pages'=>$pages,
             'perPage'=>$perPage,
             'almacenes'=>$this->masters()->almacenesByIds([(int)($filters['almacen_id']??0)]),
-            'unifiedStock'=>(new \\App\\Services\\UnifiedStockService())->browse([
+            'unifiedStock'=>(new \App\Services\UnifiedStockService())->browse([
                 'fuente'=>(string)\input('fuente',''),
                 'estado'=>(string)\input('stock_alerta',''),
                 'q'=>(string)\input('stock_q',''),
