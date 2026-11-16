@@ -273,6 +273,8 @@ final class MasterCatalogService
             $fields=array_keys($definition['fields']);
             $select=[];
             foreach($fields as $field){
+                if($tab==='productos' && $field==='precio_venta'
+                   && !$this->columnExists('productos','precio_venta'))continue;
                 if(!($definition['fields'][$field]['virtual']??false))$select[]=$field;
             }
             $st=$this->pdo->prepare('SELECT id,'.implode(',',$select).' FROM '.$definition['table'].' WHERE id=?');
@@ -412,6 +414,13 @@ final class MasterCatalogService
                         ->resolve(WarehouseExcelHeader::values($row));
                     if($warehouse!==null)$payload['almacen_referencia_id']=(string)$warehouse;
                 }
+                if($tab==='productos' && $existing!==null &&
+                    trim((string)($row['precio_venta']??''))===''
+                    && $this->columnExists('productos','precio_venta')){
+                    $prev=$this->pdo->prepare('SELECT precio_venta FROM productos WHERE id=?');
+                    $prev->execute([$existing]);
+                    $payload['precio_venta']=$prev->fetchColumn()?:'';
+                }
                 if($tab==='productos' && trim((string)($row['stock_actual']??''))!=='')
                     $payload['stock_actual']=trim((string)$row['stock_actual']);
                 $this->save($tab,$payload,$existing,$actorId);
@@ -511,6 +520,8 @@ final class MasterCatalogService
         $result=[];
         foreach($definition['fields'] as $name=>$field){
             if($field['virtual']??false)continue;
+            if($tab==='productos' && $name==='precio_venta'
+               && !$this->columnExists('productos','precio_venta'))continue;
             $value=$input[$name]??'';
             $required=(bool)($field['required']??false);
             $type=$field['type']??'text';
