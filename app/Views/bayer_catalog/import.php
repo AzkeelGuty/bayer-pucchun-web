@@ -19,31 +19,20 @@ $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=
  <form method="post" action="<?=url('/bayer-productos/analizar')?>" enctype="multipart/form-data">
   <?=csrf_field()?>
   <div class="row g-3 align-items-end">
-   <div class="col-lg-6">
+   <div class="col-lg-9">
     <label class="form-label" for="file-bayer">Excel original Bayer (inventarios, precios o ambos)</label>
     <input class="form-control" id="file-bayer" name="excel" type="file" accept=".xlsx,.csv" required>
    </div>
-   <div class="col-lg-2">
-    <label class="form-label" for="bayer-periodo">Mes alternativo</label>
-    <input class="form-control" type="month" name="periodo" id="bayer-periodo">
-   </div>
-   <div class="col-lg-2">
-    <label class="form-label" for="bayer-fecha-precios">Fecha precios (opcional)</label>
-    <input class="form-control" type="date" name="fecha_precios" id="bayer-fecha-precios">
-   </div>
-   <div class="col-lg-2 d-grid">
+   <div class="col-lg-3 d-grid">
     <button class="btn btn-primary btn-with-icon" type="submit">
-     <i class="bi bi-search"></i><span>Analizar Excel</span>
+     <i class="bi bi-search" aria-hidden="true"></i><span>Analizar Excel</span>
     </button>
    </div>
   </div>
  </form>
  <p class="small text-muted mt-3 mb-0">
-   Detecta automáticamente las cabeceras, incluso en filas inferiores y en múltiples pestañas.
-   Reconoce CÓDIGO, PRODUCTO / PRESENTACIÓN, CANTIDAD / UNIDADES y columnas de precios.
-   También reconoce almacén y sucursal en columnas o en el encabezado superior de la hoja.
-   El IGV no requiere una columna cuando es posible deducirlo de los dos importes.
-   El mes y la fecha alternativos solo se utilizan si no aparecen en el archivo.
+   <strong>Cabeceras principales:</strong> CÓDIGO, PRODUCTO / PRESENTACIÓN, MARCA,
+   CANTIDAD / UNIDADES, ALMACÉN, PRECIO SIN IGV, IGV y PRECIO CON IGV.
  </p>
 </div></div>
 
@@ -57,7 +46,7 @@ $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=
   </div>
   <form method="post" action="<?=url('/bayer-productos/importar/cancelar')?>">
    <?=csrf_field()?>
-   <button class="btn btn-app-blue btn-with-icon" type="submit"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Cancelar y descartar</span></button>
+   <button class="btn btn-app-red btn-with-icon" type="submit"><i class="bi bi-trash3" aria-hidden="true"></i><span>Cancelar y descartar</span></button>
   </form>
  </div>
  <form method="get" action="<?=url('/bayer-productos/importar')?>" class="row g-2 align-items-end mb-3">
