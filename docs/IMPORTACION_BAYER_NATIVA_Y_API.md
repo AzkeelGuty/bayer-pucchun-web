@@ -50,6 +50,57 @@ Se mantiene disponible una **plantilla alternativa simple de cinco columnas**: `
 
 **Nota:** si el proveedor almacenó un código originalmente con ceros iniciales como número en Excel, Excel pudo haberlos descartado antes de subirlo; el sistema no puede recuperarlos sin la fuente original. Los códigos deben permanecer como texto cuando existan ceros significativos.
 
+## Reconocimiento de almacenes al importar Excel
+
+Desde **Productos Bayer → Importar Excel original** o **Catálogos maestros
+→ Productos Pucchún → Importar Excel**, el sistema detecta el almacén
+mediante las columnas `almacen_nombre`, `almacen_codigo` y
+`sucursal_codigo`, o mediante información superior a la tabla como
+**Almacén: Almacén Principal Chincha** y **Sucursal código: SUC-01**.
+Reconoce las variantes de cabecera **ALMACÉN**, **Almacenamiento**,
+**Nombre almacén**, **Código almacén** y sus equivalentes normalizados.
+
+La validación compara **todo el nombre o todo el código**, no una
+coincidencia parcial. Ignora diferencias irrelevantes de mayúsculas,
+tildes y espacios. Si coincide con uno existente activo, reutiliza
+su registro. Si es nuevo, lo crea con un código propio (o el que
+indica el archivo) en la misma transacción que los productos, y
+asocia la referencia al catálogo correspondiente.
+
+Para almacenes nuevos, el archivo debe indicar la sucursal mediante
+`sucursal_codigo` si hay más de una sucursal activa. Si solo existe
+una, se utiliza esa sucursal. Los nombres muy parecidos a uno existente
+se detienen para revisión y no se duplican automáticamente. Si
+hay nombres ambiguos entre sucursales, también se solicita su código.
+
+En Bayer, la previsualización de cada hoja muestra los almacenes
+existentes, los que se crearán y los errores que impiden importar.
+En Pucchún, los cambios y las posibles altas se confirman juntos:
+un error revierte toda la importación.
+
+**Importante:** asignar un almacén de referencia no incrementa
+ni traslada stock físico Pucchún. El stock del almacén se registra
+en el módulo de inventarios físicos y sigue su propio flujo.
+
+### Plantillas Excel diferenciadas
+
+La plantilla Bayer (`plantilla_productos_bayer.xlsx`) contiene
+`codigo_bayer`, `nombre_bayer`, marca, cantidades y período,
+almacén y sucursal opcionales, así como precios, IGV, descuento y
+fechas comerciales opcionales. Admite hojas de inventario, listas de
+precios y reportes con múltiples pestañas.
+
+La plantilla Pucchún (`plantilla_productos_pucchun.xlsx`) contiene
+el código interno Pucchún, nombre, `unidad_codigo`, categoría,
+marca, estado y almacén/sucursal opcionales. No mezcla precios del
+proveedor Bayer ni registra existencias físicas del almacén.
+
+Ambas plantillas incluyen **Carga** con encabezados destacados y
+**Instrucciones** con descripción, obligatoriedad y ejemplos.
+Los encabezados se identifican aunque aparezcan después de un
+título o cabecera. Los archivos originales Bayer también se aceptan
+sin copiarlos a estas plantillas.
+
 ## Un único Excel para productos, inventario y precios
 
 Desde **Homologaciones Bayer → Productos Bayer → Importar Excel original**, subir
@@ -238,6 +289,7 @@ php tests\unit\bayer_native_preview_test.php
 php tests\integration\bayer_prices_excel_test.php
 php tests\integration\bayer_unified_stock_api_test.php
 php tests\integration\stock_warehouse_filters_test.php
+php tests\integration\excel_warehouse_autocreate_test.php
 php tests\integration\bayer_product_editor_navigation_test.php
 php tests\integration\api_auth_test.php
 php tests\integration\homologations_web_test.php
