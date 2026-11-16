@@ -15,8 +15,19 @@ final class UnifiedStockService
 {
     public function __construct(private ?PDO $pdo=null){$this->pdo??=\db();}
 
-    private static function unifiedSql(): string
+    private function unifiedSql(): string
     {
+        $ledger=(new StockMovementService($this->pdo))->installed();
+        $balance=$ledger
+            ? 'SUM(sd.cantidad)+COALESCE(MAX(mv.delta),0)'
+            : 'SUM(sd.cantidad)';
+        $ledgerJoin=$ledger
+            ? " LEFT JOIN (
+                    SELECT snapshot_id,producto_id,unidad_id,SUM(delta) AS delta
+                    FROM stock_movimientos GROUP BY snapshot_id,producto_id,unidad_id
+                  ) mv ON mv.snapshot_id=sc.id
+                    AND mv.producto_id=sd.producto_id AND mv.unidad_id=sd.unidad_id "
+            : '';
         return "SELECT 'PUCCHUN' AS fuente,p.codigo AS codigo,p.nombre AS producto,
                    COALESCE(u.codigo,'') AS unidad,z.cantidad AS cantidad,
                    DATE_FORMAT(z.ultima_fecha,'%Y-%m-%d') AS periodo,
@@ -30,9 +41,10 @@ final class UnifiedStockService
                 FROM productos p
                 LEFT JOIN (
                     SELECT sd.producto_id,sd.unidad_id,sc.almacen_id,
-                           SUM(sd.cantidad) cantidad,MAX(sc.fecha_stock) ultima_fecha
+                           {$balance} cantidad,MAX(sc.fecha_stock) ultima_fecha
                     FROM stock_cabecera sc
                     JOIN stock_detalle sd ON sd.stock_id=sc.id
+                    {$ledgerJoin}
                     WHERE sc.estado_registro='PUBLICADO'
                       AND NOT EXISTS (
                         SELECT 1 FROM stock_cabecera newer
@@ -85,7 +97,7 @@ final class UnifiedStockService
         if(!in_array($state,['RIESGO','BAJO','SIN_STOCK','SIN_DATO','CON_STOCK'],true))$state='';
         if($warehouse<1)$warehouse=0;
 
-        $base=' FROM ('.self::unifiedSql().') catalogo ';
+        $base=' FROM ('.$this->unifiedSql().') catalogo ';
         $conditions=[];$params=[$low,$low];
         if($source!==''){$conditions[]='catalogo.fuente=?';$params[]=$source;}
         if($warehouse>0){$conditions[]='catalogo.almacen_id=?';$params[]=$warehouse;}
@@ -128,5 +140,53 @@ final class UnifiedStockService
                 'total'=>$total,'pages'=>$pages,'page'=>$page,'perPage'=>$perPage,
                 'filters'=>['fuente'=>$source,'estado'=>$state,'q'=>$q,'bajo'=>$low,
                             'almacen_id'=>$warehouse]];
+    }
+
+    /**
+     * Exportación integral: fuentes independientes, último snapshot Pucchún
+     * ajustado por ventas/guías y reporte mensual Bayer sin mezclar cantidades.
+     * Se conserva una fila por producto/almacén/unidad cuando corresponde.
+     */
+    public function reportRows(array $filters=[]): array
+    {
+        $low=max(1,min(999999,(int)($filters['bajo']??10)));
+        $source=strtoupper(trim((string)($filters['fuente']??'')));
+        $state=strtoupper(trim((string)($filters['estado']??'')));
+        $warehouse=(int)($filters['almacen_id']??0);
+        $q=mb_substr(trim((string)($filters['q']??'')),0,100);
+        $conditions=[];$params=[$low,$low];
+        if(in_array($source,['PUCCHUN','BAYER'],true)){$conditions[]='fuente=?';$params[]=$source;}
+        if(in_array($state,['CON_STOCK','BAJO','SIN_STOCK','SIN_DATO','RIESGO'],true)){
+            $conditions[]='estado=?';$params[]=$state;
+        }
+        if($warehouse>0){$conditions[]='almacen_id=?';$params[]=$warehouse;}
+        if($q!==''){$conditions[]='(codigo LIKE ? OR producto LIKE ?)';
+            array_push($params,'%'.$q.'%','%'.$q.'%');}
+        $sql='SELECT fuente,codigo,producto,unidad,cantidad,periodo,almacen,estado'
+            .' FROM ('.$this->unifiedSql().') inventario'
+            .($conditions?' WHERE '.implode(' AND ',$conditions):'')
+            .' ORDER BY fuente,almacen,codigo,unidad';
+        $st=$this->pdo->prepare($sql);$st->execute($params);
+        $states=[
+            'CON_STOCK'=>'Disponible',
+            'BAJO'=>'Stock bajo',
+            'SIN_STOCK'=>'En cero (0)',
+            'SIN_DATO'=>'Sin reporte',
+            'RIESGO'=>'Negativo / desactivado'
+        ];
+        $rows=[];
+        foreach($st->fetchAll(PDO::FETCH_ASSOC) as $line){
+            $rows[]=[
+                'source'=>$line['fuente']==='BAYER'?'Bayer':'Pucchún',
+                'materialId'=>(string)$line['codigo'],
+                'materialName'=>(string)$line['producto'],
+                'warehouseName'=>(string)$line['almacen'],
+                'measureUnit'=>(string)$line['unidad'],
+                'quantity'=>$line['cantidad']===null?null:(float)$line['cantidad'],
+                'stockDate'=>(string)($line['periodo']??''),
+                'stockStatus'=>$states[$line['estado']]??$line['estado'],
+            ];
+        }
+        return $rows;
     }
 }

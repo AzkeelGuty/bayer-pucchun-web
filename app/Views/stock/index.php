@@ -50,6 +50,13 @@ $totals=[
     </div>
 </section>
 
+<?php if(!($movimientosDisponibles??false)): ?>
+<div class="alert alert-warning d-flex align-items-center gap-2">
+  <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+  <span>Las salidas automáticas de ventas y guías requieren aplicar la migración
+  <strong>017_movimientos_stock_publicados.sql</strong> para activar el kardex.</span>
+</div>
+<?php endif; ?>
 <div class="card mb-3 stock-dashboard">
   <div class="card-body stock-dashboard-body">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">

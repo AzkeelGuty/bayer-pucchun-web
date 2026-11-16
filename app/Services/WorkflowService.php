@@ -37,6 +37,16 @@ final class WorkflowService
                 default => throw new HttpException(422, "Transición no permitida: $from → $target."),
             };
 
+            // Descontar existencias solo al PUBLICAR; revertir únicamente al ANULAR.
+            // La operación comparte la transacción del cambio de estado y auditoría.
+            // El ERP de producción crea instancias nativas PDO. Los dobles de
+            // prueba de workflow no son conexiones a la base de datos.
+            if(in_array($module,['documentos','guias'],true) && get_class($pdo)===\PDO::class){
+                $stock=new StockMovementService($pdo);
+                if($target==='PUBLICADO')$stock->issue($module,$id,$actorId);
+                if($target==='ANULADO')$stock->reverse($module,$id,$actorId);
+            }
+
             if($target==='VALIDADO' || $target==='OBSERVADO'){
                 $st=$pdo->prepare('INSERT INTO validaciones(modulo,registro_id,usuario_id,resultado,observacion,validated_at,version) VALUES(?,?,?,?,?,CURRENT_TIMESTAMP,?)');
                 $st->execute([$module,$id,$actorId,$target,$reason ?: null,$newVersion]);

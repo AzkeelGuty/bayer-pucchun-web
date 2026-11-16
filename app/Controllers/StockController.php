@@ -77,6 +77,7 @@ final class StockController
                 'almacen_id'=>$warehouseId,
             ],15,max(1,(int)\input('stock_pagina',1))),
             'almacenesStock'=>$service->warehouses(),
+            'movimientosDisponibles'=>(new \App\Services\StockMovementService())->installed(),
         ]);
     }
 

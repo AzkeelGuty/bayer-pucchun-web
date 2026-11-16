@@ -14,7 +14,7 @@ $datasets=[
     ],
     'stock'=>[
         'label'=>'Stock',
-        'description'=>'Existencias publicadas por almacén, producto, lote y fecha.',
+        'description'=>'Consolidado Bayer y Pucchún por código, almacén, unidad y estado de existencias.',
         'icon'=>'bi-box-seam',
         'class'=>'stock',
     ],
@@ -43,6 +43,13 @@ $reportPageUrl=static fn(int $page): string => url('/reportes'.($page>1?'?page='
     <div class="published-lock"><i class="bi bi-shield-check me-1"></i> Solo datos publicados</div>
 </section>
 
+<?php if(!($stockMovimientosDisponibles??false)): ?>
+  <div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    El saldo descontado por documentos y guías se activará después de aplicar
+    <strong>017_movimientos_stock_publicados.sql</strong>.
+  </div>
+<?php endif; ?>
 <div class="export-grid export-grid-professional">
 <?php foreach($datasets as $type=>$dataset): ?>
     <article class="card export-card export-card-professional export-card-<?=e($dataset['class'])?>">
@@ -60,23 +67,116 @@ $reportPageUrl=static fn(int $page): string => url('/reportes'.($page>1?'?page='
                 <span>Cada descarga incluye información del responsable y fecha de generación.</span>
             </div>
 
-            <div class="export-actions export-actions-rich" aria-label="Formatos para <?=e($dataset['label'])?>">
-                <?php foreach($formats as $format=>$meta): ?>
-                    <a
-                        class="export-format export-format-<?=e($meta['class'])?>"
-                        href="<?=url('/export?type='.$type.'&format='.$format)?>"
-                        title="Descargar <?=e($dataset['label'])?> en <?=e($meta['label'])?>"
-                        aria-label="Descargar <?=e($dataset['label'])?> en <?=e($meta['label'])?>"
-                    >
+            <?php if($type==='stock'):
+                $stats=$stockReportSummary??[];
+                $indicators=[
+                    ['label'=>'Bayer','count'=>(int)($stats['total_bayer']??0),'icon'=>'bi-box-seam'],
+                    ['label'=>'Pucchún','count'=>(int)($stats['total_pucchun']??0),'icon'=>'bi-building'],
+                    ['label'=>'Disponible','count'=>(int)($stats['disponible']??0),'icon'=>'bi-check-circle-fill'],
+                    ['label'=>'Stock bajo','count'=>(int)($stats['bajo']??0),'icon'=>'bi-exclamation-triangle-fill'],
+                    ['label'=>'En cero','count'=>(int)($stats['cero']??0),'icon'=>'bi-x-circle-fill'],
+                    ['label'=>'Negativo / inactivo','count'=>(int)($stats['riesgo']??0),'icon'=>'bi-exclamation-octagon-fill'],
+                    ['label'=>'Sin reporte','count'=>(int)($stats['sin_dato']??0),'icon'=>'bi-question-circle-fill'],
+                ];
+            ?>
+                <div class="report-stock-stats" aria-label="Indicadores de inventario">
+                  <?php foreach($indicators as $indicator): ?>
+                    <div class="report-stock-stat">
+                      <i class="bi <?=e($indicator['icon'])?>" aria-hidden="true"></i>
+                      <span><?=e($indicator['label'])?></span>
+                      <strong><?=e(number_format($indicator['count']))?></strong>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+                <form method="get" action="<?=url('/export')?>" class="report-stock-export">
+                  <input type="hidden" name="type" value="stock">
+                  <div class="row g-2 mb-3">
+                    <div class="col-6">
+                      <label class="form-label" for="report-stock-source">Origen</label>
+                      <select class="form-select form-select-sm" name="fuente" id="report-stock-source">
+                        <option value="">Bayer y Pucchún</option>
+                        <option value="BAYER">Solo Bayer</option>
+                        <option value="PUCCHUN">Solo Pucchún</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label" for="report-stock-state">Estado</label>
+                      <select class="form-select form-select-sm" name="estado" id="report-stock-state">
+                        <option value="">Todos los estados</option>
+                        <option value="CON_STOCK">Disponible</option>
+                        <option value="BAJO">Stock bajo</option>
+                        <option value="SIN_STOCK">En cero</option>
+                        <option value="RIESGO">Negativo / desactivado</option>
+                        <option value="SIN_DATO">Sin reporte</option>
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="report-stock-warehouse">Almacén</label>
+                      <select class="form-select form-select-sm" name="almacen_id" id="report-stock-warehouse">
+                        <option value="">Todos los almacenes</option>
+                        <?php foreach($stockReportWarehouses??[] as $warehouse): ?>
+                          <option value="<?=e((string)$warehouse['id'])?>"><?=e($warehouse['nombre'])?></option>
+                        <?php endforeach; ?>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="export-actions export-actions-rich" aria-label="Formatos de inventario">
+                    <?php foreach($formats as $format=>$meta): ?>
+                      <button class="export-format export-format-<?=e($meta['class'])?>"
+                        type="submit" name="format" value="<?=e($format)?>"
+                        title="Descargar stock en <?=e($meta['label'])?>">
                         <i class="bi <?=e($meta['icon'])?>" aria-hidden="true"></i>
-                        <span>
-                            <strong><?=e($meta['label'])?></strong>
-                            <small><?=e($meta['detail'])?></small>
-                        </span>
+                        <span><strong><?=e($meta['label'])?></strong><small><?=e($meta['detail'])?></small></span>
                         <i class="bi bi-download export-format-download" aria-hidden="true"></i>
-                    </a>
+                      </button>
+                    <?php endforeach; ?>
+                  </div>
+                </form>
+            <?php else: ?>
+            <form method="get" action="<?=url('/export')?>" class="report-dataset-export">
+              <input type="hidden" name="type" value="<?=e($type)?>">
+              <div class="row g-2 mb-3">
+                <div class="col-12">
+                  <label class="form-label" for="report-query-<?=e($type)?>">
+                    <?= $type==='documents'?'Cliente, comprobante o producto':'Cliente, guía o producto' ?>
+                  </label>
+                  <input class="form-control form-control-sm" id="report-query-<?=e($type)?>"
+                    name="q" type="search" maxlength="100" placeholder="Buscar por inicio del código o nombre">
+                </div>
+                <div class="col-6">
+                  <label class="form-label" for="report-from-<?=e($type)?>">Desde</label>
+                  <input class="form-control form-control-sm" id="report-from-<?=e($type)?>"
+                    name="from" type="date">
+                </div>
+                <div class="col-6">
+                  <label class="form-label" for="report-to-<?=e($type)?>">Hasta</label>
+                  <input class="form-control form-control-sm" id="report-to-<?=e($type)?>"
+                    name="to" type="date">
+                </div>
+                <?php if($type==='documents'): ?>
+                <div class="col-12">
+                  <label class="form-label" for="report-voucher-status">Estado del comprobante</label>
+                  <select class="form-select form-select-sm" id="report-voucher-status" name="document_status">
+                    <option value="">Todos los publicados</option>
+                    <option value="VIGENTE">Vigente</option>
+                    <option value="ANULADO">Anulado</option>
+                  </select>
+                </div>
+                <?php endif; ?>
+              </div>
+              <div class="export-actions export-actions-rich" aria-label="Formatos para <?=e($dataset['label'])?>">
+                <?php foreach($formats as $format=>$meta): ?>
+                  <button type="submit" name="format" value="<?=e($format)?>"
+                    class="export-format export-format-<?=e($meta['class'])?>"
+                    title="Descargar <?=e($dataset['label'])?> en <?=e($meta['label'])?>">
+                    <i class="bi <?=e($meta['icon'])?>" aria-hidden="true"></i>
+                    <span><strong><?=e($meta['label'])?></strong><small><?=e($meta['detail'])?></small></span>
+                    <i class="bi bi-download export-format-download" aria-hidden="true"></i>
+                  </button>
                 <?php endforeach;?>
-            </div>
+              </div>
+            </form>
+            <?php endif; ?>
         </div>
     </article>
 <?php endforeach;?>
