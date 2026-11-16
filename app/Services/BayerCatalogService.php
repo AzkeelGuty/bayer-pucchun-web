@@ -189,6 +189,68 @@ final class BayerCatalogService
         return $id;
     }
 
+
+    /**
+     * Guarda datos del catálogo y, si el formulario trae valores comerciales,
+     * registra el precio de la presentación identificada por codigo_bayer.
+     * La fecha permite actualizar una lista existente o crear otra vigencia.
+     * Una edición de datos generales sin precios no altera precios históricos.
+     */
+    public function saveWithPrice(array $data,?int $id=null): int
+    {
+        if($this->pdo->inTransaction())
+            throw new \LogicException('No se puede iniciar una edición Bayer dentro de otra transacción.');
+
+        $code=trim((string)($data['codigo_bayer']??''));
+        if($id!==null){
+            $current=$this->find($id);
+            if($code!==(string)$current['codigo_bayer'])
+                throw new HttpException(422,'El código Bayer identifica la presentación y no se modifica al editarla.');
+        }
+        $priceInput=[
+            'precio_sin_igv'=>(string)($data['precio_sin_igv']??''),
+            'precio_con_igv'=>(string)($data['precio_con_igv']??''),
+            'precio_igv'=>(string)($data['precio_igv']??''),
+            'precio_descuento'=>(string)($data['precio_descuento']??''),
+            'precio_hasta'=>(string)($data['precio_vigencia_hasta']??''),
+        ];
+        $hasPrice=false;
+        foreach($priceInput as $value){
+            if(trim($value)!==''){$hasPrice=true;break;}
+        }
+        $row=null;
+        if($hasPrice){
+            $row=[
+                'codigo_bayer'=>$code,
+                'nombre_bayer'=>(string)($data['nombre_bayer']??''),
+                'moneda'=>'PEN',
+                'precio_sugerido_sin_igv'=>$priceInput['precio_sin_igv'],
+                'igv_porcentaje'=>$priceInput['precio_igv'],
+                'precio_sugerido_con_igv'=>$priceInput['precio_con_igv'],
+                'descuento_dealer_porcentaje'=>$priceInput['precio_descuento'],
+                'vigencia_desde'=>trim((string)($data['precio_vigencia_desde']??'')),
+                'vigencia_hasta'=>$priceInput['precio_hasta'],
+                'fila'=>'formulario',
+            ];
+            $validation=(new BayerPriceImportService($this->pdo))->validateRows([$row]);
+            if($validation['issues'])
+                throw new HttpException(422,implode(' ',array_slice($validation['issues'],0,2)));
+        }
+
+        $this->pdo->beginTransaction();
+        try{
+            $saved=$this->save($data,$id);
+            if($row!==null)
+                (new BayerPriceImportService($this->pdo))->importRows(
+                    [$row],'Edición manual de Productos Bayer',true);
+            $this->pdo->commit();
+            return $saved;
+        }catch(Throwable $error){
+            if($this->pdo->inTransaction())$this->pdo->rollBack();
+            throw $error;
+        }
+    }
+
     /** Requiere confirmación expresa desde ADMIN; se publica todo el catálogo revisado. */
     public function publishAll(): int
     {
