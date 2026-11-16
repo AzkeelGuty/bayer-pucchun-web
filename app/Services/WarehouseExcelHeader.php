@@ -22,7 +22,7 @@ final class WarehouseExcelHeader
                 'almacen','almacen_nombre','nombre_almacen','nombre_del_almacen',
                 'nombre_de_almacen','almacenamiento','nombre_almacenamiento',
                 'almacen_destino','almacen_origen','almacen_principal',
-                'ubicacion_almacen','ubicacion_de_almacen','ubicacion',
+                'ubicacion_almacen','ubicacion_de_almacen',
                 'warehouse','warehouse_name','warehouse_location',
                 'deposito','nombre_deposito','centro_almacenamiento',
                 'centro_distribucion','almacen_bayer','almacen_pucchun'
