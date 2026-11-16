@@ -104,6 +104,8 @@ final class BayerCatalogService
         if($this->pdo->inTransaction())throw new \LogicException('Hay otra importación en curso.');
         $this->pdo->beginTransaction();$new=0;$updated=0;$snapshots=0;$seen=[];
         try{
+            $warehouses=new WarehouseExcelResolver($this->pdo);
+            $references=new ProductWarehouseService($this->pdo);
             $exists=$this->pdo->prepare('SELECT id FROM bayer_productos_catalogo WHERE codigo_bayer=?');
             $snap=$this->pdo->prepare(
                 'INSERT INTO bayer_inventario_periodos(producto_id,periodo,cantidad,marcador,fuente)
@@ -125,7 +127,8 @@ final class BayerCatalogService
                 if($name===''||mb_strlen($name)>200||mb_strlen($brand)>100)
                     throw new HttpException(422,"Hoja $sheet, fila $line: nombre o marca inválidos.");
                 $period=trim((string)($row['periodo']??''));
-                $stockProvided=($row['tiene_columna_stock']??'0')==='1';
+                $stockProvided=($row['tiene_columna_stock']??'0')==='1' &&
+                    (trim((string)($row['cantidad']??''))!=='' || $period!=='');
                 if($stockProvided && !self::validPeriod($period))
                     throw new HttpException(422,"Hoja $sheet, fila $line: indique mes YYYY-MM para registrar cantidades.");
                 $unique=$code.'|'.($stockProvided?$period:'CATALOGO');
@@ -135,6 +138,14 @@ final class BayerCatalogService
 
                 $exists->execute([$code]);$wasThere=$exists->fetchColumn()!==false;
                 $productId=$this->upsertProduct($code,$name,$brand);
+                if(WarehouseExcelHeader::hasValue($row)){
+                    try{
+                        $warehouseId=$warehouses->resolve(WarehouseExcelHeader::values($row));
+                        if($warehouseId!==null)$references->assign('BAYER',$productId,(string)$warehouseId);
+                    }catch(HttpException $error){
+                        throw new HttpException(422,"Hoja $sheet, fila $line: ".$error->getMessage());
+                    }
+                }
                 if($wasThere)$updated++;else $new++;
 
                 if(!$stockProvided)continue;

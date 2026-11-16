@@ -73,7 +73,7 @@ final class BayerCatalogController
     public function importPage(): void
     {
         \require_role('ADMIN');
-        $preview=null;$selected=0;$stage=null;
+        $preview=null;$selected=0;$stage=null;$warehouseInfo=['new'=>[],'existing'=>[],'errors'=>[]];
         try{
             $previewService=new BayerImportPreviewService();
             $stage=$previewService->current((int)\auth_user()['id']);
@@ -82,6 +82,33 @@ final class BayerCatalogController
                 $raw=$_GET['hoja']??'0';
                 $selected=is_string($raw)&&ctype_digit($raw)?(int)$raw:0;
                 if($selected<0||$selected>=count($preview))$selected=0;
+                if(isset($preview[$selected])){
+                    $selectedSheet=$preview[$selected];
+                    $rows=$previewService->selectedRows(
+                        $stage,$selectedSheet['name'],$selectedSheet['tipo']);
+                    $resolver=new \App\Services\WarehouseExcelResolver();
+                    $seen=[];
+                    foreach(array_merge($rows['inventario'],$rows['precios']) as $record){
+                        if(!\App\Services\WarehouseExcelHeader::hasValue($record))continue;
+                        $values=\App\Services\WarehouseExcelHeader::values($record);
+                        $key=json_encode($values,JSON_UNESCAPED_UNICODE);
+                        if(isset($seen[$key]))continue;
+                        $seen[$key]=true;
+                        try{
+                            $result=$resolver->inspect($values);
+                            if($result['action']==='create')
+                                $warehouseInfo['new'][]=$result['name'];
+                            elseif($result['action']==='existing')
+                                $warehouseInfo['existing'][]=$result['name'];
+                        }catch(HttpException $error){
+                            $warehouseInfo['errors'][]=$error->getMessage();
+                        }
+                    }
+                    $warehouseInfo['new']=array_values(array_unique($warehouseInfo['new']));
+                    $warehouseInfo['existing']=array_values(array_unique($warehouseInfo['existing']));
+                    $warehouseInfo['errors']=array_values(array_unique($warehouseInfo['errors']));
+                }
+
             }
         }catch(Throwable $error){
             \log_event('bayer_preview_render_error',['type'=>get_class($error)]);
@@ -90,7 +117,8 @@ final class BayerCatalogController
             $preview=null;$stage=null;
         }
         \view('bayer_catalog.import',[
-            'preview'=>$preview,'selected'=>$selected,'stage'=>$stage
+            'preview'=>$preview,'selected'=>$selected,'stage'=>$stage,
+            'warehouseInfo'=>$warehouseInfo
         ]);
     }
 
@@ -196,11 +224,20 @@ final class BayerCatalogController
     {
         \require_role('ADMIN');
         (new SimpleXlsxTable())->outputTemplate('Productos e inventario Bayer',[
-            'codigo_bayer'=>['description'=>'Código REAL de Bayer (no es código Pucchún)','example'=>'86216353','required'=>true],
-            'nombre_bayer'=>['description'=>'Producto o presentación Bayer','example'=>'ABACUS EC18 4X4L BOT PE','required'=>true],
-            'marca'=>['description'=>'Marca reportada; opcional','example'=>'ABACUS','required'=>false],
-            'cantidad_unidades'=>['description'=>'Número entero; guion (-) desactiva; vacío significa sin dato','example'=>'','required'=>false],
-            'periodo'=>['description'=>'Periodo para cantidades (YYYY-MM); si no hay stock, opcional','example'=>'2026-09','required'=>false],
+            'codigo_bayer'=>['description'=>'Código oficial Bayer (identificador único de la presentación).','example'=>'86216353','required'=>true],
+            'nombre_bayer'=>['description'=>'Producto y presentación comercial del proveedor.','example'=>'ABACUS EC18 4X4L BOT PE','required'=>true],
+            'marca'=>['description'=>'Marca; opcional.','example'=>'ABACUS','required'=>false],
+            'cantidad_unidades'=>['description'=>'Enteros: 0 = sin stock; - = desactivado; vacío = sin dato si hay período.','example'=>'24','required'=>false],
+            'periodo'=>['description'=>'Mes del reporte YYYY-MM. Requerido al registrar stock.','example'=>'2026-09','required'=>false],
+            'almacen_nombre'=>['description'=>'Nombre completo de almacén en base de datos; si es nuevo, se crea tras validar.','example'=>'Almacén Principal Chincha','required'=>false],
+            'almacen_codigo'=>['description'=>'Código de almacén (opcional).','example'=>'ALM-01','required'=>false],
+            'sucursal_codigo'=>['description'=>'Sucursal donde se creará almacén, cuando haya varias sucursales.','example'=>'SUC-01','required'=>false],
+            'precio_sugerido_sin_igv'=>['description'=>'Precio neto S/ por presentación; no se divide por litros/unidades.','example'=>'207.95','required'=>false],
+            'igv_porcentaje'=>['description'=>'IGV % opcional si se dispone de neto y precio final.','example'=>'18','required'=>false],
+            'precio_sugerido_con_igv'=>['description'=>'Precio final S/ por presentación; opcional.','example'=>'245.38','required'=>false],
+            'descuento_dealer_porcentaje'=>['description'=>'Descuento comercial opcional, porcentaje.','example'=>'8','required'=>false],
+            'vigencia_desde'=>['description'=>'Fecha desde YYYY-MM-DD cuando se importan precios.','example'=>'2026-11-02','required'=>false],
+            'vigencia_hasta'=>['description'=>'Fecha final YYYY-MM-DD si consta en lista; en blanco si no está definida.','example'=>'','required'=>false],
         ],'plantilla_productos_bayer.xlsx');
     }
 

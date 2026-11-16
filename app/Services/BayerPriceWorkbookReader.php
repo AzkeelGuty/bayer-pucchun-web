@@ -163,6 +163,8 @@ final class BayerPriceWorkbookReader
             }
         }
         if($header===null)return null;
+        $warehouseColumns=WarehouseExcelHeader::columns($matrix[$start]??[]);
+        $warehouseMetadata=WarehouseExcelHeader::metadata($matrix,$start);
         $rows=[];
         foreach($matrix as $line=>$cells){
             if((int)$line<=$start)continue;
@@ -179,6 +181,7 @@ final class BayerPriceWorkbookReader
                 'descuento_dealer_porcentaje'=>$get('descuento_dealer_porcentaje'),
                 'vigencia_desde'=>$get('vigencia_desde'),
                 'vigencia_hasta'=>$get('vigencia_hasta'),
+                ...WarehouseExcelHeader::merge($cells,$warehouseColumns,$warehouseMetadata),
                 'fila'=>(string)$line,'hoja'=>$sheet
             ];
             if(count($rows)>self::MAX_ROWS)throw new HttpException(422,'La hoja de precios supera las 10000 filas.');

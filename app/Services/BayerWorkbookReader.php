@@ -93,7 +93,8 @@ final class BayerWorkbookReader
             $period=$row['periodo']??'';
             if($period!=='')$periods[$period]=true;
             $status='SIN_DATO';
-            if(($row['tiene_columna_stock']??'0')==='1'){
+            if(($row['tiene_columna_stock']??'0')==='1' &&
+                (trim((string)($row['cantidad']??''))!=='' || $period!=='')){
                 if(!preg_match('/^20[0-9]{2}-(0[1-9]|1[0-2])$/D',$period))$errors++;
                 try{$status=BayerCatalogService::marker((string)$row['cantidad'])['estado'];}
                 catch(HttpException $error){$errors++;$status='INVALIDO';}
@@ -326,6 +327,8 @@ final class BayerWorkbookReader
             }
         }
         if($columnMap===null)return null;
+        $warehouseColumns=WarehouseExcelHeader::columns($matrix[$headerIndex]??[]);
+        $warehouseMetadata=WarehouseExcelHeader::metadata($matrix,$headerIndex);
         $rows=[];$errors=0;
         $sheetPeriod=null;
         $months=['ENE'=>1,'JAN'=>1,'FEB'=>2,'MAR'=>3,'ABR'=>4,'APR'=>4,'MAY'=>5,'JUN'=>6,'JUL'=>7,'AGO'=>8,'AUG'=>8,'SET'=>9,'SEP'=>9,'OCT'=>10,'NOV'=>11,'DIC'=>12,'DEC'=>12];
@@ -357,6 +360,7 @@ final class BayerWorkbookReader
                 'cantidad'=>$hasStock?$value($columnMap['stockCol']):'',
                 'tiene_columna_stock'=>$hasStock?'1':'0',
                 'periodo'=>$period??'',
+                ...WarehouseExcelHeader::merge($cells,$warehouseColumns,$warehouseMetadata),
                 'hoja'=>$sheetName,
                 'fila'=>(string)$index,
             ];

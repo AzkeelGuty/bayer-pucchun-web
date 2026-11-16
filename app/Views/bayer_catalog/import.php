@@ -41,6 +41,7 @@ $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=
  <p class="small text-muted mt-3 mb-0">
    Detecta automáticamente las cabeceras, incluso en filas inferiores y en múltiples pestañas.
    Reconoce CÓDIGO, PRODUCTO / PRESENTACIÓN, CANTIDAD / UNIDADES y columnas de precios.
+   También reconoce almacén y sucursal en columnas o en el encabezado superior de la hoja.
    El IGV no requiere una columna cuando es posible deducirlo de los dos importes.
    El mes y la fecha alternativos solo se utilizan si no aparecen en el archivo.
  </p>
@@ -81,6 +82,12 @@ $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=
   <?php if(!empty($sheet['precios'])): ?>
    <span class="badge bg-info text-dark">Precios: <?=e((string)$sheet['precios'])?></span>
   <?php endif; ?>
+  <?php if(!empty($warehouseInfo['existing'])): ?>
+    <span class="badge bg-success">Almacenes existentes: <?=e((string)count($warehouseInfo['existing']))?></span>
+  <?php endif; ?>
+  <?php if(!empty($warehouseInfo['new'])): ?>
+    <span class="badge bg-info text-dark">Almacenes nuevos: <?=e((string)count($warehouseInfo['new']))?></span>
+  <?php endif; ?>
   <?php if(!empty($sheet['periods'])): ?>
    <span class="badge bg-secondary">Mes: <?=e(implode(', ',$sheet['periods']))?></span>
   <?php endif; ?>
@@ -89,18 +96,39 @@ $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=
   <?php endforeach; ?>
  </div>
 
+ <?php if(!empty($warehouseInfo['new']) || !empty($warehouseInfo['existing'])): ?>
+  <div class="alert alert-info" role="status">
+    <strong><i class="bi bi-building" aria-hidden="true"></i> Almacenes identificados</strong>
+    <?php if(!empty($warehouseInfo['existing'])): ?>
+      <p class="mb-1">Existentes: <?=e(implode(', ',array_slice($warehouseInfo['existing'],0,12)))?></p>
+    <?php endif; ?>
+    <?php if(!empty($warehouseInfo['new'])): ?>
+      <p class="mb-0">Se crearán al confirmar: <?=e(implode(', ',array_slice($warehouseInfo['new'],0,12)))?></p>
+    <?php endif; ?>
+  </div>
+ <?php endif; ?>
+ <?php if(!empty($warehouseInfo['errors'])): ?>
+  <div class="alert alert-warning" role="alert">
+    <strong>Revise los nombres de almacén o la sucursal:</strong>
+    <ul class="mb-0"><?php foreach(array_slice($warehouseInfo['errors'],0,10) as $issue): ?>
+      <li><?=e($issue)?></li>
+    <?php endforeach; ?></ul>
+  </div>
+ <?php endif; ?>
+
  <?php if($sheet['tipo']!=='PRECIOS'): ?>
  <h3 class="h6">Vista previa de productos e inventario</h3>
  <div class="table-responsive mb-3">
   <table class="table table-sm table-striped align-middle">
    <thead><tr><th>Fila</th><th>Código Bayer</th><th>Producto / presentación</th>
-    <th>Marca</th><th>Período</th><th class="text-end">Cantidad</th><th>Estado</th></tr></thead>
+    <th>Marca</th><th>Almacén</th><th>Período</th><th class="text-end">Cantidad</th><th>Estado</th></tr></thead>
    <tbody>
    <?php foreach($sheet['sample'] as $r): ?>
     <tr>
      <td><?=e((string)($r['fila']??''))?></td>
      <td><?=e($r['codigo_bayer'])?></td><td><?=e($r['nombre_bayer'])?></td>
      <td><?=e($r['marca']??'')?></td>
+     <td><?=e($r['almacen_nombre']??'')?></td>
      <td><?=e($r['periodo']??'')?></td>
      <td class="text-end"><?=e($r['cantidad']??'')?></td>
      <td><?=e($labels[$r['estado_previo']??'']??'Sin reporte')?></td>
@@ -115,12 +143,13 @@ $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=
  <h3 class="h6">Vista previa de precios por código Bayer</h3>
  <div class="table-responsive">
   <table class="table table-sm table-striped align-middle">
-   <thead><tr><th>Código Bayer</th><th>Presentación</th><th>Vigencia desde</th>
+   <thead><tr><th>Código Bayer</th><th>Presentación</th><th>Almacén</th><th>Vigencia desde</th>
     <th class="text-end">Sin IGV</th><th>IGV</th><th class="text-end">Con IGV</th></tr></thead>
    <tbody>
    <?php foreach($sheet['priceSample'] as $r): ?>
     <tr>
      <td><?=e($r['codigo_bayer'])?></td><td><?=e($r['nombre_bayer'])?></td>
+     <td><?=e($r['almacen_nombre']??'')?></td>
      <td><?=e($r['vigencia_desde'])?></td>
      <td class="text-end"><?=e($r['precio_sugerido_sin_igv'])?></td>
      <td><?=e($r['igv_porcentaje']?:'Calculado')?></td>
@@ -136,9 +165,9 @@ $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=
 
 <div class="card mb-3"><div class="card-body p-4">
  <h2 class="h5 mb-3"><span class="badge bg-primary">3</span> Importar pestaña seleccionada</h2>
- <?php if($sheet['errors']>0): ?>
+ <?php if($sheet['errors']>0 || !empty($warehouseInfo['errors'])): ?>
   <div class="alert alert-warning mb-0" role="alert">
-   Se encontraron <?=e((string)$sheet['errors'])?> inconsistencias. Corrige los datos y analiza nuevamente.
+   Se encontraron <?=e((string)$sheet['errors'])?> inconsistencias. Corrige los datos, almacenes o sucursales y analiza nuevamente.
    <?php if(!empty($sheet['priceIssues'])): ?>
     <ul class="mb-0"><?php foreach($sheet['priceIssues'] as $issue): ?><li><?=e($issue)?></li><?php endforeach; ?></ul>
    <?php endif; ?>

@@ -56,6 +56,9 @@ final class MasterCatalogService
                     'unidad_codigo'=>['description'=>'Código de unidad ya registrada','example'=>'NIU','required'=>true],
                     'categoria'=>['description'=>'Categoría; se crea si aún no existe','example'=>'Agrícola','required'=>false],
                     'marca'=>['description'=>'Marca; se crea si aún no existe','example'=>'Bayer','required'=>false],
+                    'almacen_nombre'=>['description'=>'Nombre exacto del almacén. Se reutiliza o crea si no existe; opcional','example'=>'Almacén Principal Chincha','required'=>false],
+                    'almacen_codigo'=>['description'=>'Código de almacén. Opcional: se genera al crear uno nuevo','example'=>'ALM-01','required'=>false],
+                    'sucursal_codigo'=>['description'=>'Sucursal del almacén nuevo; necesaria si hay varias sucursales','example'=>'SUC-01','required'=>false],
                     'estado'=>['description'=>'1 activo / 0 inactivo','example'=>'1','required'=>false],
                 ],
             ],
@@ -355,13 +358,19 @@ final class MasterCatalogService
                 if(!$hasValue) continue;
 
                 foreach($expected as $column){
-                    if(!array_key_exists($column,$row)){
-                        throw new HttpException(422,"Falta la columna '$column' en el archivo.");
+                    if(($definition['import'][$column]['required']??false) &&
+                        !array_key_exists($column,$row)){
+                        throw new HttpException(422,"Falta la columna obligatoria '$column' en el archivo.");
                     }
                 }
 
                 $payload=$this->importPayload($tab,$row,$line);
                 $existing=$this->findExistingForImport($tab,$payload,$row);
+                if($tab==='productos' && WarehouseExcelHeader::hasValue($row)){
+                    $warehouse=(new WarehouseExcelResolver($this->pdo))
+                        ->resolve(WarehouseExcelHeader::values($row));
+                    if($warehouse!==null)$payload['almacen_referencia_id']=(string)$warehouse;
+                }
                 $this->save($tab,$payload,$existing);
                 if($existing===null) $inserted++; else $updated++;
             }

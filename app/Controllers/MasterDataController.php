@@ -114,7 +114,7 @@ final class MasterDataController
         $tab=$this->tab();
         $this->service->assertReady($tab);
         try{
-            $rows=(new SimpleXlsxTable())->readUpload($_FILES['excel']??[]);
+            $rows=(new SimpleXlsxTable())->readUpload($_FILES['excel']??[], $this->service->definition($tab)['import']);
             $result=$this->service->importRows($tab,$rows);
             \audit('maestros','importar_'.$tab);
             \flash('success',$result['total'].' filas procesadas: '.$result['inserted'].' nuevas y '.$result['updated'].' actualizadas.');

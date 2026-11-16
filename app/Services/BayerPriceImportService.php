@@ -108,6 +108,7 @@ final class BayerPriceImportService
                     'precio_sugerido_con_igv'=>number_format((float)$gross,2,'.',''),
                     'descuento_dealer_porcentaje'=>$discount===null?null:number_format((float)$discount,2,'.',''),
                     'vigencia_desde'=>$start,'vigencia_hasta'=>$end===''?null:$end,
+                    ...WarehouseExcelHeader::values($row),
                 ];
             }catch(HttpException $exception){
                 $issues[]='Fila '.$line.': '.$exception->getMessage();
@@ -152,6 +153,8 @@ final class BayerPriceImportService
             if($this->pdo->inTransaction())throw new \LogicException('Transacción de importación en curso.');
             $this->pdo->beginTransaction();
         }
+        $warehouseResolver=new WarehouseExcelResolver($this->pdo);
+        $warehouseRefs=new ProductWarehouseService($this->pdo);
         $inserted=0;$updated=0;$unchanged=0;
         try{
             $lookup=$this->pdo->prepare('SELECT id FROM bayer_productos_catalogo
@@ -174,6 +177,11 @@ final class BayerPriceImportService
                 $id=$lookup->fetchColumn();
                 if($id===false)
                     throw new HttpException(422,'Código Bayer desconocido: '.$row['codigo_bayer']);
+                if(WarehouseExcelHeader::hasValue($row)){
+                    $warehouseId=$warehouseResolver->resolve(WarehouseExcelHeader::values($row));
+                    if($warehouseId!==null)
+                        $warehouseRefs->assign('BAYER',(int)$id,(string)$warehouseId);
+                }
                 $find->execute([(int)$id,$row['vigencia_desde']]);
                 $old=$find->fetch(PDO::FETCH_ASSOC);
                 $fields=[
