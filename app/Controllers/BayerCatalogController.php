@@ -73,7 +73,7 @@ final class BayerCatalogController
     public function importPage(): void
     {
         \require_role('ADMIN');
-        $preview=null;$selected=0;$stage=null;
+        $preview=null;$selected=0;$stage=null;$warehouseInfo=['new'=>[],'existing'=>[],'errors'=>[]];
         try{
             $previewService=new BayerImportPreviewService();
             $stage=$previewService->current((int)\auth_user()['id']);
@@ -82,6 +82,33 @@ final class BayerCatalogController
                 $raw=$_GET['hoja']??'0';
                 $selected=is_string($raw)&&ctype_digit($raw)?(int)$raw:0;
                 if($selected<0||$selected>=count($preview))$selected=0;
+                if(isset($preview[$selected])){
+                    $selectedSheet=$preview[$selected];
+                    $rows=$previewService->selectedRows(
+                        $stage,$selectedSheet['name'],$selectedSheet['tipo']);
+                    $resolver=new \App\Services\WarehouseExcelResolver();
+                    $seen=[];
+                    foreach(array_merge($rows['inventario'],$rows['precios']) as $record){
+                        if(!\App\Services\WarehouseExcelHeader::hasValue($record))continue;
+                        $values=\App\Services\WarehouseExcelHeader::values($record);
+                        $key=json_encode($values,JSON_UNESCAPED_UNICODE);
+                        if(isset($seen[$key]))continue;
+                        $seen[$key]=true;
+                        try{
+                            $result=$resolver->inspect($values);
+                            if($result['action']==='create')
+                                $warehouseInfo['new'][]=$result['name'];
+                            elseif($result['action']==='existing')
+                                $warehouseInfo['existing'][]=$result['name'];
+                        }catch(HttpException $error){
+                            $warehouseInfo['errors'][]=$error->getMessage();
+                        }
+                    }
+                    $warehouseInfo['new']=array_values(array_unique($warehouseInfo['new']));
+                    $warehouseInfo['existing']=array_values(array_unique($warehouseInfo['existing']));
+                    $warehouseInfo['errors']=array_values(array_unique($warehouseInfo['errors']));
+                }
+
             }
         }catch(Throwable $error){
             \log_event('bayer_preview_render_error',['type'=>get_class($error)]);
@@ -90,7 +117,8 @@ final class BayerCatalogController
             $preview=null;$stage=null;
         }
         \view('bayer_catalog.import',[
-            'preview'=>$preview,'selected'=>$selected,'stage'=>$stage
+            'preview'=>$preview,'selected'=>$selected,'stage'=>$stage,
+            'warehouseInfo'=>$warehouseInfo
         ]);
     }
 
