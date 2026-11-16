@@ -1375,3 +1375,61 @@ input[data-internal-number],#guide-number[readonly]{
     .btn.btn-app-action{transition:none}
     .btn.btn-app-action:hover:not(:disabled){transform:none}
 }
+
+
+/* Navegación uniforme de retorno en todos los apartados administrativos. */
+.module-header.has-back-navigation,
+.page-header.has-back-navigation{
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    align-items:flex-start;
+    gap:12px;
+}
+.module-header.has-back-navigation > .btn-back-list,
+.page-header.has-back-navigation > .btn-back-list{
+    order:-1;
+    align-self:flex-start;
+    width:auto;
+    max-width:100%;
+}
+.app-main .btn.btn-back-list,
+.document-form-page .btn.btn-back-list{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    min-height:40px;
+    padding:9px 16px;
+    background:var(--bp-blue);
+    border:1px solid var(--bp-blue);
+    color:#fff!important;
+    border-radius:10px;
+    font-size:.9rem;
+    font-weight:750;
+    white-space:normal;
+    opacity:1;
+    box-shadow:0 3px 9px rgba(3,45,79,.12);
+}
+.app-main .btn.btn-back-list:hover,
+.document-form-page .btn.btn-back-list:hover{
+    background:var(--bp-navy);
+    border-color:var(--bp-navy);
+    color:#fff!important;
+    box-shadow:0 5px 14px rgba(3,45,79,.18);
+}
+.btn-back-list .bi{
+    display:inline-block;
+    line-height:1;
+    flex-shrink:0;
+}
+.btn-back-list:focus-visible{
+    outline:3px solid #8acbff;
+    outline-offset:3px;
+}
+@media(max-width:575.98px){
+    .module-header.has-back-navigation > .btn-back-list,
+    .page-header.has-back-navigation > .btn-back-list{
+        width:auto;
+    }
+}

@@ -16,13 +16,13 @@ $lookupDistritos=e(url('/lookups?type=distritos'));
 $lookupProductos=e(url('/lookups?type=productos'));
 ?>
 <link rel="stylesheet" href="<?=asset_url('assets/css/commercial-totals.css')?>">
-<section class="module-header">
+<section class="module-header has-back-navigation">
     <div>
         <div class="page-eyebrow">GUÍAS · <?= $editing ? 'EDICIÓN' : 'CAPTURA' ?></div>
         <h1 class="page-title"><?= $correcting ? 'Corregir guía' : ($editing ? 'Editar borrador' : 'Nueva guía') ?></h1>
         <p class="page-subtitle">Selecciona los catálogos y agrega los productos de la guía.</p>
     </div>
-    <a class="btn btn-outline-primary" href="<?= url('/guias') ?>">Volver al listado</a>
+    <a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?= url('/guias') ?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a>
 </section>
 
 <form method="post" action="<?= url($editing ? '/guias/actualizar' : '/guias/guardar') ?>" class="card">

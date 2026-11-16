@@ -1,6 +1,6 @@
-<section class="module-header"><div><div class="page-eyebrow">PRODUCTOS BAYER</div>
+<section class="module-header has-back-navigation"><div><div class="page-eyebrow">PRODUCTOS BAYER</div>
 <h1 class="page-title">Eliminar definitivamente</h1></div>
-<a class="btn btn-outline-primary" href="<?=url('/homologaciones?tab=productos')?>">Cancelar</a></section>
+<a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?=url('/homologaciones?tab=productos')?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a></section>
 <div class="card"><div class="card-body p-4">
  <p>Producto: <strong><?=e($product['nombre_bayer'])?></strong> · código <strong><?=e($product['codigo_bayer'])?></strong></p>
  <p class="text-danger fw-semibold">Eliminar este registro también borrará sus históricos de stock y precios Bayer. Los datos de Pucchún no se modificarán.</p>

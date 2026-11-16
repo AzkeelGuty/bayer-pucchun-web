@@ -189,6 +189,118 @@ final class BayerCatalogService
         return $id;
     }
 
+
+    /**
+     * Guarda datos del catálogo y, si el formulario trae valores comerciales,
+     * registra el precio de la presentación identificada por codigo_bayer.
+     * La fecha permite actualizar una lista existente o crear otra vigencia.
+     * Una edición de datos generales sin precios no altera precios históricos.
+     */
+    public function saveWithPrice(array $data,?int $id=null): int
+    {
+        if($this->pdo->inTransaction())
+            throw new \LogicException('No se puede iniciar una edición Bayer dentro de otra transacción.');
+
+        $code=trim((string)($data['codigo_bayer']??''));
+        if($id!==null){
+            $current=$this->find($id);
+            if($code!==(string)$current['codigo_bayer'])
+                throw new HttpException(422,'El código Bayer identifica la presentación y no se modifica al editarla.');
+        }
+        $priceInput=[
+            'precio_sin_igv'=>(string)($data['precio_sin_igv']??''),
+            'precio_con_igv'=>(string)($data['precio_con_igv']??''),
+            'precio_igv'=>(string)($data['precio_igv']??''),
+            'precio_descuento'=>(string)($data['precio_descuento']??''),
+            'precio_hasta'=>(string)($data['precio_vigencia_hasta']??''),
+        ];
+        $hasPrice=false;
+        foreach($priceInput as $value){
+            if(trim($value)!==''){$hasPrice=true;break;}
+        }
+        $row=null;
+        if($hasPrice){
+            $row=[
+                'codigo_bayer'=>$code,
+                'nombre_bayer'=>(string)($data['nombre_bayer']??''),
+                'moneda'=>'PEN',
+                'precio_sugerido_sin_igv'=>$priceInput['precio_sin_igv'],
+                'igv_porcentaje'=>$priceInput['precio_igv'],
+                'precio_sugerido_con_igv'=>$priceInput['precio_con_igv'],
+                'descuento_dealer_porcentaje'=>$priceInput['precio_descuento'],
+                'vigencia_desde'=>trim((string)($data['precio_vigencia_desde']??'')),
+                'vigencia_hasta'=>$priceInput['precio_hasta'],
+                'fila'=>'formulario',
+            ];
+            $validation=(new BayerPriceImportService($this->pdo))->validateRows([$row]);
+            if($validation['issues'])
+                throw new HttpException(422,implode(' ',array_slice($validation['issues'],0,2)));
+        }
+
+        $stockAction=strtoupper(trim((string)($data['inventario_accion']??'SIN_CAMBIOS')));
+        $stockUpdate=null;
+        if($stockAction!=='SIN_CAMBIOS'){
+            if(!in_array($stockAction,['CANTIDAD','SIN_DATO','DESACTIVADO'],true))
+                throw new HttpException(422,'Acción de inventario Bayer no reconocida.');
+            $period=trim((string)($data['inventario_periodo']??''));
+            if(!self::validPeriod($period))
+                throw new HttpException(422,'Seleccione un mes de inventario válido (YYYY-MM).');
+            $raw=match($stockAction){
+                'CANTIDAD'=>trim((string)($data['inventario_cantidad']??'')),
+                'SIN_DATO'=>'',
+                'DESACTIVADO'=>'-',
+            };
+            if($stockAction==='CANTIDAD' && $raw==='')
+                throw new HttpException(422,'Para actualizar stock indique una cantidad, incluido 0.');
+            $stockUpdate=['periodo'=>$period,'data'=>self::marker($raw)];
+        }
+
+        $this->pdo->beginTransaction();
+        try{
+            $saved=$this->save($data,$id);
+            if($stockUpdate!==null){
+                $entry=$stockUpdate['data'];
+                $snap=$this->pdo->prepare(
+                    'INSERT INTO bayer_inventario_periodos
+                     (producto_id,periodo,cantidad,marcador,fuente) VALUES(?,?,?,?,?)
+                     ON DUPLICATE KEY UPDATE
+                       cantidad=VALUES(cantidad),marcador=VALUES(marcador),
+                       fuente=VALUES(fuente),registrado_en=NOW()'
+                );
+                $snap->execute([
+                    $saved,$stockUpdate['periodo'],$entry['cantidad'],
+                    $entry['marcador'],'Edición manual de Productos Bayer'
+                ]);
+                $current=$this->pdo->prepare(
+                    'SELECT stock_periodo FROM bayer_productos_catalogo WHERE id=? FOR UPDATE'
+                );
+                $current->execute([$saved]);
+                $last=$current->fetchColumn();
+                if($last===false||$last===null||
+                    (string)$last<=$stockUpdate['periodo']){
+                    $active=$entry['marcador']==='GUION'?'INACTIVO':'ACTIVO';
+                    $refresh=$this->pdo->prepare(
+                        'UPDATE bayer_productos_catalogo
+                         SET stock_reportado=?,stock_periodo=?,stock_estado=?,
+                             estado_catalogo=?,publicado=? WHERE id=?'
+                    );
+                    $refresh->execute([
+                        $entry['cantidad'],$stockUpdate['periodo'],$entry['estado'],
+                        $active,$active==='ACTIVO'?1:0,$saved
+                    ]);
+                }
+            }
+            if($row!==null)
+                (new BayerPriceImportService($this->pdo))->importRows(
+                    [$row],'Edición manual de Productos Bayer',true);
+            $this->pdo->commit();
+            return $saved;
+        }catch(Throwable $error){
+            if($this->pdo->inTransaction())$this->pdo->rollBack();
+            throw $error;
+        }
+    }
+
     /** Requiere confirmación expresa desde ADMIN; se publica todo el catálogo revisado. */
     public function publishAll(): int
     {

@@ -11,13 +11,13 @@ $lookupAlmacenes=e(url('/lookups?type=almacenes'));
 $lookupProductos=e(url('/lookups?type=productos'));
 $lookupLotes=e(url('/lookups?type=lotes'));
 ?>
-<section class="module-header">
+<section class="module-header has-back-navigation">
     <div>
         <div class="page-eyebrow">STOCK · <?= $editing ? 'EDICIÓN' : 'CAPTURA' ?></div>
         <h1 class="page-title"><?= $correcting ? 'Corregir stock' : ($editing ? 'Editar borrador' : 'Nuevo stock') ?></h1>
         <p class="page-subtitle">Selecciona los catálogos y agrega los productos del stock.</p>
     </div>
-    <a class="btn btn-outline-primary" href="<?= url('/stock') ?>">Volver al listado</a>
+    <a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?= url('/stock') ?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a>
 </section>
 
 <form method="post" action="<?= url($editing ? '/stock/actualizar' : '/stock/guardar') ?>" class="card">

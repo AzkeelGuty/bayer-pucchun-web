@@ -1,10 +1,11 @@
 <?php $h = $record['header']; ?>
+<div class="mb-3"><a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?= url('/stock') ?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a></div>
 <div class="d-flex justify-content-between align-items-center">
     <h2>Stock #<?= e($h['id']) ?></h2>
     <?= estado_badge($h['estado_registro']) ?>
 </div>
 <p class="d-flex gap-2">
-    <a class="btn btn-outline-primary btn-with-icon" href="<?= url('/stock') ?>"><i class="bi bi-arrow-left"></i><span>Volver al listado</span></a>
+    
     <?php if (has_role('ADMIN', 'DIGITADOR') && in_array($h['estado_registro'], ['BORRADOR','OBSERVADO'], true)): ?>
         <a class="btn btn-outline-primary btn-with-icon" href="<?= url('/stock/editar?id=' . $h['id']) ?>"><i class="bi bi-pencil-square"></i><span><?= $h['estado_registro']==='OBSERVADO' ? 'Corregir' : 'Editar' ?></span></a>
     <?php endif; ?>

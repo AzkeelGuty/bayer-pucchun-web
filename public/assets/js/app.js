@@ -632,3 +632,44 @@ document.addEventListener('change', (event) => {
     if (typeof form.requestSubmit === 'function') form.requestSubmit();
     else form.submit();
 });
+
+
+// Edición manual de precios Bayer: cálculos de apoyo, sin determinar la tasa
+// tributaria por defecto. El servidor siempre valida los importes guardados.
+document.addEventListener('input', (event) => {
+    const field=event.target;
+    const form=field?.closest?.('[data-bayer-price-editor]');
+    if (!form) return;
+    if (!['bayer-precio-neto','bayer-precio-igv','bayer-precio-final'].includes(field.id)) return;
+    const net=form.querySelector('#bayer-precio-neto');
+    const vat=form.querySelector('#bayer-precio-igv');
+    const gross=form.querySelector('#bayer-precio-final');
+    if (!net || !vat || !gross) return;
+    const rate=vat.value.trim()==='' ? NaN : Number(vat.value);
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100) return;
+    if (field===gross) {
+        if (gross.value.trim()==='') return;
+        const amount=Number(gross.value);
+        if (Number.isFinite(amount) && amount>=0)
+            net.value=(amount/(1+rate/100)).toFixed(2);
+        return;
+    }
+    if (net.value.trim()==='') return;
+    const amount=Number(net.value);
+    if (Number.isFinite(amount) && amount>=0)
+        gross.value=(amount*(1+rate/100)).toFixed(2);
+});
+
+
+// Cantidad Bayer: solo es obligatoria cuando se elige registrar una cifra.
+document.addEventListener('change',(event)=>{
+    const select=event.target?.closest?.('[data-bayer-stock-action]');
+    if(!select)return;
+    const form=select.closest('form');
+    const wrap=form?.querySelector('[data-bayer-stock-qty-wrap]');
+    const amount=wrap?.querySelector('[name="inventario_cantidad"]');
+    if(!wrap||!amount)return;
+    const numeric=select.value==='CANTIDAD';
+    wrap.hidden=!numeric;
+    amount.required=numeric;
+});
