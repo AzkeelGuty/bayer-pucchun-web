@@ -7,82 +7,130 @@ use App\Exceptions\HttpException;
 
 final class SimpleXlsxTable
 {
-    public function readUpload(array $file): array
+    public function readUpload(array $file,array $expected=[]): array
     {
-        if(!isset($file['error']) || (int)$file['error']!==UPLOAD_ERR_OK) throw new HttpException(422,'Seleccione un archivo XLSX válido.');
-        if((int)($file['size']??0)<1 || (int)$file['size']>8*1024*1024) throw new HttpException(422,'El Excel debe pesar entre 1 byte y 8 MB.');
+        if(!isset($file['error']) || (int)$file['error']!==UPLOAD_ERR_OK)
+            throw new HttpException(422,'Seleccione un archivo XLSX válido.');
+        if((int)($file['size']??0)<1 || (int)$file['size']>8*1024*1024)
+            throw new HttpException(422,'El Excel debe pesar entre 1 byte y 8 MB.');
         $name=(string)($file['name']??'');
-        if(strtolower(pathinfo($name,PATHINFO_EXTENSION))!=='xlsx') throw new HttpException(422,'Formato no permitido. Use un archivo .xlsx.');
+        if(strtolower(pathinfo($name,PATHINFO_EXTENSION))!=='xlsx')
+            throw new HttpException(422,'Formato no permitido. Use un archivo .xlsx.');
         $tmp=(string)($file['tmp_name']??'');
-        if($tmp==='' || !is_uploaded_file($tmp)) throw new HttpException(422,'El archivo cargado no es válido.');
-        return $this->readFile($tmp);
+        if($tmp==='' || !is_uploaded_file($tmp))
+            throw new HttpException(422,'El archivo cargado no es válido.');
+        return $this->readFile($tmp,$expected);
     }
 
-    public function readFile(string $path): array
+    /**
+     * Cabeceras en las primeras 30 filas y metadatos de almacén por encima
+     * de la tabla. Las hojas de instrucciones nunca se importan.
+     */
+    public function readFile(string $path,array $expected=[]): array
     {
-        if(!class_exists('ZipArchive')) throw new HttpException(500,'ZipArchive es necesario para leer Excel.');
+        if(!class_exists('ZipArchive'))
+            throw new HttpException(500,'ZipArchive es necesario para leer Excel.');
         $zip=new \ZipArchive();
-        if($zip->open($path)!==true) throw new HttpException(422,'No se pudo abrir el archivo XLSX.');
-
+        if($zip->open($path)!==true)
+            throw new HttpException(422,'No se pudo abrir el archivo XLSX.');
         try{
             $shared=[];
             $sharedXml=$zip->getFromName('xl/sharedStrings.xml');
             if(is_string($sharedXml)){
-                $dom=$this->xml($sharedXml);
-                $xp=new \DOMXPath($dom);
+                $dom=$this->xml($sharedXml);$xp=new \DOMXPath($dom);
                 $xp->registerNamespace('m','http://schemas.openxmlformats.org/spreadsheetml/2006/main');
                 foreach($xp->query('//m:si') as $si){
-                    $value='';
-                    foreach($xp->query('.//m:t',$si) as $t) $value.=$t->textContent;
-                    $shared[]=$value;
+                    $v='';
+                    foreach($xp->query('.//m:t',$si) as $t)$v.=$t->textContent;
+                    $shared[]=$v;
                 }
             }
-
             $sheet=$zip->getFromName('xl/worksheets/sheet1.xml');
-            if(!is_string($sheet)) throw new HttpException(422,'El XLSX no contiene la hoja de carga esperada.');
-            $dom=$this->xml($sheet);
-            $xp=new \DOMXPath($dom);
+            if(!is_string($sheet))throw new HttpException(422,'El XLSX no contiene hoja de carga.');
+            if(strlen($sheet)>45*1024*1024)throw new HttpException(422,'Excel demasiado extenso.');
+            $dom=$this->xml($sheet);$xp=new \DOMXPath($dom);
             $xp->registerNamespace('m','http://schemas.openxmlformats.org/spreadsheetml/2006/main');
             $matrix=[];
-            foreach($xp->query('//m:sheetData/m:row') as $row){
+            foreach($xp->query('//m:sheetData/m:row') as $node){
+                $index=(int)$node->getAttribute('r');
                 $cells=[];
-                foreach($xp->query('./m:c',$row) as $cell){
-                    $ref=$cell->attributes?->getNamedItem('r')?->nodeValue ?? '';
-                    if(!preg_match('/^([A-Z]+)\d+$/',$ref,$m)) continue;
-                    $index=$this->columnIndex($m[1]);
-                    $type=$cell->attributes?->getNamedItem('t')?->nodeValue ?? '';
-                    $value='';
+                foreach($xp->query('./m:c',$node) as $cell){
+                    $ref=$cell->getAttribute('r');
+                    if(!preg_match('/^([A-Z]+)\d+$/D',$ref,$match))continue;
+                    $col=$this->columnIndex($match[1]);
+                    if($col>150)continue;
+                    $type=$cell->getAttribute('t');
+                    $v='';
                     if($type==='inlineStr'){
-                        foreach($xp->query('.//m:is/m:t',$cell) as $t) $value.=$t->textContent;
+                        foreach($xp->query('.//m:is//m:t',$cell) as $t)$v.=$t->textContent;
                     }else{
-                        $v=$xp->query('./m:v',$cell)->item(0)?->textContent ?? '';
-                        $value=$type==='s' ? ($shared[(int)$v]??'') : $v;
+                        $raw=(string)($xp->query('./m:v',$cell)->item(0)?->textContent??'');
+                        $v=$type==='s'?($shared[(int)$raw]??''):$raw;
                     }
-                    $cells[$index]=trim((string)$value);
+                    $cells[$col]=trim((string)$v);
                 }
-                if($cells) $matrix[]=$cells;
+                if($cells)$matrix[$index]=$cells;
             }
-        }finally{
-            $zip->close();
+        }finally{$zip->close();}
+        if(!$matrix)throw new HttpException(422,'La hoja de carga está vacía.');
+        $headers=[];$headerIndex=null;
+        $mandatory=[];
+        foreach($expected as $key=>$settings)
+            if(!empty($settings['required']))$mandatory[]=$key;
+        $aliases=WarehouseExcelHeader::fields();
+        foreach($matrix as $index=>$cells){
+            if((int)$index>30)break;
+            $candidate=[];
+            foreach($cells as $col=>$raw){
+                $key=$this->normalizeHeader((string)$raw);
+                foreach($aliases as $field=>$names){
+                    if(in_array($key,$names,true)){$key=$field;break;}
+                }
+                if($key!=='')$candidate[$col]=$key;
+            }
+            if(!$candidate)continue;
+            $values=array_values($candidate);
+            if($expected){
+                if(array_diff($mandatory,$values))continue;
+                if(count(array_intersect(array_keys($expected),$values))<count($mandatory))continue;
+            }
+            // Con metadatos, omitir filas informativas que accidentalmente se parecen.
+            if(count($candidate)<2)continue;
+            if(count(array_unique($values))!==count($values))
+                throw new HttpException(422,'El Excel contiene encabezados duplicados.');
+            $headers=$candidate;$headerIndex=(int)$index;break;
         }
+        if($headerIndex===null)
+            throw new HttpException(422,'No se reconocieron los encabezados obligatorios de la hoja de carga.');
 
-        if(!$matrix) throw new HttpException(422,'La hoja de carga está vacía.');
-        $headerRow=array_shift($matrix);
-        $max=max(array_keys($headerRow));
-        $headers=[];
-        for($i=1;$i<=$max;$i++){
-            $header=$this->normalizeHeader((string)($headerRow[$i]??''));
-            if($header==='') throw new HttpException(422,'La fila de encabezados contiene una columna vacía.');
-            if(in_array($header,$headers,true)) throw new HttpException(422,'El Excel contiene encabezados duplicados.');
-            $headers[$i]=$header;
-        }
-
+        $metadata=WarehouseExcelHeader::metadata($matrix,$headerIndex);
+        $hasWarehouseColumn=in_array('almacen_nombre',$headers,true)
+            ||in_array('almacen_codigo',$headers,true);
         $rows=[];
-        foreach($matrix as $cells){
+        foreach($matrix as $index=>$cells){
+            if((int)$index<=$headerIndex)continue;
             $row=[];
-            foreach($headers as $i=>$header) $row[$header]=(string)($cells[$i]??'');
-            if(array_filter($row,static fn(string $v):bool=>trim($v)!=='')!==[]) $rows[]=$row;
+            foreach($headers as $col=>$header)$row[$header]=(string)($cells[$col]??'');
+            if($expected && isset($expected['almacen_nombre'])){
+                foreach(['almacen_nombre','almacen_codigo','sucursal_codigo'] as $field){
+                    if(trim((string)($row[$field]??''))===''){
+                        $row[$field]=(string)($metadata[$field]??'');
+                    }
+                }
+            }
+            if(!array_filter($row,static fn($v)=>trim((string)$v)!==''))
+                continue;
+            // Una nota o un total de pie sin clave obligatoria no es un producto.
+            if($expected){
+                $allEmpty=true;
+                foreach($mandatory as $key)
+                    if(trim((string)($row[$key]??''))!==''){$allEmpty=false;break;}
+                if($allEmpty)continue;
+            }
+            $rows[]=$row;
+            if(count($rows)>15000)throw new HttpException(422,'Excel supera el máximo de 15000 registros.');
         }
+        if(!$rows)throw new HttpException(422,'La hoja no contiene registros válidos.');
         return $rows;
     }
 
