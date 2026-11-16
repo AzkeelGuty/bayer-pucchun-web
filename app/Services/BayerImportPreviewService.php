@@ -16,7 +16,7 @@ final class BayerImportPreviewService
     private const SESSION_KEY='_bayer_import_preview';
     private const TTL=1800;
 
-    public function stage(array $file,?string $period,int $userId): array
+    public function stage(array $file,?string $period,int $userId,?string $priceDate=null): array
     {
         if((int)($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK)
             throw new HttpException(422,'Seleccione el archivo original XLSX o CSV.');
@@ -34,6 +34,9 @@ final class BayerImportPreviewService
         if($period!==''&&!preg_match('/^20[0-9]{2}-(0[1-9]|1[0-2])$/D',$period))
             throw new HttpException(422,'El período alternativo debe tener formato YYYY-MM.');
 
+        $priceDate=trim((string)$priceDate);
+        if($priceDate!==''&&!BayerPriceWorkbookReader::validDate($priceDate))
+            throw new HttpException(422,'La fecha alternativa de precios debe tener formato YYYY-MM-DD.');
         $this->discard();
         $folder=$this->folder();
         $this->cleanExpired($folder);
@@ -43,11 +46,11 @@ final class BayerImportPreviewService
             throw new HttpException(503,'No se pudo guardar temporalmente el archivo para su revisión.');
         @chmod($dest,0600);
         try{
-            $sheets=(new BayerWorkbookReader())->inspectFile($dest,$extension,$period);
+            $sheets=(new BayerUnifiedImportService())->inspectFile($dest,$extension,$period,$priceDate);
             if(!$sheets)throw new HttpException(422,'No se encontraron pestañas con datos Bayer.');
             $stage=[
                 'token'=>$token,'extension'=>$extension,'name'=>mb_substr($name,0,180),
-                'period'=>$period,'user'=>$userId,'expires'=>time()+self::TTL
+                'period'=>$period,'priceDate'=>$priceDate,'user'=>$userId,'expires'=>time()+self::TTL
             ];
             $_SESSION[self::SESSION_KEY]=$stage;
             return $stage;
@@ -72,15 +75,17 @@ final class BayerImportPreviewService
 
     public function data(array $stage): array
     {
-        return (new BayerWorkbookReader())->inspectFile(
-            $this->path($stage),(string)$stage['extension'],(string)$stage['period']
+        return (new BayerUnifiedImportService())->inspectFile(
+            $this->path($stage),(string)$stage['extension'],(string)$stage['period'],
+            (string)($stage['priceDate']??'')
         );
     }
 
-    public function selectedRows(array $stage,string $sheet): array
+    public function selectedRows(array $stage,string $sheet,string $type): array
     {
-        return (new BayerWorkbookReader())->readSelectedFile(
-            $this->path($stage),(string)$stage['extension'],$sheet,(string)$stage['period']
+        return (new BayerUnifiedImportService())->readSelectedFile(
+            $this->path($stage),(string)$stage['extension'],$sheet,$type,
+            (string)$stage['period'],(string)($stage['priceDate']??'')
         );
     }
 

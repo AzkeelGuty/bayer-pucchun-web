@@ -21,6 +21,7 @@ final class OwnershipRows extends PDOStatement {
     public function __construct(private Closure $resolve) {}
     public function execute(?array $params = null): bool { $this->rows = ($this->resolve)($params ?? []); return true; }
     public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array { return $this->rows; }
+    public function fetch(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): mixed { return $this->rows[0] ?? false; }
     public function fetchColumn(int $column = 0): mixed { return array_values($this->rows[0] ?? [])[$column] ?? false; }
 }
 final class OwnershipPDO extends PDO {
@@ -48,6 +49,12 @@ final class OwnershipPDO extends PDO {
             if (str_contains($query,'FROM distritos')) return [['id'=>1,'provincia_id'=>1,'nombre'=>'Distrito Fixture']];
             if (str_contains($query,'FROM unidades_medida')) return [['id'=>1,'label'=>'NIU · Unidad']];
             if (str_contains($query,'FROM guias_cabecera WHERE documento_origen_id')) return [];
+            // Dashboard unificado: los ensayos de propietarios no utilizan MariaDB real.
+            if (str_contains($query,"'PUCCHUN' AS fuente")) {
+                if (str_contains($query,'COUNT(*)'))
+                    return [['total'=>0,'bajo'=>0,'cero'=>0,'negativo'=>0,'sin_dato'=>0,'desactivado'=>0]];
+                return [];
+            }
             // DocumentScreenService's existing list/count are inspected and evaluated over fixtures.
             if (!str_contains($query,'FROM documentos_cabecera h')) throw new RuntimeException('Unexpected query in ownership test');
             $rows = array_column(array_values($this->records),'header');

@@ -86,19 +86,19 @@ final class BayerCatalogService
     private function upsertProduct(string $code,string $name,string $brand): int
     {
         $statement=$this->pdo->prepare(
-            'INSERT INTO bayer_productos_catalogo(codigo_bayer,nombre_bayer,marca)
-             VALUES(?,?,NULLIF(?,\'\'))
+            'INSERT INTO bayer_productos_catalogo(codigo_bayer,nombre_bayer,marca,publicado)
+             VALUES(?,?,NULLIF(?,\'\'),1)
              ON DUPLICATE KEY UPDATE
                 nombre_bayer=VALUES(nombre_bayer),
                 marca=CASE WHEN VALUES(marca) IS NULL THEN marca ELSE VALUES(marca) END,
-                publicado=0'
+                publicado=CASE WHEN estado_catalogo=\'ACTIVO\' THEN 1 ELSE 0 END'
         );
         $statement->execute([$code,$name,$brand]);
         $read=$this->pdo->prepare('SELECT id FROM bayer_productos_catalogo WHERE codigo_bayer=?');
         $read->execute([$code]);return (int)$read->fetchColumn();
     }
 
-    public function importRows(array $rows,string $filename='Inventario Bayer'): array
+    public function importRows(array $rows,string $filename='Inventario Bayer',array $priceRows=[]): array
     {
         if(!$rows||count($rows)>10000)throw new HttpException(422,'Se requieren de 1 a 10000 productos Bayer.');
         if($this->pdo->inTransaction())throw new \LogicException('Hay otra importación en curso.');
@@ -113,7 +113,7 @@ final class BayerCatalogService
             );
             $refresh=$this->pdo->prepare(
                 'UPDATE bayer_productos_catalogo SET stock_reportado=?,stock_periodo=?,stock_estado=?,
-                estado_catalogo=?,publicado=0 WHERE id=?'
+                estado_catalogo=?,publicado=? WHERE id=?'
             );
             foreach($rows as $i=>$row){
                 $line=(string)($row['fila']??($i+2));$sheet=(string)($row['hoja']??'Carga');
@@ -147,8 +147,11 @@ final class BayerCatalogService
                 $current->execute([$productId]);$last=$current->fetchColumn();
                 if($last===null||(string)$last<=$period){
                     $active=$parsed['marcador']==='GUION'?'INACTIVO':'ACTIVO';
-                    $refresh->execute([$parsed['cantidad'],$period,$parsed['estado'],$active,$productId]);
+                    $refresh->execute([$parsed['cantidad'],$period,$parsed['estado'],$active,$active==='ACTIVO'?1:0,$productId]);
                 }
+            }
+            if($priceRows){
+                (new BayerPriceImportService($this->pdo))->importRows($priceRows,$filename,true);
             }
             $this->pdo->commit();
         }catch(Throwable $error){
@@ -156,7 +159,7 @@ final class BayerCatalogService
             throw $error;
         }
         return ['productos_nuevos'=>$new,'productos_actualizados'=>$updated,
-            'registros'=>count($rows),'periodos'=>$snapshots];
+            'registros'=>count($rows),'periodos'=>$snapshots,'precios'=>count($priceRows)];
     }
 
     public function save(array $data,?int $id=null): int
@@ -178,7 +181,8 @@ final class BayerCatalogService
         $this->find($id);
         $s=$this->pdo->prepare(
             'UPDATE bayer_productos_catalogo
-             SET codigo_bayer=?,nombre_bayer=?,marca=NULLIF(?,\'\'),publicado=0 WHERE id=?'
+             SET codigo_bayer=?,nombre_bayer=?,marca=NULLIF(?,\'\'),
+                 publicado=CASE WHEN estado_catalogo=\'ACTIVO\' THEN 1 ELSE 0 END WHERE id=?'
         );
         try{$s->execute([$code,$name,$brand,$id]);}
         catch(\PDOException $error){throw new HttpException(409,'El código Bayer ya está registrado.');}
@@ -206,7 +210,7 @@ final class BayerCatalogService
             $sql="UPDATE bayer_productos_catalogo SET estado_catalogo='ACTIVO',
                 stock_estado=CASE WHEN stock_reportado IS NULL THEN 'SIN_DATO'
                   WHEN stock_reportado=0 THEN 'SIN_STOCK' ELSE 'CON_STOCK' END,
-                publicado=0 WHERE id=?";
+                publicado=1 WHERE id=?";
         }else throw new HttpException(422,'Acción no permitida.');
         $s=$this->pdo->prepare($sql);$s->execute([$id]);
     }
@@ -300,8 +304,8 @@ final class BayerCatalogService
     {
         $sql="SELECT codigo_bayer AS materialId,nombre_bayer AS materialName,marca AS brand,
                 stock_reportado AS quantity,stock_periodo AS period,stock_estado AS stockStatus,
-                estado_catalogo AS catalogStatus,publicado AS published
-              FROM bayer_productos_catalogo WHERE publicado=1";
+                estado_catalogo AS catalogStatus,1 AS published
+              FROM bayer_productos_catalogo WHERE estado_catalogo='ACTIVO'";
         $params=[];
         if(trim((string)($filters['q']??''))!==''){
             $sql.=' AND (codigo_bayer LIKE ? OR nombre_bayer LIKE ?)';
@@ -313,7 +317,7 @@ final class BayerCatalogService
 
     public function publishedInventory(array $filters=[]): array
     {
-        $where=['p.publicado=1'];$params=[];
+        $where=["p.estado_catalogo='ACTIVO'"];$params=[];
         if(isset($filters['from'])){$where[]="i.periodo>=?";$params[]=substr((string)$filters['from'],0,7);}
         if(isset($filters['to'])){$where[]="i.periodo<=?";$params[]=substr((string)$filters['to'],0,7);}
         $q=trim((string)($filters['q']??''));
@@ -341,7 +345,7 @@ final class BayerCatalogService
                 x.igv_porcentaje AS vatRate,x.sugerido_con_igv AS suggestedGross,
                 x.descuento_dealer AS dealerDiscount
              FROM bayer_precios_referencia x JOIN bayer_productos_catalogo p ON p.id=x.producto_id
-             WHERE p.publicado=1 ORDER BY x.vigencia_desde DESC,p.codigo_bayer'
+             WHERE p.estado_catalogo=\'ACTIVO\' ORDER BY x.vigencia_desde DESC,p.codigo_bayer'
         )->fetchAll(PDO::FETCH_ASSOC);
     }
 }

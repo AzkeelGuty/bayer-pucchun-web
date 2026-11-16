@@ -612,3 +612,23 @@ document.addEventListener('change', (event) => {
             needsReason ? 'btn-app-amber' : 'btn-app-blue');
     }
 });
+
+
+// Filtros GET: al elegir una opción del desplegable se aplica de inmediato.
+// Solo afecta formularios de consulta; nunca formularios de edición/POST.
+document.addEventListener('change', (event) => {
+    const select = event.target?.closest?.('select');
+    if (!select || select.hasAttribute('data-no-filter-autosubmit')) return;
+    const form = select.form;
+    if (!form || form.method.toLowerCase() !== 'get') return;
+    if (form.hasAttribute('data-no-filter-autosubmit')) return;
+    const queryForm = form.matches('[data-master-search-form], [data-stock-unified-filter]') ||
+        form.querySelector('button[type="submit"], button:not([type]), input[type="submit"]');
+    if (!queryForm && !select.hasAttribute('data-filter-autosubmit')) return;
+    // Un cambio de filtro empieza en la primera página; conserva las otras opciones.
+    form.querySelectorAll('input[name="page"], input[name="stock_pagina"]').forEach((input) => {
+        input.value = '1';
+    });
+    if (typeof form.requestSubmit === 'function') form.requestSubmit();
+    else form.submit();
+});

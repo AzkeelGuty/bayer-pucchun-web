@@ -50,54 +50,74 @@ Se mantiene disponible una **plantilla alternativa simple de cinco columnas**: `
 
 **Nota:** si el proveedor almacenó un código originalmente con ceros iniciales como número en Excel, Excel pudo haberlos descartado antes de subirlo; el sistema no puede recuperarlos sin la fuente original. Los códigos deben permanecer como texto cuando existan ceros significativos.
 
-## Actualización de precios Bayer mediante XLSX o CSV
+## Un único Excel para productos, inventario y precios
 
-En **Productos Bayer → Importar / actualizar precios Excel**, subir el archivo original
-con las siguientes columnas reconocibles:
+Desde **Homologaciones Bayer → Productos Bayer → Importar Excel original**, subir
+`XLSX` o `CSV`. Se reconocen automáticamente las pestañas del proveedor por su
+cabecera: inventarios mensuales, listas comerciales o pestañas mixtas.
+El administrador selecciona una pestaña y revisa **hasta 20 filas** antes de importar.
+El botón **Importar hoja seleccionada** confirma el registro; se eliminó la casilla
+de verificación adicional. **Cancelar y descartar** no modifica datos.
 
-- `codigo_bayer`: identificador único oficial de Bayer, tratado como texto.
-- `nombre_bayer`: descripción de la presentación comercial (informativa).
-- `moneda`: PEN (o columna opcional, por defecto PEN).
-- `precio_sugerido_sin_igv`, `igv_porcentaje` y `precio_sugerido_con_igv`.
-- `descuento_dealer_porcentaje`: opcional.
-- `vigencia_desde`: fecha de la lista (`YYYY-MM-DD`).
-- `vigencia_hasta`: fecha final opcional, se deja en blanco si el documento no la indica.
-- `presentacion_referencia`: opcional, solo informativa; no es unidad de stock ni divisor de precio.
+Los campos de precios detectados son `codigo_bayer`, `nombre_bayer`,
+`moneda`, `precio_sugerido_sin_igv`, `igv_porcentaje`,
+`precio_sugerido_con_igv`, `descuento_dealer_porcentaje`,
+`vigencia_desde` y `vigencia_hasta`.
 
-El programa **analiza** el XLSX o CSV sin escribir datos en la base de datos; identifica
-las hojas de precios y muestra los primeros 20 registros y los códigos presentes o ausentes.
-Después de seleccionar una hoja y marcar la confirmación, se actualizan únicamente sus códigos.
-**Cancelar y descartar** elimina el archivo temporal y no ejecuta ninguna importación.
+La columna IGV es opcional cuando existen precios neto y final para deducir su
+porcentaje. Si se informa la tasa con un solo importe se calcula el otro; si no
+hay información suficiente no se inventan datos tributarios. Cuando el archivo
+no trae fecha inicial, se puede indicar **Fecha precios** antes de analizar.
+Los productos sin columnas de precios mantienen intactos sus importes.
 
-Cada lista se relaciona por **código Bayer + fecha inicial**. Volver a importar el
-mismo archivo no duplica precios. Cuando cambia el precio en una fecha existente,
-actualiza ese registro. Si la fecha es nueva, crea una nueva vigencia y conserva la
-anterior como histórico. Los productos cuyos códigos no existan se reportan y la
-carga entera se rechaza sin crear productos inventados. Los cambios quedan pendientes
-de publicación en la API hasta revisión.
+**Código Bayer + fecha inicial** identifica cada precio. En la misma fecha
+se actualiza el valor, en una fecha nueva se añade un registro histórico.
+Cada presentación comercial (12X1L, 4X4L, 20X250ML o 1X20KG) conserva su código
+y precio independiente; no se exige unidad de medida ni conversión.
 
-**Presentaciones:** 12X1L, 4X4L, 20X250ML, 1X20KG y 35X200GR son referencias
-de envase/presentación del producto. El precio está asociado al código de esa
-presentación: **no se multiplica ni divide por litros, mililitros, kilogramos o gramos**.
-No se exige `unidad_codigo` para registrar precios. Los inventarios Bayer y Pucchún
-no se modifican durante la actualización comercial.
+En pestañas mixtas, el catálogo, inventario y precios Bayer se registran en una
+misma transacción: cualquier inconsistencia rechaza todos los cambios de esa hoja.
+Un archivo de precios sin inventario solo actualiza códigos Bayer existentes;
+para códigos nuevos debe importarse la hoja de catálogo o inventario.
 
-El antiguo botón **Cargar precios Bayer 2026** y su confirmación nativa fueron
-retirados del menú. La lista CSV interna antigua se conserva como referencia histórica
-y compatibilidad de pruebas, pero no se activa automáticamente desde la interfaz.
-El archivo de importación se genera a partir del PDF «Lista Precios Dealers Soles
-02.11.26.pdf»: 99 filas con los importes originales, incluidos los IGV de 0 %.
-La fecha de término queda opcional porque el PDF no especifica un final de vigencia.
+## Publicación automática en API de Bayer
 
-## Estados, publicación y eliminación
+Los **productos activos Bayer** y sus registros mensuales y precios se consultan
+en la API autenticada tan pronto se guardan. No es necesario pulsar **Publicar API**
+ni **Publicar todos en API**: esos controles se retiraron de la pantalla.
+Los productos desactivados no se incluyen en el catálogo activo de la API.
+La información continúa protegida por autenticación Bearer.
 
-- **Editar:** código, nombre, marca (un mismo código no se duplica).
-- **Desactivar:** inactiva el producto en el catálogo Bayer sin borrar sus reportes.
-- **Activar:** revierte la inactivación manual; no inventa cantidades.
-- **Eliminar:** procedimiento separado y definitivo. Requiere escribir el código Bayer exacto; elimina los reportes y precios de ese código, **no** registros Pucchún.
-- **Publicar API:** publicación explícita solo de datos revisados. La importación actualiza los datos sin publicarlos automáticamente.
+El stock Pucchún sigue su propio procedimiento de validación y publicación de
+snapshots físicos, con independencia total del proveedor Bayer.
 
-La acción de eliminación utiliza POST con protección CSRF, no un enlace GET destructivo.
+## Consulta de stock consolidada
+
+En **Stock** se presenta una tabla de **15 productos por página**, combinando
+visualización de productos Bayer y Pucchún sin combinar sus cantidades.
+La fuente aparece en cada fila. Se incluyen filtros de búsqueda por código o
+producto, origen y situación; y un umbral configurable de stock bajo.
+
+- **Bajo**: cantidad positiva menor o igual al umbral configurado (10 por defecto).
+- **En cero**: cantidad reportada igual a 0.
+- **Negativo**: solo cuando existan saldos negativos en datos históricos.
+- **Sin reporte**: ausencia de datos; nunca se reemplaza por cero.
+
+Las existencias Pucchún proceden de los últimos snapshots PUBLICADOS por almacén
+y producto; el inventario Bayer procede de su último mes reportado.
+El listado de movimientos de Stock mantiene su propia paginación de 15 y
+el procedimiento de captura y revisión.
+
+Los selectores de consulta aplican el filtro al elegir una opción, sin exigir
+un clic adicional en Buscar. Esto no afecta los formularios de registro o edición.
+
+## Estados y eliminación
+
+- **Editar:** cambia el nombre o marca del código Bayer seleccionado.
+- **Desactivar:** retira el producto del catálogo activo de la API y conserva su histórico.
+- **Activar:** vuelve a mostrar el código activo y su información guardada.
+- **Eliminar:** requiere confirmar con el código exacto; borra sus referencias Bayer,
+  nunca el inventario físico de Pucchún.
 
 ## API REST de los dos sistemas
 
@@ -110,9 +130,9 @@ Se conserva el login Bearer actual (`POST /api/v1/auth/login`), su expiración y
 | `/api/v1/pucchun/shipments` | Guías |
 | `/api/v1/pucchun/inventory` | Snapshots publicados |
 | `/api/v1/pucchun/latest-stock` | Último snapshot publicado por almacén/producto/unidad |
-| `/api/v1/bayer/products` | Productos Bayer publicados |
-| `/api/v1/bayer/reported-inventory` | Histórico mensual publicado, con `stockMarker` |
-| `/api/v1/bayer/prices` | Precios referenciales de productos publicados |
+| `/api/v1/bayer/products` | Productos Bayer activos (automático) |
+| `/api/v1/bayer/reported-inventory` | Histórico mensual Bayer activo, con `stockMarker` |
+| `/api/v1/bayer/prices` | Precios referenciales de productos Bayer activos |
 | `/api/v1/bayer/all` | Tres datasets históricos Pucchún **y** tres nuevos datasets Bayer |
 
 El endpoint `/api/v1/bayer/all` conserva `sales`, `shipments` e `inventory` para no romper consumidores previos y agrega `bayerProducts`, `bayerInventory` y `bayerPrices`, con identificación de fuentes en `meta.sources`.
@@ -126,10 +146,10 @@ Una importación Bayer **no envía información a ningún servidor de Bayer**: s
 3. Verificar en phpMyAdmin que estén registradas las migraciones previas, 009 a 013, antes de aplicar la nueva.
 4. Ejecutar **`database/migrations/014_catalogo_bayer_nativo.sql`** sobre la base del hosting.
 5. Confirmar que se crearon `bayer_productos_catalogo`, `bayer_inventario_periodos` y `bayer_precios_referencia`.
-6. Actualizar navegador con Ctrl+F5. Entrar a **Homologaciones Bayer → Productos Bayer**, cargar el Excel original o la lista de precios.
-7. Revisar los datos y publicarlos en la API mediante el botón de publicación correspondiente. Las existencias de Pucchún permanecen independientes.
+6. Actualizar navegador con Ctrl+F5. Entrar a **Homologaciones Bayer → Productos Bayer → Importar Excel original** para subir inventarios y precios.
+7. Verificar el resultado en Productos Bayer y la API autenticada. Los productos activos ya están disponibles sin publicarlos manualmente.
 
-**Importante:** el botón de carga de precios necesita que exista el archivo `database/data/bayer_lista_precios_dealer_2026_11.csv` en la carpeta del proyecto. Esta actualización sí necesita la migración **014**; no se deben ejecutar nuevamente SQL antiguos si ya se encuentran registrados.
+**Importante:** el módulo utiliza la migración 014 existente. No se requiere nueva migración ni ejecutar nuevamente SQL antiguos.
 
 ## Pruebas
 
@@ -137,6 +157,7 @@ Una importación Bayer **no envía información a ningún servidor de Bayer**: s
 php tests\integration\bayer_native_catalog_test.php
 php tests\unit\bayer_native_preview_test.php
 php tests\integration\bayer_prices_excel_test.php
+php tests\integration\bayer_unified_stock_api_test.php
 php tests\integration\api_auth_test.php
 php tests\integration\homologations_web_test.php
 ```
