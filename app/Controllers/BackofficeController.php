@@ -289,7 +289,8 @@ final class BackofficeController
         \view('backoffice.reports',[
             'rows'=>$rows,'pagination'=>$pagination,
             'stockReportSummary'=>$stockStatus,
-            'stockReportWarehouses'=>$stockReport->warehouses()
+            'stockReportWarehouses'=>$stockReport->warehouses(),
+            'stockMovimientosDisponibles'=>(new \App\Services\StockMovementService())->installed()
         ]);
     }
 
