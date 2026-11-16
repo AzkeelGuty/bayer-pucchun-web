@@ -68,29 +68,62 @@ $statusLabels=[
     'CON_STOCK'=>'Disponible','BAJO'=>'Stock bajo','SIN_STOCK'=>'Sin stock (0)',
     'NEGATIVO'=>'Negativo','SIN_DATO'=>'Sin reporte','DESACTIVADO'=>'Desactivado'
 ];
+$stockStatusDesign=[
+    'CON_STOCK'=>['tone'=>'available','icon'=>'bi-check-circle-fill'],
+    'BAJO'=>['tone'=>'low','icon'=>'bi-exclamation-triangle-fill'],
+    'SIN_STOCK'=>['tone'=>'zero','icon'=>'bi-x-circle-fill'],
+    'NEGATIVO'=>['tone'=>'negative','icon'=>'bi-arrow-down-circle-fill'],
+    'SIN_DATO'=>['tone'=>'missing','icon'=>'bi-question-circle-fill'],
+    'DESACTIVADO'=>['tone'=>'inactive','icon'=>'bi-slash-circle-fill'],
+];
+$knownStatusCounts=(int)($summary['bajo']??0)+(int)($summary['cero']??0)
+    +(int)($summary['negativo']??0)+(int)($summary['sin_dato']??0)
+    +(int)($summary['desactivado']??0);
+$availableCount=max(0,(int)($summary['total']??0)-$knownStatusCounts);
+$stockCards=[
+    ['state'=>'CON_STOCK','label'=>'Disponibles','count'=>$availableCount,
+     'note'=>'Cantidad suficiente','icon'=>'bi-check-circle-fill','tone'=>'available'],
+    ['state'=>'BAJO','label'=>'Stock bajo','count'=>(int)($summary['bajo']??0),
+     'note'=>'Revisar reposición','icon'=>'bi-exclamation-triangle-fill','tone'=>'low'],
+    ['state'=>'SIN_STOCK','label'=>'En cero','count'=>(int)($summary['cero']??0),
+     'note'=>'Sin existencias','icon'=>'bi-x-circle-fill','tone'=>'zero'],
+    ['state'=>'NEGATIVO','label'=>'Negativo','count'=>(int)($summary['negativo']??0),
+     'note'=>'Revisar saldos','icon'=>'bi-arrow-down-circle-fill','tone'=>'negative'],
+    ['state'=>'SIN_DATO','label'=>'Sin reporte','count'=>(int)($summary['sin_dato']??0),
+     'note'=>'Cantidad no informada','icon'=>'bi-question-circle-fill','tone'=>'missing'],
+    ['state'=>'DESACTIVADO','label'=>'Desactivados','count'=>(int)($summary['desactivado']??0),
+     'note'=>'Fuera del catálogo activo','icon'=>'bi-slash-circle-fill','tone'=>'inactive'],
+];
+$stockFilterUrl=static function(string $state):string{
+    $params=$_GET;
+    $params['stock_alerta']=$state;
+    $params['stock_pagina']=1;
+    return url('/stock?'.http_build_query($params));
+};
 ?>
-<div class="card mb-3"><div class="card-body">
-    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+<div class="card mb-3 stock-dashboard"><div class="card-body stock-dashboard-body">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
         <div>
-            <h2 class="h5 mb-1">Inventario consolidado: Pucchún y Bayer</h2>
+            <h2 class="h5 mb-1 stock-dashboard-title"><i class="bi bi-boxes" aria-hidden="true"></i><span>Inventario consolidado: Pucchún y Bayer</span></h2>
             <p class="text-muted small mb-0">Dos fuentes identificadas por separado: stock físico Pucchún publicado
                 e inventario mensual informado por Bayer. No se suman cantidades entre sistemas.</p>
         </div>
-        <span class="text-muted small"><?=e((string)$unified['total'])?> referencias encontradas</span>
+        <span class="stock-total-pill"><i class="bi bi-collection" aria-hidden="true"></i><?=e((string)$unified['total'])?> referencias encontradas</span>
     </div>
-    <div class="row g-2 mb-3">
-        <?php foreach([
-            ['Bajo',$summary['bajo']??0,'warning','BAJO'],
-            ['En cero',$summary['cero']??0,'secondary','SIN_STOCK'],
-            ['Negativo',$summary['negativo']??0,'danger','NEGATIVO'],
-            ['Sin reporte',$summary['sin_dato']??0,'light','SIN_DATO'],
-        ] as [$title,$count,$variant,$state]): ?>
-        <div class="col-6 col-xl-3">
-            <div class="border rounded-3 p-3 h-100">
-                <div class="text-muted small"><?=e($title)?></div>
-                <div class="h4 mb-0"><?=e((string)$count)?></div>
+    <div class="stock-overview-grid" role="group" aria-label="Indicadores de inventario por situación">
+        <?php foreach($stockCards as $metric): ?>
+        <a class="stock-overview-card stock-overview-card--<?=e($metric['tone'])?>
+               <?=$uf['estado']===$metric['state']?'is-active':''?>"
+           href="<?=e($stockFilterUrl($metric['state']))?>"
+           aria-label="<?=e($metric['label'].': '.$metric['count'].' referencias. Ver registros')?>">
+            <div class="stock-overview-card-top">
+                <span class="stock-overview-icon"><i class="bi <?=e($metric['icon'])?>" aria-hidden="true"></i></span>
+                <i class="bi bi-arrow-up-right stock-overview-arrow" aria-hidden="true"></i>
             </div>
-        </div>
+            <div class="stock-overview-label"><?=e($metric['label'])?></div>
+            <strong class="stock-overview-value"><?=e(number_format($metric['count'],0,' ',','))?></strong>
+            <span class="stock-overview-note"><?=e($metric['note'])?></span>
+        </a>
         <?php endforeach; ?>
     </div>
     <form method="get" action="<?=url('/stock')?>" class="row g-2 align-items-end mb-3" data-stock-unified-filter>
@@ -131,31 +164,48 @@ $statusLabels=[
             <a href="<?=url('/stock')?>" class="btn btn-outline-primary">Limpiar</a>
         </div>
     </form>
-    <div class="table-responsive">
-        <table class="table table-sm app-table align-middle">
+    <div class="table-responsive stock-inventory-scroll">
+        <table class="table table-sm app-table align-middle stock-inventory-table">
             <thead>
                 <tr><th>Origen</th><th>Código</th><th>Producto / presentación</th>
                     <th>Unidad</th><th class="text-end">Cantidad</th><th>Fecha / mes</th><th>Estado</th></tr>
             </thead>
             <tbody>
-            <?php foreach($unified['rows'] as $item): ?>
-                <tr>
-                    <td><span class="badge <?=$item['fuente']==='BAYER'?'bg-primary':'bg-success'?>"><?=e($item['fuente'])?></span></td>
-                    <td class="fw-semibold"><?=e($item['codigo'])?></td>
-                    <td><?=e($item['producto'])?></td>
+            <?php foreach($unified['rows'] as $item):
+                $design=$stockStatusDesign[$item['estado']]??$stockStatusDesign['SIN_DATO'];
+                $isBayer=$item['fuente']==='BAYER';
+            ?>
+                <tr class="stock-line stock-line--<?=e($design['tone'])?>">
+                    <td>
+                        <span class="stock-origin-tag <?=$isBayer?'stock-origin-tag--bayer':'stock-origin-tag--pucchun'?>">
+                            <i class="bi <?=$isBayer?'bi-box-seam':'bi-building'?>" aria-hidden="true"></i>
+                            <?=e($isBayer?'Bayer':'Pucchún')?>
+                        </span>
+                    </td>
+                    <td class="stock-sku"><?=e($item['codigo'])?></td>
+                    <td class="stock-product-name"><?=e($item['producto'])?></td>
                     <td><?=e($item['unidad']?:'—')?></td>
-                    <td class="text-end fw-semibold"><?=($item['cantidad']===null?'—':e(format_quantity($item['cantidad'])))?></td>
-                    <td><?=e($item['periodo']?:'—')?></td>
-                    <td><?=e($statusLabels[$item['estado']]??$item['estado'])?></td>
+                    <td class="text-end">
+                        <span class="stock-quantity <?=$item['cantidad']===null?'stock-quantity--missing':''?>">
+                            <?=($item['cantidad']===null?'—':e(format_quantity($item['cantidad'])))?>
+                        </span>
+                    </td>
+                    <td><span class="stock-period"><?=e($item['periodo']?:'—')?></span></td>
+                    <td>
+                        <span class="stock-state-pill stock-state-pill--<?=e($design['tone'])?>">
+                            <i class="bi <?=e($design['icon'])?>" aria-hidden="true"></i>
+                            <?=e($statusLabels[$item['estado']]??$item['estado'])?>
+                        </span>
+                    </td>
                 </tr>
             <?php endforeach; ?>
             <?php if(!$unified['rows']): ?>
-                <tr><td colspan="7" class="text-muted">No hay productos que coincidan con los filtros.</td></tr>
+                <tr><td colspan="7"><div class="stock-empty"><i class="bi bi-search" aria-hidden="true"></i><strong>Sin coincidencias</strong><span>No hay productos que coincidan con los filtros seleccionados.</span></div></td></tr>
             <?php endif; ?>
             </tbody>
         </table>
     </div>
-    <nav class="catalog-pagination" aria-label="Paginación del inventario consolidado">
+    <nav class="catalog-pagination stock-inventory-pagination" aria-label="Paginación del inventario consolidado">
         <a class="btn btn-sm btn-outline-primary <?=$unified['page']<=1?'disabled':''?>"
            href="<?=$unified['page']>1?e($stockUnifiedPage($unified['page']-1)):'#'?>">Anterior</a>
         <span>Página <?=e((string)$unified['page'])?> de <?=e((string)$unified['pages'])?> · 15 por página</span>
