@@ -47,7 +47,7 @@ stockVisualAssert(str_contains($view,'data-stock-unified-filter')
     'La mejora visual debe conservar los controles originales');
 stockVisualAssert(str_contains($view,'15 por página')
     &&str_contains($service,'$perPage=15')
-    &&str_contains($view,'stockUnifiedPage($unified['),
+    &&str_contains($view,'stockPageUrl($unified['),
     'Se debe mantener la paginación de 15 por página');
 stockVisualAssert(str_contains($view,"'cantidad']===null?'—'")
     &&str_contains($view,"'fuente']==='BAYER'"),
