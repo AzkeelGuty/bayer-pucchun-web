@@ -72,7 +72,13 @@ final class BayerPriceImportService
                             throw new HttpException(422,'No se puede calcular IGV con precio neto cero.');
                         $vat='0';
                     }else{
-                        $derived=round(((float)$gross/(float)$net-1)*100,2);
+                        // Reconocer exactamente 0 % y 18 % cuando los céntimos
+                        // del importe final provienen de esas tasas.
+                        if(abs(round((float)$net*1.18,2)-(float)$gross)<=0.01)
+                            $derived=18.0;
+                        elseif(abs(round((float)$net,2)-(float)$gross)<=0.01)
+                            $derived=0.0;
+                        else $derived=round(((float)$gross/(float)$net-1)*100,2);
                         if($derived<0||$derived>100)
                             throw new HttpException(422,'La tasa IGV deducida no es válida.');
                         $vat=(string)$derived;
