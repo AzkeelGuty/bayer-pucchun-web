@@ -8,13 +8,22 @@ function check_ui(bool $valid,string $name): void {
     if(!$valid) throw new RuntimeException('Acciones del ERP: '.$name);
     ++$checks;
 }
-foreach(['documentos','guias','stock'] as $module){
+foreach(['documentos','guias'] as $module){
     $source=(string)file_get_contents($root.'/app/Views/'.$module.'/index.php');
     check_ui(str_contains($source,'btn btn-sm btn-app-blue btn-with-icon') && str_contains($source,'>Ver</span>'),
         $module.' muestra Ver con azul sólido e icono');
     check_ui(str_contains($source,'btn btn-sm btn-app-amber btn-with-icon') && str_contains($source,'bi-pencil-square'),
         $module.' muestra Editar o Corregir con ámbar sólido');
 }
+$stockView=(string)file_get_contents($root.'/app/Views/stock/index.php');
+check_ui(str_contains($stockView,"/stock/nuevo") &&
+         str_contains($stockView,'bi-plus-circle') &&
+         str_contains($stockView,'stock-overview-card'),
+    'Stock muestra nueva captura e indicadores con iconos');
+check_ui(str_contains($stockView,'stock-product-totals') &&
+         str_contains($stockView,'name="almacen_id"') &&
+         !str_contains($stockView,'foreach ($rows as $r)'),
+    'Stock usa una sola tabla de inventario por almacén');
 $table=(string)file_get_contents($root.'/app/Views/backoffice/table.php');
 check_ui(substr_count($table,'btn btn-sm btn-app-blue btn-with-icon')===2,'Editar azul en Catálogos y Homologaciones');
 check_ui(substr_count($table,'btn btn-sm btn-app-red btn-with-icon')===2,'Eliminar rojo en Catálogos y Homologaciones');

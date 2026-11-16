@@ -172,6 +172,13 @@ function testOwnership(string $module, string $prefix, string $controllerClass, 
             check($status===403,"$module Bayer cannot list");
         } else {
             (new $controllerClass($repo))->index();
+            if($module==='stock'){
+                $data=$GLOBALS['rendered'][1]??[];
+                check(isset($data['unifiedStock']) && !isset($data['rows']),
+                    "$module shows only published physical snapshots in unified catalog, never private draft listings");
+                check($repo->writes===[],"$module inventory query cannot modify draft stock");
+                continue;
+            }
             $rows=$GLOBALS['rendered'][1]['rows'];
             check(array_column($rows,'id')===($roles===['DIGITADOR'] ? [7] : [7,8,9]),"$module listing applies session owner, not query owner");
             if ($module==='documentos') {

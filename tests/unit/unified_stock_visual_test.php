@@ -16,9 +16,8 @@ $states=[
     'CON_STOCK'=>['tone'=>'available','icon'=>'bi-check-circle-fill'],
     'BAJO'=>['tone'=>'low','icon'=>'bi-exclamation-triangle-fill'],
     'SIN_STOCK'=>['tone'=>'zero','icon'=>'bi-x-circle-fill'],
-    'NEGATIVO'=>['tone'=>'negative','icon'=>'bi-arrow-down-circle-fill'],
+    'RIESGO'=>['tone'=>'negative','icon'=>'bi-exclamation-octagon-fill'],
     'SIN_DATO'=>['tone'=>'missing','icon'=>'bi-question-circle-fill'],
-    'DESACTIVADO'=>['tone'=>'inactive','icon'=>'bi-slash-circle-fill'],
 ];
 foreach($states as $code=>$style){
     stockVisualAssert(str_contains($view,"'".$code."'") &&
@@ -43,11 +42,12 @@ stockVisualAssert(str_contains($view,'data-stock-unified-filter')
     &&str_contains($view,'name="stock_q"')
     &&str_contains($view,'name="fuente"')
     &&str_contains($view,'name="stock_alerta"')
-    &&str_contains($view,'name="stock_umbral"'),
+    &&str_contains($view,'name="stock_umbral"')
+    &&str_contains($view,'name="almacen_id"'),
     'La mejora visual debe conservar los controles originales');
 stockVisualAssert(str_contains($view,'15 por página')
     &&str_contains($service,'$perPage=15')
-    &&str_contains($view,'stockUnifiedPage($unified['),
+    &&str_contains($view,'stockPageUrl($unified['),
     'Se debe mantener la paginación de 15 por página');
 stockVisualAssert(str_contains($view,"'cantidad']===null?'—'")
     &&str_contains($view,"'fuente']==='BAYER'"),
@@ -56,7 +56,9 @@ stockVisualAssert(str_contains($css,'@media(max-width:767.98px)')
     &&str_contains($css,'.stock-origin-tag--bayer')
     &&str_contains($css,'.stock-origin-tag--pucchun'),
     'El inventario debe ser responsive e identificar las dos fuentes');
-stockVisualAssert(str_contains($view,'bulk_workflow_controls(')
-    &&str_contains($view,'foreach ($rows as $r)'),
-    'Las acciones del stock Pucchún deben permanecer sin cambios');
+stockVisualAssert(!str_contains($view,'bulk_workflow_controls(')
+    &&!str_contains($view,'foreach ($rows as $r)')
+    &&str_contains($view,'stock-product-totals')
+    &&str_contains($view,'stock-warehouse-name'),
+    'La pantalla usa un solo inventario con almacenes y totales individuales');
 echo "STOCK VISUAL DESIGN OK\n";

@@ -63,30 +63,20 @@ final class StockController
 
     public function index(): void
     {
-        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA'); OperationalPermissionPolicy::require('stock.read');
-        $filters=$this->filters();
-        $perPage=15;
-        $total=$this->repository->countFiltered($filters);
-        $pages=max(1,(int)ceil($total/$perPage));
-        $page=min($pages,max(1,(int)\input('page',1)));
+        \require_role('ADMIN','DIGITADOR','SUPERVISOR','GERENCIA');
+        OperationalPermissionPolicy::require('stock.read');
+        $service=new \App\Services\UnifiedStockService();
+        $selectedWarehouse=(string)\input('almacen_id','');
+        $warehouseId=ctype_digit($selectedWarehouse)?(int)$selectedWarehouse:0;
         \view('stock.index',[
-            'rows'=>$this->repository->all($filters,$perPage,($page-1)*$perPage),
-            'filters'=>$filters,
-            'total'=>$total,
-            'page'=>$page,
-            'pages'=>$pages,
-            'perPage'=>$perPage,
-            'almacenes'=>$this->masters()->almacenesByIds([(int)($filters['almacen_id']??0)]),
-            'unifiedStock'=>(new \App\Services\UnifiedStockService())->browse([
+            'unifiedStock'=>$service->browse([
                 'fuente'=>(string)\input('fuente',''),
                 'estado'=>(string)\input('stock_alerta',''),
                 'q'=>(string)\input('stock_q',''),
                 'bajo'=>(int)\input('stock_umbral',10),
+                'almacen_id'=>$warehouseId,
             ],15,max(1,(int)\input('stock_pagina',1))),
-            'bulkCounts'=>\has_role('ADMIN','SUPERVISOR') ? [
-                'BORRADOR'=>$this->repository->countByState('BORRADOR'),
-                'VALIDADO'=>$this->repository->countByState('VALIDADO'),
-            ] : ['BORRADOR'=>0,'VALIDADO'=>0],
+            'almacenesStock'=>$service->warehouses(),
         ]);
     }
 

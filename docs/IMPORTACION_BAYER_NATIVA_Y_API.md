@@ -91,45 +91,66 @@ La información continúa protegida por autenticación Bearer.
 El stock Pucchún sigue su propio procedimiento de validación y publicación de
 snapshots físicos, con independencia total del proveedor Bayer.
 
-## Visualización de estados e indicadores de inventario
+## Stock consolidado por almacén y productos individuales
 
-La pantalla **Stock → Inventario consolidado** incluye seis indicadores:
-**Disponibles (verde)**, **Stock bajo (ámbar)**, **En cero (rojo)**,
-**Negativo (rojo oscuro)**, **Sin reporte (azul grisáceo)** y
-**Desactivados (morado)**. El indicador muestra el total correspondiente
-y un icono reconocible, sin depender exclusivamente del color. Pulsar
-una tarjeta filtra los productos por la situación elegida y restablece
-la primera página.
+La pantalla **Stock** presenta una sola tabla que combina el catálogo de productos
+Bayer y Pucchún, manteniendo identificada cada fuente. Se retiró la segunda tabla
+de movimientos al pie de la página. Se conservan el formulario **Nuevo inventario
+Pucchún** y las funciones de captura y validación en las pantallas correspondientes.
 
-La tabla identifica el origen de cada producto con una etiqueta
-**Bayer (azul)** o **Pucchún (verde)**. Los estados utilizan insignias
-con icono, nombre y color de alerta, y las filas llevan un acento
-lateral discreto. Se mantienen la búsqueda, el umbral bajo y
-**15 referencias por página**, con diseño adaptable a pantallas pequeñas.
+### Contadores de productos
 
-Las cantidades nulas se siguen presentando como **—**, no como cero.
-La representación no modifica los cálculos, saldos, datos de producto,
-ni la publicación de inventario Pucchún o reportes Bayer.
+- **Productos individuales**: cantidad de códigos únicos entre los dos catálogos.
+- **Productos Bayer** y **Productos Pucchún**: códigos únicos por catálogo.
+- Cada producto puede aparecer en más de un almacén, pero se cuenta solo una
+  vez en los totales individuales. Las filas de la tabla pueden ser mayores
+  que el total de productos únicos.
 
-## Consulta de stock consolidada
+### Cinco indicadores visuales
 
-En **Stock** se presenta una tabla de **15 productos por página**, combinando
-visualización de productos Bayer y Pucchún sin combinar sus cantidades.
-La fuente aparece en cada fila. Se incluyen filtros de búsqueda por código o
-producto, origen y situación; y un umbral configurable de stock bajo.
+**Disponible (verde)**, **Stock bajo (ámbar)**, **En cero (rojo)**,
+**Negativo / desactivado (rojo oscuro)** y **Sin reporte (azul grisáceo)**.
+Los productos desactivados Bayer se incluyen en el mismo indicador de
+riesgo que las cantidades negativas; no existe una tarjeta independiente
+de desactivados. No se modifica ni se borra el estado original del catálogo.
 
-- **Bajo**: cantidad positiva menor o igual al umbral configurado (10 por defecto).
-- **En cero**: cantidad reportada igual a 0.
-- **Negativo**: solo cuando existan saldos negativos en datos históricos.
-- **Sin reporte**: ausencia de datos; nunca se reemplaza por cero.
+Las tarjetas usan iconos y permiten filtrar el listado. Con un producto en
+varios almacenes puede haber más de un estado para ese código; el contador
+de cada estado identifica productos distintos en esa situación. En todos
+los casos, una cantidad vacía o no informada se mantiene separada de cero.
 
-Las existencias Pucchún proceden de los últimos snapshots PUBLICADOS por almacén
-y producto; el inventario Bayer procede de su último mes reportado.
-El listado de movimientos de Stock mantiene su propia paginación de 15 y
-el procedimiento de captura y revisión.
+### Almacén en la consulta y en el formulario de edición
 
-Los selectores de consulta aplican el filtro al elegir una opción, sin exigir
-un clic adicional en Buscar. Esto no afecta los formularios de registro o edición.
+El filtro de **Almacén** utiliza una lista desplegable de almacenes activos.
+La tabla identifica en qué almacén se encuentra cada registro. Al seleccionar
+un almacén, las alertas y los totales se recalculan únicamente con los productos
+y cantidades aplicables a ese lugar.
+
+En **Productos Bayer → Editar**, puede indicarse un almacén de referencia,
+y en **Catálogos maestros → Productos → Editar**, también. Es un campo opcional;
+si se deja vacío el producto aparecerá sin almacén asignado cuando no existan
+datos de inventario físicos.
+
+Para **Pucchún**, las existencias reales proceden de los últimos inventarios
+PUBLICADOS por almacén. El almacén elegido en el catálogo es una referencia
+administrativa de ubicación y solo se utiliza cuando no hay snapshot físico.
+No crea, mueve, suma ni descuenta stock. Un producto puede aparecer en varios
+almacenes físicos reales aunque tenga un solo almacén de referencia.
+Para **Bayer**, el almacén es una referencia del inventario informado por el
+proveedor, sin modificar existencias Pucchún.
+
+Los filtros de origen, situación y almacén se aplican automáticamente al escoger
+una opción. Se mantienen el buscador, el umbral de stock bajo configurable y la
+paginación de **15 filas por página**.
+
+### Nueva migración 015
+
+Antes de utilizar las nuevas asignaciones o la vista Stock, ejecutar una sola
+vez **`database/migrations/015_almacenes_referencia_productos.sql`** sobre
+la base de datos correcta. Crea las relaciones
+`bayer_producto_almacen` y `pucchun_producto_almacen` con integridad referencial.
+No elimina registros existentes ni modifica inventarios anteriores.
+Es reejecutable mediante `CREATE TABLE IF NOT EXISTS`.
 
 ## Estados y eliminación
 
@@ -203,10 +224,11 @@ Una importación Bayer **no envía información a ningún servidor de Bayer**: s
 3. Verificar en phpMyAdmin que estén registradas las migraciones previas, 009 a 013, antes de aplicar la nueva.
 4. Ejecutar **`database/migrations/014_catalogo_bayer_nativo.sql`** sobre la base del hosting.
 5. Confirmar que se crearon `bayer_productos_catalogo`, `bayer_inventario_periodos` y `bayer_precios_referencia`.
-6. Actualizar navegador con Ctrl+F5. Entrar a **Homologaciones Bayer → Productos Bayer → Importar Excel original** para subir inventarios y precios.
-7. Verificar el resultado en Productos Bayer y la API autenticada. Los productos activos ya están disponibles sin publicarlos manualmente.
+6. Aplicar **`database/migrations/015_almacenes_referencia_productos.sql`** para habilitar almacenes de referencia en ambos catálogos.
+7. Actualizar navegador con Ctrl+F5. Entrar a **Homologaciones Bayer → Productos Bayer → Importar Excel original** para subir inventarios y precios.
+8. Verificar el resultado en Productos Bayer y la API autenticada. Los productos activos ya están disponibles sin publicarlos manualmente.
 
-**Importante:** el módulo utiliza la migración 014 existente. No se requiere nueva migración ni ejecutar nuevamente SQL antiguos.
+**Importante:** si la migración 014 ya fue aplicada, no debe repetirse. Para esta mejora se requiere únicamente aplicar la migración 015, sin recrear las tablas anteriores.
 
 ## Pruebas
 
@@ -215,6 +237,7 @@ php tests\integration\bayer_native_catalog_test.php
 php tests\unit\bayer_native_preview_test.php
 php tests\integration\bayer_prices_excel_test.php
 php tests\integration\bayer_unified_stock_api_test.php
+php tests\integration\stock_warehouse_filters_test.php
 php tests\integration\bayer_product_editor_navigation_test.php
 php tests\integration\api_auth_test.php
 php tests\integration\homologations_web_test.php

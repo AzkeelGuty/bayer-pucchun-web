@@ -9,6 +9,7 @@ $db=new TestDatabase();
 try{
     $db->load('database/schemas/002_schema_v2.sql');
     $db->load('database/migrations/014_catalogo_bayer_nativo.sql');
+    $db->load('database/migrations/015_almacenes_referencia_productos.sql');
     fixtures($db->pdo);
 
     $stock=new UnifiedStockService($db->pdo);
