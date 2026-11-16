@@ -77,8 +77,14 @@ final class StockController
             'pages'=>$pages,
             'perPage'=>$perPage,
             'almacenes'=>$this->masters()->almacenesByIds([(int)($filters['almacen_id']??0)]),
-            'latestStock'=>\has_role('ADMIN')
-                ? (new \App\Services\PucchunStockSummaryService())->latest(40) : [],
+            'unifiedStock'=>(new \\App\\Services\\UnifiedStockService())->browse([
+                'fuente'=>(string)\\input('fuente',''),
+                'estado'=>(string)\\input('stock_alerta',''),
+                'q'=>(string)\\input('stock_q',''),
+                'bajo'=>(int)\\input('stock_umbral',10),
+            ],15,max(1,(int)\\input('stock_pagina',1))),
+            'latestStock'=>\\has_role('ADMIN')
+                ? (new \\App\\Services\\PucchunStockSummaryService())->latest(40) : [],
             'bulkCounts'=>\has_role('ADMIN','SUPERVISOR') ? [
                 'BORRADOR'=>$this->repository->countByState('BORRADOR'),
                 'VALIDADO'=>$this->repository->countByState('VALIDADO'),
