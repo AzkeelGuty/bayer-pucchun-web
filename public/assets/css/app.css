@@ -1572,7 +1572,6 @@ input[data-internal-number],#guide-number[readonly]{
     font-variant-numeric:tabular-nums;
 }
 .stock-state-pill{
-    --stock-ink:#43607b;--stock-soft:#edf3f9;
     display:inline-flex;align-items:center;gap:7px;
     max-width:100%;min-height:28px;
     border-radius:999px;padding:5px 10px;
