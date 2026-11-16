@@ -3,12 +3,15 @@ $primaryLogo = branding_logo_url('logo_primary');
 $partnerLogo = branding_logo_url('logo_partner');
 $favicon = branding_logo_url('favicon');
 ?>
-<section class="page-header">
+<section class="page-header has-back-navigation">
     <div>
         <div class="page-eyebrow"><i class="bi bi-palette2"></i> CONFIGURACIÓN</div>
         <h1 class="page-title">Identidad visual</h1>
         <p class="page-subtitle">Personaliza textos, paleta, apariencia, logotipos e ícono del navegador sin tocar el código.</p>
     </div>
+    <a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?=url('/dashboard')?>">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al panel</span>
+    </a>
 </section>
 
 <form method="post" action="<?=url('/configuracion/identidad')?>" enctype="multipart/form-data" id="brandingForm" data-branding-form>
@@ -233,7 +236,6 @@ $favicon = branding_logo_url('favicon');
                     <small>Incluye login, barra superior, menú, tarjetas, pie, favicon y portal Bayer.</small>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                    <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/dashboard')?>"><i class="bi bi-arrow-left"></i><span>Volver</span></a>
                     <button class="btn btn-primary btn-with-icon" type="submit"><i class="bi bi-floppy"></i><span>Guardar identidad</span></button>
                 </div>
             </div>
