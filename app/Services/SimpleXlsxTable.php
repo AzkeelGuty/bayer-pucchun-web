@@ -142,17 +142,31 @@ final class SimpleXlsxTable
         $zip->open($tmp,\ZipArchive::OVERWRITE);
 
         $keys=array_keys($columns);
-        $sheet1=$this->sheetXml([$keys],true);
+        $isBayer=str_contains(mb_strtolower($title,'UTF-8'),'bayer');
+        $productTemplate=$isBayer || isset($columns['almacen_nombre']);
+        // "Carga" es la primera hoja; sólo contiene la cabecera, nunca datos
+        // ficticios que podrían entrar accidentalmente en producción.
+        $sheet1=$this->sheetXml([$keys],true,false);
         $instructions=[
-            [$title.' · Plantilla de carga masiva'],
-            ['Complete la hoja "Carga". No cambie los encabezados de la fila 1. Una fila equivale a un registro.'],
-            [],
-            ['Campo','Obligatorio','Descripción','Ejemplo'],
+            [$title.' | Plantilla de importación XLSX'],
+            [$isBayer?'CATÁLOGO E INVENTARIOS BAYER':'CATÁLOGO INTERNO PUCCHÚN'],
+            ['1. Complete únicamente la hoja Carga. Cada producto ocupa una fila.'],
+            ['2. Los encabezados no deben modificarse; los campos opcionales pueden quedar vacíos.'],
+            ['3. Para almacenes, usar el nombre exacto o código del registro. No se aceptan coincidencias aproximadas.'],
+            ['4. Si el almacén es nuevo y hay varias sucursales, indique sucursal_codigo.'],
+            [$isBayer
+                ?'5. Stock vacío con período indica sin reporte; cero es 0; guion (-) desactiva. Los precios son por presentación.'
+                :'5. Esta plantilla registra productos, NO crea saldos físicos. Para inventario real, use Nuevo inventario Pucchún.'],
+            [$isBayer
+                ?'6. Precio e IGV son opcionales: indique tasa+importe o ambos importes. Fecha YYYY-MM-DD.'
+                :'6. unidad_codigo debe existir en Unidades. El producto se identifica por su código interno Pucchún.'],
+            [''],
+            ['COLUMNA','OBLIGATORIA','DESCRIPCIÓN','EJEMPLO'],
         ];
-        foreach($columns as $key=>$meta){
-            $instructions[]=[$key,!empty($meta['required'])?'Sí':'No',(string)($meta['description']??''),(string)($meta['example']??'')];
-        }
-        $sheet2=$this->sheetXml($instructions,false);
+        foreach($columns as $key=>$meta)
+            $instructions[]=[$key,!empty($meta['required'])?'Sí':'No',
+                (string)($meta['description']??''),(string)($meta['example']??'')];
+        $sheet2=$this->sheetXml($instructions,false,true);
 
         $zip->addFromString('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8"?>'
             .'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
@@ -161,6 +175,7 @@ final class SimpleXlsxTable
             .'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
             .'<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
             .'<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+            .'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'
             .'</Types>');
         $zip->addFromString('_rels/.rels','<?xml version="1.0" encoding="UTF-8"?>'
             .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
@@ -173,9 +188,11 @@ final class SimpleXlsxTable
             .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
             .'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
             .'<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>'
+            .'<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
             .'</Relationships>');
         $zip->addFromString('xl/worksheets/sheet1.xml',$sheet1);
         $zip->addFromString('xl/worksheets/sheet2.xml',$sheet2);
+        $zip->addFromString('xl/styles.xml',$this->templateStyles());
         $zip->close();
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -186,21 +203,64 @@ final class SimpleXlsxTable
         exit;
     }
 
-    private function sheetXml(array $rows,bool $freeze): string
+    private function sheetXml(array $rows,bool $freeze,bool $instructions=false): string
     {
+        $maxColumns=0;
+        foreach($rows as $row)$maxColumns=max($maxColumns,count($row));
         $xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             .'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
-        if($freeze) $xml.='<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" state="frozen"/></sheetView></sheetViews>';
-        $xml.='<sheetData>';
+        if($freeze){
+            $xml.='<sheetViews><sheetView workbookViewId="0">'
+                .'<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>'
+                .'</sheetView></sheetViews>';
+        }
+        $xml.='<sheetFormatPr defaultRowHeight="18"/><cols>';
+        for($i=1;$i<=$maxColumns;$i++){
+            $heading=(string)($rows[0][$i-1]??'');
+            $width=$instructions?($i===3?68:($i===4?34:($i===1?36:18)))
+                :((str_contains($heading,'nombre')||str_contains($heading,'descripcion')
+                    ||str_contains($heading,'almacen'))?34:23);
+            $xml.='<col min="'.$i.'" max="'.$i.'" width="'.$width.'" customWidth="1"/>';
+        }
+        $xml.='</cols><sheetData>';
         foreach($rows as $r=>$values){
-            $n=$r+1;$xml.='<row r="'.$n.'">';
-            foreach(array_values($values) as $c=>$value){
-                $ref=$this->columnName($c+1).$n;
-                $xml.='<c r="'.$ref.'" t="inlineStr"><is><t xml:space="preserve">'.htmlspecialchars((string)$value,ENT_XML1|ENT_QUOTES,'UTF-8').'</t></is></c>';
+            $n=$r+1;
+            $style=(!$instructions&&$n===1)||($instructions&&$n===10)?1
+                :($instructions&&$n<=2?2:0);
+            $xml.='<row r="'.$n.'"'.($style?' ht="25" customHeight="1"':'').'>';
+            foreach(array_values($values) as $col=>$value){
+                $ref=$this->columnName($col+1).$n;
+                $xml.='<c r="'.$ref.'" s="'.$style.'" t="inlineStr">'
+                    .'<is><t xml:space="preserve">'
+                    .htmlspecialchars((string)$value,ENT_XML1|ENT_QUOTES,'UTF-8')
+                    .'</t></is></c>';
             }
             $xml.='</row>';
         }
-        return $xml.'</sheetData></worksheet>';
+        $xml.='</sheetData>';
+        if($freeze&&$maxColumns>0)
+            $xml.='<autoFilter ref="A1:'.$this->columnName($maxColumns).'1"/>';
+        return $xml.'</worksheet>';
+    }
+
+    private function templateStyles(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>'
+          .'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+          .'<fonts count="3">'
+          .'<font><sz val="11"/><name val="Arial"/></font>'
+          .'<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Arial"/></font>'
+          .'<font><b/><sz val="13"/><color rgb="FF0C3962"/><name val="Arial"/></font>'
+          .'</fonts>'
+          .'<fills count="3"><fill><patternFill patternType="none"/></fill>'
+          .'<fill><patternFill patternType="gray125"/></fill>'
+          .'<fill><patternFill patternType="solid"><fgColor rgb="FF0B548E"/><bgColor indexed="64"/></patternFill></fill></fills>'
+          .'<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+          .'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+          .'<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+          .'<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>'
+          .'<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>'
+          .'</styleSheet>';
     }
 
     private function xml(string $xml): \DOMDocument
