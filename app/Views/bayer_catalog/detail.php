@@ -1,7 +1,7 @@
-<section class="module-header"><div><div class="page-eyebrow">PRODUCTOS BAYER · DETALLE</div>
+<section class="module-header has-back-navigation"><div><div class="page-eyebrow">PRODUCTOS BAYER · DETALLE</div>
 <h1 class="page-title"><?=e($product['nombre_bayer'])?></h1>
 <p class="page-subtitle">Código Bayer: <?=e($product['codigo_bayer'])?> · Marca: <?=e($product['marca']??'Sin asignar')?></p></div>
-<a class="btn btn-outline-primary" href="<?=url('/homologaciones?tab=productos')?>">Volver al listado</a></section>
+<a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?=url('/homologaciones?tab=productos')?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a></section>
 <div class="row g-3">
  <div class="col-xl-6"><div class="card"><div class="card-body p-4">
   <h2 class="h5">Inventario mensual reportado por Bayer</h2>
