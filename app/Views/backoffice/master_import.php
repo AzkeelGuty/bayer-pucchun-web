@@ -2,7 +2,7 @@
     <div>
         <div class="page-eyebrow"><i class="bi bi-file-earmark-spreadsheet"></i> CATÁLOGOS MAESTROS</div>
         <h1 class="page-title">Importar <?=e(mb_strtolower((string)$meta['title']))?> desde Excel</h1>
-        <p class="page-subtitle">Carga varios registros de una sola vez usando la plantilla oficial del sistema.</p>
+        <p class="page-subtitle">Carga o actualiza registros con una plantilla específica de este catálogo y encabezados en español.</p>
     </div>
     <a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?=url('/maestros?tab='.rawurlencode($tab))?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al catálogo</span></a>
 </section>
@@ -11,13 +11,13 @@
     <div class="col-xl-5">
         <div class="card h-100">
             <div class="card-body p-4">
-                <div class="import-step"><span>1</span><div><strong>Descarga la plantilla</strong><p>Utiliza los nombres de columna de esta plantilla. El lector reconoce encabezados en las primeras 30 filas.</p></div></div>
+                <div class="import-step"><span>1</span><div><strong>Descarga la plantilla</strong><p>Cada apartado tiene sus propios encabezados en español. Se detectan en las primeras 30 filas.</p></div></div>
                 <a class="btn btn-outline-primary w-100 mb-4" href="<?=url('/maestros/plantilla?tab='.rawurlencode($tab))?>" data-native-navigation>
                     <i class="bi bi-download"></i> Descargar plantilla XLSX
                 </a>
 
                 <div class="import-step"><span>2</span><div><strong>Completa tus registros</strong><p>Una fila equivale a un registro. No agregues fórmulas ni combines celdas.</p></div></div>
-                <div class="import-step"><span>3</span><div><strong>Sube el Excel</strong><p>Si un código único ya existe, se actualizará. Los almacenes se comparan por nombre completo o código.</p></div></div>
+                <div class="import-step"><span>3</span><div><strong>Sube el Excel</strong><p>Si el código de este catálogo ya existe, se actualizará. Los almacenes se comparan por nombre completo o código.</p></div></div>
 
                 <form method="post" action="<?=url('/maestros/importar')?>" enctype="multipart/form-data" class="mt-3">
                     <?=csrf_field()?>
@@ -39,12 +39,11 @@
                 <?php if($tab==='productos'): ?>
                 <div class="alert alert-info">
                     <strong>Almacenes de Pucchún:</strong>
-                    en la columna <code>almacen_nombre</code> o en el encabezado superior
+                    en la columna <strong>Nombre del almacén</strong> o en el encabezado superior
                     <code>Almacén: Nombre completo</code>, escribe el almacén exacto.
                     El sistema reutiliza el existente; si es nuevo lo registra y relaciona
-                    con el producto. Cuando hay varias sucursales, añade
-                    <code>sucursal_codigo</code>. Los nombres casi iguales se revisan
-                    para evitar duplicados. La importación no crea cantidades físicas.
+                    con el producto. Cuando hay varias sucursales, añade el <strong>Código de sucursal</strong>. Los nombres casi iguales se revisan
+                    para evitar duplicados. El precio se puede cargar directamente. El stock requiere un inventario físico publicado y almacén asignado para registrar el ajuste.
                 </div>
                 <?php endif; ?>
                 <div class="table-responsive">
@@ -53,7 +52,7 @@
                         <tbody>
                         <?php foreach($meta['import'] as $name=>$column): ?>
                             <tr>
-                                <td><code><?=e($name)?></code></td>
+                                <td><?=e(\App\Services\CatalogTemplateLabels::label($name,$tab))?></td>
                                 <td><?=!empty($column['required'])?'<span class="badge text-bg-danger">Sí</span>':'<span class="badge text-bg-secondary">No</span>'?></td>
                                 <td><?=e($column['description']??'')?></td>
                                 <td><?=e($column['example']??'')?></td>
