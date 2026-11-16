@@ -1,9 +1,9 @@
 <?php $back='/homologaciones?tab='.rawurlencode($tab); ?>
-<section class="module-header"><div>
+<section class="module-header has-back-navigation"><div>
   <div class="page-eyebrow">HOMOLOGACIONES BAYER</div>
   <h1 class="page-title">Importación masiva · <?=e($meta['title'])?></h1>
   <p class="page-subtitle">Carga o actualiza homologaciones por código de partner y código interno en un único Excel.</p>
-</div><a class="btn btn-outline-primary" href="<?=url($back)?>">Volver al listado</a></section>
+</div><a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?=url($back)?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a></section>
 <div class="row g-4">
   <div class="col-xl-5"><div class="card h-100"><div class="card-body p-4">
     <h2 class="h5">1. Descargar plantilla</h2>
