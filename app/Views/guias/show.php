@@ -1,11 +1,12 @@
 <?php $h = $record['header']; ?>
+<div class="mb-3"><a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?= url('/guias') ?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a></div>
 <link rel="stylesheet" href="<?=asset_url('assets/css/commercial-totals.css')?>">
 <div class="d-flex justify-content-between align-items-center">
     <h2>Guía <?= e($h['numero']) ?></h2>
     <?= estado_badge($h['estado_registro']) ?>
 </div>
 <p class="d-flex gap-2">
-    <a class="btn btn-outline-primary btn-with-icon" href="<?= url('/guias') ?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a>
+    
     <?php if (has_role('ADMIN', 'DIGITADOR') && in_array($h['estado_registro'], ['BORRADOR','OBSERVADO'], true)): ?>
         <a class="btn btn-outline-primary btn-with-icon" href="<?= url('/guias/editar?id=' . $h['id']) ?>"><i class="bi bi-pencil-square" aria-hidden="true"></i><span><?= $h['estado_registro']==='OBSERVADO' ? 'Corregir' : 'Editar' ?></span></a>
     <?php endif; ?>
