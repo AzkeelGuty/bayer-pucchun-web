@@ -133,24 +133,49 @@ $reportPageUrl=static fn(int $page): string => url('/reportes'.($page>1?'?page='
                   </div>
                 </form>
             <?php else: ?>
-            <div class="export-actions export-actions-rich" aria-label="Formatos para <?=e($dataset['label'])?>">
+            <form method="get" action="<?=url('/export')?>" class="report-dataset-export">
+              <input type="hidden" name="type" value="<?=e($type)?>">
+              <div class="row g-2 mb-3">
+                <div class="col-12">
+                  <label class="form-label" for="report-query-<?=e($type)?>">
+                    <?= $type==='documents'?'Cliente, comprobante o producto':'Cliente, guía o producto' ?>
+                  </label>
+                  <input class="form-control form-control-sm" id="report-query-<?=e($type)?>"
+                    name="q" type="search" maxlength="100" placeholder="Buscar por inicio del código o nombre">
+                </div>
+                <div class="col-6">
+                  <label class="form-label" for="report-from-<?=e($type)?>">Desde</label>
+                  <input class="form-control form-control-sm" id="report-from-<?=e($type)?>"
+                    name="from" type="date">
+                </div>
+                <div class="col-6">
+                  <label class="form-label" for="report-to-<?=e($type)?>">Hasta</label>
+                  <input class="form-control form-control-sm" id="report-to-<?=e($type)?>"
+                    name="to" type="date">
+                </div>
+                <?php if($type==='documents'): ?>
+                <div class="col-12">
+                  <label class="form-label" for="report-voucher-status">Estado del comprobante</label>
+                  <select class="form-select form-select-sm" id="report-voucher-status" name="document_status">
+                    <option value="">Todos los publicados</option>
+                    <option value="VIGENTE">Vigente</option>
+                    <option value="ANULADO">Anulado</option>
+                  </select>
+                </div>
+                <?php endif; ?>
+              </div>
+              <div class="export-actions export-actions-rich" aria-label="Formatos para <?=e($dataset['label'])?>">
                 <?php foreach($formats as $format=>$meta): ?>
-                    <a
-                        class="export-format export-format-<?=e($meta['class'])?>"
-                        href="<?=url('/export?type='.$type.'&format='.$format)?>"
-                        title="Descargar <?=e($dataset['label'])?> en <?=e($meta['label'])?>"
-                        aria-label="Descargar <?=e($dataset['label'])?> en <?=e($meta['label'])?>"
-                    >
-                        <i class="bi <?=e($meta['icon'])?>" aria-hidden="true"></i>
-                        <span>
-                            <strong><?=e($meta['label'])?></strong>
-                            <small><?=e($meta['detail'])?></small>
-                        </span>
-                        <i class="bi bi-download export-format-download" aria-hidden="true"></i>
-                    </a>
+                  <button type="submit" name="format" value="<?=e($format)?>"
+                    class="export-format export-format-<?=e($meta['class'])?>"
+                    title="Descargar <?=e($dataset['label'])?> en <?=e($meta['label'])?>">
+                    <i class="bi <?=e($meta['icon'])?>" aria-hidden="true"></i>
+                    <span><strong><?=e($meta['label'])?></strong><small><?=e($meta['detail'])?></small></span>
+                    <i class="bi bi-download export-format-download" aria-hidden="true"></i>
+                  </button>
                 <?php endforeach;?>
-            </div>
-
+              </div>
+            </form>
             <?php endif; ?>
         </div>
     </article>
