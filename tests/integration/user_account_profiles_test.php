@@ -13,7 +13,7 @@ try{
     $db->load('database/migrations/016_perfiles_usuarios.sql');
     fixtures($db->pdo);
     $pdo=$db->pdo;
-    $pdo->exec("INSERT INTO roles(id,nombre) VALUES(10,'ADMIN'),(11,'DIGITADOR'),(12,'BAYER')");
+    $pdo->exec("INSERT INTO roles(id,nombre) VALUES(10,'ADMIN'),(11,'DIGITADOR'),(12,'BAYER'),(13,'SUPERVISOR')");
     $pdo->exec("INSERT INTO usuario_rol(usuario_id,rol_id) VALUES(1,10),(2,11)");
     $pdo->exec("UPDATE usuarios SET password_hash='".password_hash('ClaveActual-123',PASSWORD_DEFAULT)."' WHERE id=2");
 
