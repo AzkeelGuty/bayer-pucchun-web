@@ -17,7 +17,7 @@ final class MasterCatalogService
     public static function definitions(): array
     {
         $state=['type'=>'select','label'=>'Estado','required'=>true,'options'=>['1'=>'Activo','0'=>'Inactivo']];
-        return [
+        $definitions=[
             'clientes'=>[
                 'title'=>'Clientes','table'=>'clientes','unique'=>'nro_doc',
                 'fields'=>[
@@ -187,6 +187,12 @@ final class MasterCatalogService
                 ],
             ],
         ];
+        foreach($definitions as $scope=>&$definition){
+            foreach($definition['import'] as &$column)$column['scope']=$scope;
+            unset($column);
+        }
+        unset($definition);
+        return $definitions;
     }
 
     public function availabilityIssue(string $tab): ?string
