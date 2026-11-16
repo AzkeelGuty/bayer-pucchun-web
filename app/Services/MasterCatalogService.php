@@ -46,7 +46,9 @@ final class MasterCatalogService
                     'unidad_base_id'=>['label'=>'Unidad base','type'=>'select','source'=>'unidades','required'=>true],
                     'categoria_id'=>['label'=>'Categoría','type'=>'select','source'=>'categorias','required'=>false],
                     'marca_id'=>['label'=>'Marca','type'=>'select','source'=>'marcas','required'=>false],
-                    'almacen_referencia_id'=>['label'=>'Almacén de referencia','type'=>'select','source'=>'almacenes','required'=>false,'virtual'=>true,'help'=>'Ubicación referencial si aún no existe inventario físico publicado.'],
+                    'almacen_referencia_id'=>['label'=>'Almacén de referencia','type'=>'select','source'=>'almacenes','required'=>false,'virtual'=>true,'help'=>'Almacén donde se controla la existencia del producto.'],
+                    'precio_venta'=>['label'=>'Precio de venta (S/)','type'=>'price','required'=>false,'help'=>'Precio propio de Pucchún. Puede dejarlo vacío cuando todavía no está definido.'],
+                    'stock_actual'=>['label'=>'Stock disponible (unidades)','type'=>'stock','required'=>false,'virtual'=>true,'help'=>'Si modifica la cantidad se registra un ajuste auditable. Debe existir un inventario físico publicado para este almacén.'],
                     'estado'=>$state,
                 ],
                 'import'=>[
@@ -56,6 +58,8 @@ final class MasterCatalogService
                     'unidad_codigo'=>['description'=>'Código de unidad ya registrada','example'=>'NIU','required'=>true],
                     'categoria'=>['description'=>'Categoría; se crea si aún no existe','example'=>'Agrícola','required'=>false],
                     'marca'=>['description'=>'Marca; se crea si aún no existe','example'=>'Bayer','required'=>false],
+                    'precio_venta'=>['description'=>'Precio de venta de Pucchún por presentación; puede quedar vacío','example'=>'75.00','required'=>false],
+                    'stock_actual'=>['description'=>'Existencias físicas del producto, requiere inventario previo publicado','example'=>'15','required'=>false],
                     'almacen_nombre'=>['description'=>'Nombre exacto del almacén. Se reutiliza o crea si no existe; opcional','example'=>'Almacén Principal Chincha','required'=>false],
                     'almacen_codigo'=>['description'=>'Código de almacén. Opcional: se genera al crear uno nuevo','example'=>'ALM-01','required'=>false],
                     'sucursal_codigo'=>['description'=>'Sucursal del almacén nuevo; necesaria si hay varias sucursales','example'=>'SUC-01','required'=>false],
@@ -204,6 +208,9 @@ final class MasterCatalogService
         if($tab==='productos' && !$this->columnExists('productos','tipo_art')){
             return 'El catálogo Productos requiere la migración 004_catalogos_masivos_busqueda.sql para el campo tipo_art.';
         }
+        if($tab==='productos' && !$this->columnExists('productos','precio_venta')){
+            return 'El editor de Productos requiere la migración 018_productos_pucchun_precio_ajustes.sql.';
+        }
         return null;
     }
 
@@ -273,24 +280,52 @@ final class MasterCatalogService
         }
         $row=$st->fetch(PDO::FETCH_ASSOC);
         if(!$row) throw new HttpException(404,'Registro no encontrado.');
-        if($tab==='productos' && $this->tableExists('pucchun_producto_almacen'))
+        if($tab==='productos' && $this->tableExists('pucchun_producto_almacen')){
             $row['almacen_referencia_id']=(new ProductWarehouseService($this->pdo))->find('PUCCHUN',$id);
+            $row['stock_actual']='';
+            $warehouse=(int)($row['almacen_referencia_id']??0);
+            $unit=(int)($row['unidad_base_id']??0);
+            if($warehouse>0 && $unit>0 && (new StockMovementService($this->pdo))->installed()){
+                [$snapshot,$balance]=(new StockMovementService($this->pdo))->currentBalance($warehouse,$id,$unit);
+                if($snapshot>0)$row['stock_actual']=(string)$balance;
+            }
+        }
         return $row;
     }
 
-    public function save(string $tab,array $input,?int $id=null): int
+    public function save(string $tab,array $input,?int $id=null,?int $actorId=null): int
     {
         $definition=$this->definition($tab);
-        if($tab==='productos' && array_key_exists('almacen_referencia_id',$input)){
-            if(!$this->tableExists('pucchun_producto_almacen'))
+        if($tab==='productos' &&
+            (array_key_exists('almacen_referencia_id',$input) || array_key_exists('stock_actual',$input))){
+            $hasWarehouse=array_key_exists('almacen_referencia_id',$input);
+            $warehouse=$hasWarehouse?$input['almacen_referencia_id']:null;
+            $manualStock=trim((string)($input['stock_actual']??''));
+            unset($input['almacen_referencia_id'],$input['stock_actual']);
+            if($hasWarehouse && !$this->tableExists('pucchun_producto_almacen'))
                 throw new HttpException(409,'Debe ejecutar la migración 015 de almacenes de productos.');
-            $warehouse=$input['almacen_referencia_id'];
-            unset($input['almacen_referencia_id']);
+            if($manualStock!=='' && (!preg_match('/^(0|[1-9]\d{0,8})$/D',$manualStock)))
+                throw new HttpException(422,'El stock debe ser un número entero igual o mayor que cero.');
             $ownTx=!$this->pdo->inTransaction();
             if($ownTx)$this->pdo->beginTransaction();
             try{
-                $saved=$this->save($tab,$input,$id);
-                (new ProductWarehouseService($this->pdo))->assign('PUCCHUN',$saved,$warehouse);
+                $saved=$this->save($tab,$input,$id,$actorId);
+                if($hasWarehouse)
+                    (new ProductWarehouseService($this->pdo))->assign('PUCCHUN',$saved,$warehouse);
+                if($manualStock!==''){
+                    $reference=(new ProductWarehouseService($this->pdo))->find('PUCCHUN',$saved);
+                    if(!$reference)
+                        throw new HttpException(422,'Seleccione un almacén antes de actualizar existencias.');
+                    $unit=$this->pdo->prepare('SELECT unidad_base_id FROM productos WHERE id=?');
+                    $unit->execute([$saved]);
+                    $unitId=(int)$unit->fetchColumn();
+                    if($unitId<1)
+                        throw new HttpException(422,'El producto necesita una unidad base antes de ajustar el stock.');
+                    if(!$actorId || $actorId<1)
+                        throw new HttpException(422,'Se necesita el usuario responsable para registrar el ajuste.');
+                    (new StockMovementService($this->pdo))
+                        ->setManualBalance($saved,(int)$reference,$unitId,(int)$manualStock,$actorId);
+                }
                 if($ownTx)$this->pdo->commit();
                 return $saved;
             }catch(\Throwable $error){
@@ -346,7 +381,7 @@ final class MasterCatalogService
         }
     }
 
-    public function importRows(string $tab,array $rows): array
+    public function importRows(string $tab,array $rows,?int $actorId=null): array
     {
         $definition=$this->definition($tab);
         $expected=array_keys($definition['import']);
@@ -377,7 +412,9 @@ final class MasterCatalogService
                         ->resolve(WarehouseExcelHeader::values($row));
                     if($warehouse!==null)$payload['almacen_referencia_id']=(string)$warehouse;
                 }
-                $this->save($tab,$payload,$existing);
+                if($tab==='productos' && trim((string)($row['stock_actual']??''))!=='')
+                    $payload['stock_actual']=trim((string)$row['stock_actual']);
+                $this->save($tab,$payload,$existing,$actorId);
                 if($existing===null) $inserted++; else $updated++;
             }
             $this->pdo->commit();
@@ -409,6 +446,7 @@ final class MasterCatalogService
                 'unidad_base_id'=>$this->lookupId('unidades_medida','codigo',$clean('unidad_codigo'),$line,'unidad_codigo'),
                 'categoria_id'=>$this->firstOrCreateName('categorias_producto',$clean('categoria')),
                 'marca_id'=>$this->firstOrCreateName('marcas',$clean('marca')),
+                'precio_venta'=>$clean('precio_venta'),
                 'estado'=>$state($clean('estado')),
             ],
             'proveedores'=>[
@@ -492,6 +530,13 @@ final class MasterCatalogService
                     if($id===false) throw new HttpException(422,'Seleccione un valor válido para '.$field['label'].'.');
                     $result[$name]=(int)$id;
                 }
+                continue;
+            }
+            if($type==='price'){
+                $raw=trim((string)$value);
+                if($raw!=='' && (!preg_match('/^(0|[1-9]\\d{0,10})(?:\\.\\d{1,2})?$/D',$raw)))
+                    throw new HttpException(422,'El precio de venta debe ser un importe válido con hasta dos decimales.');
+                $result[$name]=$raw===''?null:$raw;
                 continue;
             }
             if($type==='number'){
