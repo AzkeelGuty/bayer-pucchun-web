@@ -83,6 +83,7 @@ jobs:
           php tests/unit/workflow_test.php
           php tests/unit/guide_workflow_test.php
           php tests/unit/stock_workflow_test.php
+          php tests/unit/unified_stock_visual_test.php
           php tests/unit/workflow_transitions_test.php
           php tests/unit/document_permissions_test.php
           php tests/unit/guide_permissions_test.php
