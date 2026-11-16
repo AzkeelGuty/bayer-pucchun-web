@@ -103,9 +103,10 @@ try{
            !str_contains($index,'Importar / actualizar precios Excel'),
         'El catálogo ya no muestra acciones separadas de publicación o precios');
     ensure(!str_contains($import,'type="checkbox"') &&
-           str_contains($import,'fecha_precios') &&
+           !str_contains($import,'name="fecha_precios"') &&
+           !str_contains($import,'name="periodo"') &&
            str_contains($import,'priceSample'),
-        'Un único asistente permite hoja de precios sin checkbox');
+        'Un único asistente permite hoja de precios sin campos de fecha adicionales');
     ensure(str_contains($js,'form.requestSubmit()') &&
            str_contains($js,"form.method.toLowerCase() !== 'get'"),
         'Selects de filtros GET ejecutan búsqueda automática sin tocar formularios POST');
