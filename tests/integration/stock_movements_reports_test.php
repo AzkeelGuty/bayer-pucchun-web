@@ -18,6 +18,7 @@ try{
     $db->load('database/migrations/014_catalogo_bayer_nativo.sql');
     $db->load('database/migrations/015_almacenes_referencia_productos.sql');
     $db->load('database/migrations/017_movimientos_stock_publicados.sql');
+    $db->load('database/migrations/018_productos_pucchun_precio_ajustes.sql');
     fixtures($db->pdo);
     $pdo=$db->pdo;
     $pdo->exec("UPDATE tipos_documento SET codigo='FAC' WHERE id=1");
@@ -102,6 +103,46 @@ try{
     $stock->markPublished($newSnapshot,2,1);
     ensure($mov->currentBalance(1,1,1)[1]===20,
         'Snapshot nuevo reconcilia las salidas del período anterior sin doble descuento');
+
+    // El editor de productos Pucchún actualiza precio y stock por código local
+    // y registra un ajuste sobre el snapshot vigente sin borrar otras existencias.
+    $masters=new \App\Services\MasterCatalogService($pdo);
+    $product=$pdo->query('SELECT codigo,nombre,unidad_base_id FROM productos WHERE id=1')
+        ->fetch(PDO::FETCH_ASSOC);
+    $masters->save('productos',[
+        'codigo'=>(string)$product['codigo'],
+        'nombre'=>(string)$product['nombre'],
+        'tipo_art'=>'PRODUCTO',
+        'unidad_base_id'=>(string)$product['unidad_base_id'],
+        'categoria_id'=>'','marca_id'=>'',
+        'almacen_referencia_id'=>'1',
+        'precio_venta'=>'119.90',
+        'stock_actual'=>'8',
+        'estado'=>'1',
+    ],1,1);
+    ensure($mov->currentBalance(1,1,1)[1]===8,
+        'El editor de Pucchún ajusta el stock y no modifica el snapshot publicado');
+    ensure((string)$pdo->query('SELECT precio_venta FROM productos WHERE id=1')->fetchColumn()==='119.90',
+        'Precio Pucchún actualizado en catálogo independiente');
+    $detail=$masters->find('productos',1);
+    ensure($detail['stock_actual']==='8' && $detail['precio_venta']==='119.90',
+        'Editor muestra precio y saldo actual de su almacén');
+    ensure((int)$pdo->query("SELECT COUNT(*) FROM stock_movimientos WHERE tipo='AJUSTE'")->fetchColumn()===1,
+        'Existe exactamente un ajuste trazable');
+    $masters->save('productos',[
+        'codigo'=>(string)$product['codigo'],
+        'nombre'=>(string)$product['nombre'],
+        'tipo_art'=>'PRODUCTO',
+        'unidad_base_id'=>(string)$product['unidad_base_id'],
+        'categoria_id'=>'','marca_id'=>'',
+        'almacen_referencia_id'=>'1','precio_venta'=>'119.90',
+        'stock_actual'=>'8','estado'=>'1',
+    ],1,1);
+    ensure((int)$pdo->query("SELECT COUNT(*) FROM stock_movimientos WHERE tipo='AJUSTE'")->fetchColumn()===1,
+        'Repetir una edición sin cambios no duplica movimientos');
+    ensure(count(array_filter($consolidated->reportRows(['fuente'=>'PUCCHUN']),
+        fn($r)=>$r['materialId']===$product['codigo'] && (int)$r['quantity']===8))===1,
+        'El consolidado exportado refleja el ajuste de stock de Pucchún');
 
     (new BayerCatalogService($pdo))->importRows([[
        'codigo_bayer'=>'99000321','nombre_bayer'=>'BAYER DEMO 12X1L BOT PE',
