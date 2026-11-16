@@ -43,7 +43,7 @@ final class ExportController
         if(!in_array($format,['xlsx','json','txt','pdf'],true)) throw new HttpException(422,'Formato inválido.');
 
         $filters=[];
-        foreach(['from','to','branch','q','fuente','estado','almacen_id','bajo'] as $key){
+        foreach(['from','to','branch','q','document_status','fuente','estado','almacen_id','bajo'] as $key){
             $value=trim((string)\input($key,''));
             if($value!=='') $filters[$key]=$value;
         }
