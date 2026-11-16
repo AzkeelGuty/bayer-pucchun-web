@@ -303,27 +303,29 @@ final class BayerWorkbookReader
     public function parseMatrix(array $matrix,string $sheetName,?string $fallbackPeriod=null): ?array
     {
         $columnMap=null;$headerIndex=null;$hasStock=false;
-        $codeNames=['codigo','codigo_bayer','codigo_producto','codigo_material','material_id','codigo_interno'];
-        $nameNames=['producto_presentacion','producto','presentacion','descripcion','nombre_bayer','producto_descripcion','nombre_producto'];
         foreach($matrix as $index=>$cells){
             $keys=[];
             foreach($cells as $column=>$raw){
-                $key=self::norm((string)$raw);
-                if($key!=='')$keys[$column]=$key;
+                $field=ProductExcelHeaderAliases::resolve((string)$raw,'bayer_inventario');
+                if($field===null)continue;
+                if(isset($keys[$field]))
+                    throw new HttpException(422,
+                        'La hoja '.$sheetName.' contiene dos columnas de '.$field.
+                        '. Deje solo una cabecera para cada dato.');
+                $keys[$field]=(int)$column;
             }
-            $codeCol=null;$nameCol=null;$stockCol=null;$brandCol=null;$yearCol=null;$monthCol=null;$periodCol=null;
-            foreach($keys as $col=>$key){
-                if(in_array($key,$codeNames,true))$codeCol=$col;
-                if(in_array($key,$nameNames,true))$nameCol=$col;
-                if(in_array($key,['marca','brand'],true))$brandCol=$col;
-                if(in_array($key,['cantidad_unidades','cantidad_unidad','cantidad','stock','stock_bayer','unidades_disponibles','qty','quantity'],true) || str_starts_with($key,'cantidad_unidades'))$stockCol=$col;
-                if(in_array($key,['year','ano','anio'],true))$yearCol=$col;
-                if(in_array($key,['month','mes'],true))$monthCol=$col;
-                if(in_array($key,['periodo','periodo_stock'],true))$periodCol=$col;
-            }
-            if($codeCol!==null&&$nameCol!==null){
-                $columnMap=compact('codeCol','nameCol','stockCol','brandCol','yearCol','monthCol','periodCol');
-                $headerIndex=(int)$index;$hasStock=$stockCol!==null;break;
+            if(isset($keys['codigo_bayer'],$keys['nombre_bayer'])){
+                $codeCol=$keys['codigo_bayer'];
+                $nameCol=$keys['nombre_bayer'];
+                $stockCol=$keys['cantidad']??null;
+                $brandCol=$keys['marca']??null;
+                $yearCol=$keys['year']??null;
+                $monthCol=$keys['month']??null;
+                $periodCol=$keys['periodo']??null;
+                $columnMap=compact('codeCol','nameCol','stockCol','brandCol',
+                    'yearCol','monthCol','periodCol');
+                $headerIndex=(int)$index;$hasStock=$stockCol!==null;
+                break;
             }
         }
         if($columnMap===null)return null;
