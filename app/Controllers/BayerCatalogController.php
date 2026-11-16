@@ -47,8 +47,11 @@ final class BayerCatalogController
                 }
             }
         }
+        $warehouses=new \App\Services\ProductWarehouseService();
         \view('bayer_catalog.form',[
             'record'=>$record,'id'=>$id,'prices'=>$prices,'activePrice'=>$activePrice,
+            'warehouseOptions'=>$warehouses->options(),
+            'selectedWarehouse'=>$id>0?$warehouses->find('BAYER',$id):null,
         ]);
     }
 
