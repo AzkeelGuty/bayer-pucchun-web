@@ -14,13 +14,22 @@
   </tbody></table></div>
  </div></div></div>
  <div class="col-xl-6"><div class="card"><div class="card-body p-4">
-  <h2 class="h5">Lista de precios referenciales Bayer</h2>
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+   <h2 class="h5">Lista de precios referenciales Bayer</h2>
+   <a class="btn btn-sm btn-app-blue btn-with-icon" href="<?=url('/bayer-productos/editar?id='.(int)$product['id'])?>">
+      <i class="bi bi-pencil-square" aria-hidden="true"></i><span>Editar precios</span>
+   </a>
+  </div>
   <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Desde</th><th>Hasta</th>
-    <th>Sin IGV</th><th>IGV</th><th>Con IGV</th><th>Descuento</th></tr></thead><tbody>
+    <th>Sin IGV</th><th>IGV</th><th>Con IGV</th><th>Descuento</th><th>Acción</th></tr></thead><tbody>
   <?php foreach($prices as $r): ?><tr><td><?=e($r['vigencia_desde'])?></td><td><?=e($r['vigencia_hasta']??'')?></td>
     <td>S/ <?=e($r['sugerido_sin_igv'])?></td><td><?=e($r['igv_porcentaje'])?>%</td>
-    <td>S/ <?=e($r['sugerido_con_igv'])?></td><td><?=e($r['descuento_dealer']??'')?>%</td></tr><?php endforeach; ?>
-  <?php if(!$prices): ?><tr><td colspan="6" class="text-muted">No hay precios Bayer cargados para este producto.</td></tr><?php endif; ?>
+    <td>S/ <?=e($r['sugerido_con_igv'])?></td><td><?=e($r['descuento_dealer']??'')?>%</td>
+    <td><a class="btn btn-sm btn-outline-primary btn-with-icon"
+      href="<?=url('/bayer-productos/editar?id='.(int)$product['id'].'&precio_fecha='.rawurlencode((string)$r['vigencia_desde']))?>">
+      <i class="bi bi-pencil-square" aria-hidden="true"></i><span>Editar</span>
+    </a></td></tr><?php endforeach; ?>
+  <?php if(!$prices): ?><tr><td colspan="7" class="text-muted">No hay precios Bayer cargados para este producto.</td></tr><?php endif; ?>
   </tbody></table></div>
   <div class="small text-muted">Los precios sugeridos del proveedor son información comercial, no el stock físico Pucchún.</div>
  </div></div></div>
