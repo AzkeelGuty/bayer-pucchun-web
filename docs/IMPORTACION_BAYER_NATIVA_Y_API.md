@@ -91,6 +91,26 @@ La información continúa protegida por autenticación Bearer.
 El stock Pucchún sigue su propio procedimiento de validación y publicación de
 snapshots físicos, con independencia total del proveedor Bayer.
 
+## Visualización de estados e indicadores de inventario
+
+La pantalla **Stock → Inventario consolidado** incluye seis indicadores:
+**Disponibles (verde)**, **Stock bajo (ámbar)**, **En cero (rojo)**,
+**Negativo (rojo oscuro)**, **Sin reporte (azul grisáceo)** y
+**Desactivados (morado)**. El indicador muestra el total correspondiente
+y un icono reconocible, sin depender exclusivamente del color. Pulsar
+una tarjeta filtra los productos por la situación elegida y restablece
+la primera página.
+
+La tabla identifica el origen de cada producto con una etiqueta
+**Bayer (azul)** o **Pucchún (verde)**. Los estados utilizan insignias
+con icono, nombre y color de alerta, y las filas llevan un acento
+lateral discreto. Se mantienen la búsqueda, el umbral bajo y
+**15 referencias por página**, con diseño adaptable a pantallas pequeñas.
+
+Las cantidades nulas se siguen presentando como **—**, no como cero.
+La representación no modifica los cálculos, saldos, datos de producto,
+ni la publicación de inventario Pucchún o reportes Bayer.
+
 ## Consulta de stock consolidada
 
 En **Stock** se presenta una tabla de **15 productos por página**, combinando
