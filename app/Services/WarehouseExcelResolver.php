@@ -8,6 +8,8 @@ use PDO;
 /** Resolución estricta, comprobación de nombres completos y alta controlada. */
 final class WarehouseExcelResolver
 {
+    private array $resolved=[];
+
     public function __construct(private ?PDO $pdo=null){$this->pdo??=\db();}
 
     private function canon(string $s): string
@@ -99,9 +101,11 @@ final class WarehouseExcelResolver
     /** Invocar desde la transacción de importación; nunca crea en la previsualización. */
     public function resolve(array $data): ?int
     {
+        $key=json_encode(WarehouseExcelHeader::values($data),JSON_UNESCAPED_UNICODE);
+        if(array_key_exists($key,$this->resolved))return $this->resolved[$key];
         $result=$this->inspect($data);
-        if($result['action']==='none')return null;
-        if($result['action']==='existing')return $result['id'];
+        if($result['action']==='none')return $this->resolved[$key]=null;
+        if($result['action']==='existing')return $this->resolved[$key]=$result['id'];
         if(!$this->pdo->inTransaction())
             throw new \LogicException('Crear almacenes requiere una transacción activa.');
         $insert=$this->pdo->prepare(
@@ -109,6 +113,6 @@ final class WarehouseExcelResolver
              VALUES(?,?,?, ?,1)'
         );
         $insert->execute([$result['branch_id'],$result['code'],$result['name'],'GENERAL']);
-        return (int)$this->pdo->lastInsertId();
+        return $this->resolved[$key]=(int)$this->pdo->lastInsertId();
     }
 }
