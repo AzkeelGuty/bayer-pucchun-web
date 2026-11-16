@@ -127,7 +127,8 @@ final class BayerCatalogService
                 if($name===''||mb_strlen($name)>200||mb_strlen($brand)>100)
                     throw new HttpException(422,"Hoja $sheet, fila $line: nombre o marca inválidos.");
                 $period=trim((string)($row['periodo']??''));
-                $stockProvided=($row['tiene_columna_stock']??'0')==='1';
+                $stockProvided=($row['tiene_columna_stock']??'0')==='1' &&
+                    (trim((string)($row['cantidad']??''))!=='' || $period!=='');
                 if($stockProvided && !self::validPeriod($period))
                     throw new HttpException(422,"Hoja $sheet, fila $line: indique mes YYYY-MM para registrar cantidades.");
                 $unique=$code.'|'.($stockProvided?$period:'CATALOGO');
