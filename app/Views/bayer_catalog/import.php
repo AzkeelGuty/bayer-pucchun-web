@@ -57,11 +57,11 @@ $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=
   </div>
   <form method="post" action="<?=url('/bayer-productos/importar/cancelar')?>">
    <?=csrf_field()?>
-   <button class="btn btn-outline-secondary" type="submit">Cancelar y descartar</button>
+   <button class="btn btn-app-blue btn-with-icon" type="submit"><i class="bi bi-x-circle" aria-hidden="true"></i><span>Cancelar y descartar</span></button>
   </form>
  </div>
  <form method="get" action="<?=url('/bayer-productos/importar')?>" class="row g-2 align-items-end mb-3">
-  <div class="col-lg-9">
+  <div class="col-12">
    <label class="form-label" for="bayer-hoja">Pestaña que deseas importar</label>
    <select class="form-select" id="bayer-hoja" name="hoja" data-filter-autosubmit>
     <?php foreach($preview as $i=>$item): ?>
@@ -71,9 +71,6 @@ $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=
      </option>
     <?php endforeach; ?>
    </select>
-  </div>
-  <div class="col-lg-3 d-grid">
-   <button class="btn btn-outline-primary" type="submit">Ver selección</button>
   </div>
  </form>
  <div class="d-flex flex-wrap gap-2 mb-3">
@@ -186,10 +183,4 @@ $mode=['INVENTARIO'=>'Inventario mensual','PRECIOS'=>'Lista de precios','MIXTO'=
 </div></div>
 <?php endif; ?>
 
-<div class="card"><div class="card-body p-4">
- <h2 class="h5">Cómo se interpretan los datos</h2>
- <p class="mb-2">Las cantidades 0, vacías y con guion se mantienen distintas.
-  El precio se relaciona con <strong>codigo_bayer</strong> y la fecha inicial; una nueva fecha conserva el histórico.
-  Las presentaciones 1L, 250ML, KG y GR no se convierten ni dividen al importar precios.</p>
- <p class="small text-muted mb-0">La cantidad del proveedor Bayer no altera el inventario físico ni las unidades utilizadas por Pucchún.</p>
-</div></div>
+
