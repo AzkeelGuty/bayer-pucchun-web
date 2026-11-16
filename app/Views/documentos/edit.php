@@ -25,6 +25,11 @@ $statusClass = match ($status) {
 >
 
 <div class="document-form-page">
+    <div class="mb-3">
+        <a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?=url('/documentos')?>">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span>
+        </a>
+    </div>
 
     <div class="document-form-heading">
         <div>
