@@ -96,7 +96,7 @@ try{
     $routes=(string)file_get_contents(dirname(__DIR__,2).'/routes/web.php');
     ensure(str_contains($view,'/bayer-productos/analizar')
         && str_contains($view,'/bayer-productos/importar')
-        && str_contains($view,'name="hoja"') && str_contains($view,'name="confirmacion"'),
+        && str_contains($view,'name="hoja"') && !str_contains($view,'type="checkbox"'),
         'Interfaz obliga análisis previo, elección y confirmación');
     ensure(str_contains($routes,"post('/bayer-productos/analizar'")
         && str_contains($routes,"post('/bayer-productos/importar/cancelar'"),
