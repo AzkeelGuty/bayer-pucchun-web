@@ -284,7 +284,13 @@ final class BackofficeController
         \require_role('ADMIN','SUPERVISOR','GERENCIA');
         $sql="SELECT e.id,e.nombre_archivo,e.tipo_dataset,e.formato,e.record_count,e.resultado,e.generated_at,u.nombre usuario FROM exportaciones e JOIN usuarios u ON u.id=e.usuario_id";
         [$rows,$pagination]=$this->paginateSql($sql,'ORDER BY generated_at DESC');
-        \view('backoffice.reports',['rows'=>$rows,'pagination'=>$pagination]);
+        $stockReport=new \App\Services\UnifiedStockService();
+        $stockStatus=$stockReport->browse([],15,1)['summary'];
+        \view('backoffice.reports',[
+            'rows'=>$rows,'pagination'=>$pagination,
+            'stockReportSummary'=>$stockStatus,
+            'stockReportWarehouses'=>$stockReport->warehouses()
+        ]);
     }
 
     public function audit(): void
