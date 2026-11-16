@@ -43,6 +43,13 @@ $reportPageUrl=static fn(int $page): string => url('/reportes'.($page>1?'?page='
     <div class="published-lock"><i class="bi bi-shield-check me-1"></i> Solo datos publicados</div>
 </section>
 
+<?php if(!($stockMovimientosDisponibles??false)): ?>
+  <div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    El saldo descontado por documentos y guías se activará después de aplicar
+    <strong>017_movimientos_stock_publicados.sql</strong>.
+  </div>
+<?php endif; ?>
 <div class="export-grid export-grid-professional">
 <?php foreach($datasets as $type=>$dataset): ?>
     <article class="card export-card export-card-professional export-card-<?=e($dataset['class'])?>">
