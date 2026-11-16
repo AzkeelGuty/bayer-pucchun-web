@@ -2,12 +2,12 @@
 $action=$editing?'/homologaciones/actualizar':'/homologaciones/guardar';
 $back='/homologaciones?tab='.rawurlencode($tab);
 ?>
-<section class="module-header">
+<section class="module-header has-back-navigation">
   <div><div class="page-eyebrow">HOMOLOGACIONES BAYER</div>
     <h1 class="page-title"><?=$editing?'Editar':'Nueva'?> homologación · <?=e($meta['title'])?></h1>
     <p class="page-subtitle">Vincule el registro interno con su código externo de Bayer.</p>
   </div>
-  <a class="btn btn-outline-primary" href="<?=url($back)?>">Volver al listado</a>
+  <a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?=url($back)?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a>
 </section>
 <?php if($error!==''): ?><div class="alert alert-danger" role="alert"><?=e($error)?></div><?php endif;?>
 <form class="card master-edit-card" method="post" action="<?=url($action)?>">
