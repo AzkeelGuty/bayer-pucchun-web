@@ -85,7 +85,8 @@ final class BayerCatalogController
             $period=\input('periodo','');
             if(!is_string($period))throw new HttpException(422,'El período indicado no es válido.');
             (new BayerImportPreviewService())->stage(
-                $_FILES['excel']??[],$period,(int)\auth_user()['id']);
+                $_FILES['excel']??[],$period,(int)\auth_user()['id'],
+                (string)\input('fecha_precios',''));
             \redirect('/bayer-productos/importar?hoja=0');
         }catch(HttpException $error){
             \flash('error',$error->getMessage());
@@ -96,15 +97,13 @@ final class BayerCatalogController
         \redirect('/bayer-productos/importar');
     }
 
-    /** Paso 2: reabre el archivo privado e importa SOLO la pestaña confirmada. */
+    /** Única importación XLSX/CSV: inventario, precios o combinación por hoja. */
     public function import(): void
     {
         \require_role('ADMIN');
         $raw=\input('hoja','');
         $selected=is_string($raw)&&ctype_digit($raw)?(int)$raw:-1;
         try {
-            if((string)\input('confirmacion','')!=='IMPORTAR')
-                throw new HttpException(422,'Confirme la hoja elegida antes de importar.');
             $staging=new BayerImportPreviewService();
             $stage=$staging->current((int)\auth_user()['id']);
             if($stage===null)throw new HttpException(422,
@@ -115,22 +114,35 @@ final class BayerCatalogController
             $sheet=$sheets[$selected];
             if($sheet['errors']>0)throw new HttpException(422,
                 'La hoja seleccionada contiene '.$sheet['errors'].
-                ' inconsistencias. Corrija los períodos, cantidades o duplicados del reporte.');
-            $rows=$staging->selectedRows($stage,$sheet['name']);
-            $result=$this->service()->importRows($rows,(string)$stage['name'].' · '.$sheet['name']);
-            \audit('bayer_productos','importar_excel');
+                ' inconsistencias. Revise códigos, precios, cantidades o fechas.');
+            $data=$staging->selectedRows($stage,$sheet['name'],$sheet['tipo']);
+            $source=(string)$stage['name'].' · '.$sheet['name'];
+            if($sheet['tipo']==='PRECIOS'){
+                $price=(new \App\Services\BayerPriceImportService())
+                    ->importRows($data['precios'],$source);
+                $message='Precios Bayer actualizados por código: '.
+                    $price['insertados'].' nuevos períodos, '.
+                    $price['actualizados'].' modificados y '.
+                    $price['sin_cambios'].' sin cambios.';
+            }else{
+                $result=$this->service()->importRows(
+                    $data['inventario'],$source,$data['precios']);
+                $message='Hoja '.$sheet['name'].': '.
+                    $result['productos_nuevos'].' productos nuevos, '.
+                    $result['productos_actualizados'].' actualizados, '.
+                    $result['periodos'].' cantidades mensuales y '.
+                    $result['precios'].' registros de precios.';
+            }
+            \audit('bayer_productos','importar_excel_unificado');
             $staging->discard();
-            \flash('success','Hoja '.$sheet['name'].' importada: '.
-                $result['productos_nuevos'].' productos nuevos, '.
-                $result['productos_actualizados'].' actualizados y '.$result['periodos'].
-                ' registros mensuales. Otras hojas no fueron importadas. Pendiente de publicación API.');
+            \flash('success',$message.' Información disponible automáticamente en la API interna. Las demás hojas no se importaron.');
             \redirect('/homologaciones?tab=productos');
-        } catch(HttpException $error){
+        }catch(HttpException $error){
             \flash('error',$error->getMessage());
             \redirect('/bayer-productos/importar'.($selected>=0?'?hoja='.$selected:''));
-        } catch(Throwable $error){
+        }catch(Throwable $error){
             \log_event('bayer_native_import_error',['type'=>get_class($error)]);
-            \flash('error','No se pudo completar la importación Bayer. No se confirmaron datos parciales.');
+            \flash('error','No se pudo completar la importación. No se guardaron cambios parciales.');
             \redirect('/bayer-productos/importar'.($selected>=0?'?hoja='.$selected:''));
         }
     }
@@ -147,85 +159,20 @@ final class BayerCatalogController
     public function pricesPage(): void
     {
         \require_role('ADMIN');
-        $stage=null;$preview=[];$selected=0;$matches=null;
-        try{
-            $staging=new BayerPriceImportPreviewService();
-            $stage=$staging->current((int)\auth_user()['id']);
-            if($stage!==null){
-                $preview=$staging->data($stage);
-                $index=$_GET['hoja']??'0';
-                $selected=is_string($index)&&ctype_digit($index)?(int)$index:0;
-                if(!isset($preview[$selected]))$selected=0;
-                if(isset($preview[$selected])){
-                    $rows=$staging->selectedRows($stage,$preview[$selected]['name']);
-                    $matches=(new BayerPriceImportService())->previewMatch($rows);
-                }
-            }
-        }catch(Throwable $error){
-            \log_event('bayer_price_preview_page_error',['type'=>get_class($error)]);
-            \flash('error','No fue posible mostrar la vista previa de precios. Vuelva a subir el archivo.');
-            (new BayerPriceImportPreviewService())->discard();
-            $stage=null;$preview=[];$matches=null;
-        }
-        \view('bayer_catalog.prices_import',compact('stage','preview','selected','matches'));
+        \redirect('/bayer-productos/importar');
     }
 
     public function pricesAnalyze(): void
     {
         \require_role('ADMIN');
-        try{
-            (new BayerPriceImportPreviewService())->stage(
-                $_FILES['excel']??[],(int)\auth_user()['id']);
-            \redirect('/bayer-productos/precios/importar?hoja=0');
-        }catch(HttpException $error){
-            \flash('error',$error->getMessage());
-        }catch(Throwable $error){
-            \log_event('bayer_price_analyze_error',['type'=>get_class($error)]);
-            \flash('error','No fue posible leer la lista de precios. Revise el formato XLSX o CSV.');
-        }
-        \redirect('/bayer-productos/precios/importar');
-    }
-
-    public function pricesImport(): void
-    {
-        \require_role('ADMIN');
-        $selectedRaw=\input('hoja','');
-        $selected=is_string($selectedRaw)&&ctype_digit($selectedRaw)?(int)$selectedRaw:-1;
-        try{
-            if((string)\input('confirmacion','')!=='IMPORTAR')
-                throw new HttpException(422,'Debe confirmar la actualización de precios.');
-            $stageService=new BayerPriceImportPreviewService();
-            $stage=$stageService->current((int)\auth_user()['id']);
-            if(!$stage)throw new HttpException(422,'La vista previa de precios caducó. Vuelva a analizar.');
-            $sheets=$stageService->data($stage);
-            if(!isset($sheets[$selected]))
-                throw new HttpException(422,'Seleccione una hoja válida de precios.');
-            $chosen=$sheets[$selected];
-            if($chosen['errors']>0)
-                throw new HttpException(422,'La hoja contiene datos inválidos. Corrija el archivo.');
-            $rows=$stageService->selectedRows($stage,$chosen['name']);
-            $result=(new BayerPriceImportService())->importRows($rows,$stage['name'].' · '.$chosen['name']);
-            \audit('bayer_precios','importar_excel');
-            $stageService->discard();
-            \flash('success','Precios Bayer aplicados por código: '.$result['insertados'].
-                ' nuevos períodos, '.$result['actualizados'].' actualizados, '.
-                $result['sin_cambios'].' sin cambios. No se modificó inventario ni stock Pucchún.');
-            \redirect('/homologaciones?tab=productos');
-        }catch(HttpException $error){
-            \flash('error',$error->getMessage());
-        }catch(Throwable $error){
-            \log_event('bayer_price_confirm_error',['type'=>get_class($error)]);
-            \flash('error','Error durante la actualización de precios. No se guardaron cambios parciales.');
-        }
-        \redirect('/bayer-productos/precios/importar'.($selected>=0?'?hoja='.$selected:''));
+        $this->analyze();
     }
 
     public function pricesCancel(): void
     {
         \require_role('ADMIN');
         (new BayerPriceImportPreviewService())->discard();
-        \flash('success','Importación de precios cancelada. No se realizaron cambios.');
-        \redirect('/bayer-productos/precios/importar');
+        \redirect('/bayer-productos/importar');
     }
 
     public function template(): void
