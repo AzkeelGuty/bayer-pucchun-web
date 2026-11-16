@@ -71,7 +71,7 @@ final class MasterDataController
         $id=$editing?(int)\input('id',0):null;
         $record=is_array($_POST['record']??null)?$_POST['record']:[];
         try{
-            $saved=$this->service->save($tab,$record,$id);
+            $saved=$this->service->save($tab,$record,$id,(int)\auth_user()['id']);
             \audit('maestros',$editing?'editar_'.$tab:'crear_'.$tab,$saved);
             \flash('success',($editing?'Registro actualizado':'Registro agregado').' correctamente en '.$this->service->definition($tab)['title'].'.');
             \redirect('/maestros?tab='.rawurlencode($tab));
@@ -115,7 +115,7 @@ final class MasterDataController
         $this->service->assertReady($tab);
         try{
             $rows=(new SimpleXlsxTable())->readUpload($_FILES['excel']??[], $this->service->definition($tab)['import']);
-            $result=$this->service->importRows($tab,$rows);
+            $result=$this->service->importRows($tab,$rows,(int)\auth_user()['id']);
             \audit('maestros','importar_'.$tab);
             \flash('success',$result['total'].' filas procesadas: '.$result['inserted'].' nuevas y '.$result['updated'].' actualizadas.');
             \redirect('/maestros?tab='.rawurlencode($tab));
