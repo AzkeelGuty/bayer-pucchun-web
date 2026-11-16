@@ -130,6 +130,35 @@ $stockNames=['SIN_DATO'=>'Sin reporte','SIN_STOCK'=>'Sin stock (0)',
     </div>
   </div>
 
+  <div class="card-body p-4 border-top">
+    <h2 class="h5 mb-2"><i class="bi bi-boxes me-2" aria-hidden="true"></i>Inventario mensual informado por Bayer</h2>
+    <p class="small text-muted">Puedes corregir manualmente un mes de inventario de esta presentación.
+      Si no necesitas modificar existencias, selecciona <strong>Sin cambios</strong>.
+      El historial Bayer no modifica el stock físico de almacenes Pucchún.</p>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label" for="bayer-stock-accion">Actualización mensual</label>
+        <select class="form-select" name="inventario_accion" id="bayer-stock-accion" data-bayer-stock-action>
+          <option value="SIN_CAMBIOS" selected>Sin cambios</option>
+          <option value="CANTIDAD">Registrar cantidad (incluido 0)</option>
+          <option value="SIN_DATO">Registrar mes sin dato</option>
+          <option value="DESACTIVADO">Desactivar en este mes (—)</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="bayer-stock-periodo">Mes del inventario Bayer</label>
+        <input class="form-control" type="month" id="bayer-stock-periodo"
+               name="inventario_periodo" value="<?=e((string)($record['stock_periodo']??date('Y-m')))?>">
+      </div>
+      <div class="col-md-4" data-bayer-stock-qty-wrap hidden>
+        <label class="form-label" for="bayer-stock-cantidad">Cantidad reportada</label>
+        <input class="form-control" id="bayer-stock-cantidad" type="number" min="0"
+               step="1" max="999999999" name="inventario_cantidad"
+               value="<?=e((string)($record['stock_reportado']??''))?>">
+      </div>
+    </div>
+  </div>
+
   <?php if($editing && $priceHistory): ?>
   <div class="card-body p-4 border-top">
     <h2 class="h6 mb-2">Historial de precios de esta presentación</h2>
