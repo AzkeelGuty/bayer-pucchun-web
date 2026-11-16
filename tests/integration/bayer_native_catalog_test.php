@@ -166,11 +166,10 @@ try{
     ensure($product['stock_periodo']==='2026-10','Carga de mes anterior no sobrescribe el último stock');
 
     rejects(fn()=>$service->delete((int)$byCode['86216353']['id'],'CODIGO INCORRECTO'),HttpException::class);
-    $service->changeStatus((int)$byCode['86216353']['id'],'PUBLICAR');
-    ensure(count($service->publishedProducts())===1,'API Bayer solo entrega productos publicados');
-    ensure(count($service->publishedInventory())===2,'API Bayer entrega histórico separado de inventario');
+    ensure(count($service->publishedProducts())===3,'API incluye automáticamente los tres productos Bayer activos');
+    ensure(count($service->publishedInventory())===4,'API entrega histórico de productos activos sin publicar manualmente');
     $service->changeStatus((int)$byCode['86216353']['id'],'DESACTIVAR');
-    ensure(count($service->publishedProducts())===0,'Desactivar retira publicación API');
+    ensure(count($service->publishedProducts())===2,'Desactivar excluye el producto de API sin ocultar los otros activos');
     $service->changeStatus((int)$byCode['86216353']['id'],'ACTIVAR');
 
     $pricing=$service->importBundledPrices();
