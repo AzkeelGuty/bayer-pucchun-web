@@ -11,13 +11,22 @@ final class BayerUnifiedImportService
     private function inventory(string $path,string $extension,?string $period): array
     {
         try{return (new BayerWorkbookReader())->inspectFile($path,$extension,$period);}
-        catch(HttpException $error){return [];}
+        catch(HttpException $error){
+            if(str_contains($error->getMessage(),'No se identificaron columnas') ||
+               str_contains($error->getMessage(),'No se encontraron productos'))return [];
+            throw $error;
+        }
     }
 
     private function priceSheets(string $path,string $extension): array
     {
         try{return (new BayerPriceWorkbookReader())->inspectFile($path,$extension);}
-        catch(HttpException $error){return [];}
+        catch(HttpException $error){
+            if(str_contains($error->getMessage(),'No se encontró ninguna hoja') ||
+               str_contains($error->getMessage(),'El CSV no contiene columnas de precios'))
+                return [];
+            throw $error;
+        }
     }
 
     /** Las hojas de inventario y listas comerciales se reconocen por cabeceras. */
@@ -35,6 +44,7 @@ final class BayerUnifiedImportService
         }
         foreach($prices as $sheet){
             $priceRows=$this->readPriceRows($path,$extension,$sheet['name'],$priceDate);
+            if($priceRows===[])continue;
             $validated=(new BayerPriceImportService())->validateRows($priceRows);
             $name=$sheet['name'];
             if(isset($sheets[$name])){
