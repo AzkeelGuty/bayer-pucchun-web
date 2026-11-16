@@ -78,13 +78,20 @@ final class SimpleXlsxTable
         foreach($expected as $key=>$settings)
             if(!empty($settings['required']))$mandatory[]=$key;
         $aliases=WarehouseExcelHeader::fields();
+        $isProductImport=isset($expected['codigo'],$expected['nombre'],$expected['unidad_codigo']);
         foreach($matrix as $index=>$cells){
             if((int)$index>30)break;
             $candidate=[];
             foreach($cells as $col=>$raw){
                 $key=$this->normalizeHeader((string)$raw);
-                foreach($aliases as $field=>$names){
-                    if(in_array($key,$names,true)){$key=$field;break;}
+                if($isProductImport){
+                    $canonical=ProductExcelHeaderAliases::resolve(
+                        (string)$raw,'pucchun_productos');
+                    if($canonical!==null)$key=$canonical;
+                }else{
+                    foreach($aliases as $field=>$names){
+                        if(in_array($key,$names,true)){$key=$field;break;}
+                    }
                 }
                 if($key!=='')$candidate[$col]=$key;
             }
