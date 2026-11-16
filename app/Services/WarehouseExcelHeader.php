@@ -18,11 +18,25 @@ final class WarehouseExcelHeader
     public static function fields(): array
     {
         return [
-            'almacen_nombre'=>['almacen','almacen_nombre','nombre_almacen',
-                'almacenamiento','nombre_almacenamiento','almacen_destino',
-                'warehouse','warehouse_name','deposito','almacen_bayer','almacen_pucchun'],
-            'almacen_codigo'=>['almacen_codigo','codigo_almacen','codigo_de_almacen','warehouse_code'],
-            'sucursal_codigo'=>['sucursal_codigo','codigo_sucursal','codigo_de_sucursal'],
+            'almacen_nombre'=>[
+                'almacen','almacen_nombre','nombre_almacen','nombre_del_almacen',
+                'nombre_de_almacen','almacenamiento','nombre_almacenamiento',
+                'almacen_destino','almacen_origen','almacen_principal',
+                'ubicacion_almacen','ubicacion_de_almacen',
+                'warehouse','warehouse_name','warehouse_location',
+                'deposito','nombre_deposito','centro_almacenamiento',
+                'centro_distribucion','almacen_bayer','almacen_pucchun'
+            ],
+            'almacen_codigo'=>[
+                'almacen_codigo','codigo_almacen','codigo_de_almacen',
+                'codigo_del_almacen','cod_almacen','cod_alm',
+                'id_almacen','warehouse_code','warehouse_id'
+            ],
+            'sucursal_codigo'=>[
+                'sucursal_codigo','codigo_sucursal','codigo_de_sucursal',
+                'codigo_de_la_sucursal','cod_sucursal','cod_sede',
+                'sede_codigo','codigo_sede','branch_code'
+            ],
         ];
     }
 
