@@ -108,6 +108,7 @@ final class BayerPriceImportService
                     'precio_sugerido_con_igv'=>number_format((float)$gross,2,'.',''),
                     'descuento_dealer_porcentaje'=>$discount===null?null:number_format((float)$discount,2,'.',''),
                     'vigencia_desde'=>$start,'vigencia_hasta'=>$end===''?null:$end,
+                    ...WarehouseExcelHeader::values($row),
                 ];
             }catch(HttpException $exception){
                 $issues[]='Fila '.$line.': '.$exception->getMessage();
