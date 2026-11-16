@@ -85,6 +85,14 @@ $router->get('/seguridad',[BackofficeController::class,'security'],[new RoleMidd
 $router->post('/seguridad/usuarios/guardar',[UserAdminController::class,'store'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/seguridad/usuarios/estado',[UserAdminController::class,'status'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/seguridad/usuarios/rol',[UserAdminController::class,'role'],[new RoleMiddleware(['ADMIN'])]);
+
+$router->get('/seguridad/usuarios/editar',[UserAdminController::class,'edit'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/seguridad/usuarios/actualizar',[UserAdminController::class,'update'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/seguridad/usuarios/password',[UserAdminController::class,'resetPassword'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/mi-perfil',[UserAdminController::class,'profile'],[new AuthMiddleware()]);
+$router->post('/mi-perfil/actualizar',[UserAdminController::class,'updateProfile'],[new AuthMiddleware()]);
+$router->post('/mi-perfil/password',[UserAdminController::class,'changeMyPassword'],[new AuthMiddleware()]);
+$router->get('/avatar-usuario',[UserAdminController::class,'photo'],[new AuthMiddleware()]);
 $router->get('/evolucion',[BackofficeController::class,'evolution'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
 
 // El emisor SUNAT es una acción tributaria independiente de validar/publicar.

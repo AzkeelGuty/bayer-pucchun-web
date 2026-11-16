@@ -43,13 +43,17 @@ $favicon = branding_logo_url('favicon');
                 </div>
             </div>
             <div class="topbar-right">
-                <div class="user-chip" title="<?=e($u['nombre'])?> · <?=e($u['role'])?>">
-                    <span class="user-avatar"><?=e(strtoupper(substr((string)$u['nombre'],0,1)))?></span>
+                <a class="user-chip" href="<?=url('/mi-perfil')?>" title="Mi perfil · <?=e($u['nombre'])?>">
+                    <span class="user-avatar">
+                        <?php if(!empty($u['foto_perfil'])): ?>
+                            <img src="<?=url('/avatar-usuario?id='.(int)$u['id'])?>" alt="Mi foto de perfil">
+                        <?php else: ?><?=e(mb_strtoupper(mb_substr((string)$u['nombre'],0,1,'UTF-8'),'UTF-8'))?><?php endif; ?>
+                    </span>
                     <span class="user-copy">
                         <strong><?=e($u['nombre'])?></strong>
                         <small><?=e($u['role'])?></small>
                     </span>
-                </div>
+                </a>
                 <form method="post" action="<?=url('/logout')?>" class="m-0">
                     <?=csrf_field()?>
                     <button class="btn btn-logout btn-sm btn-with-icon" type="submit"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Salir</span></button>

@@ -298,7 +298,7 @@ final class BackofficeController
     public function security(): void
     {
         \require_role('ADMIN');
-        $users=\db()->query("SELECT u.id,u.nombre,u.email,IF(u.estado=1,'ACTIVO','INACTIVO') estado,GROUP_CONCAT(r.nombre ORDER BY r.nombre SEPARATOR ', ') roles,u.created_at FROM usuarios u LEFT JOIN usuario_rol ur ON ur.usuario_id=u.id LEFT JOIN roles r ON r.id=ur.rol_id WHERE u.email NOT LIKE 'historico-%@pucchun.pe' GROUP BY u.id ORDER BY u.estado DESC,u.nombre")->fetchAll();
+        $users=\db()->query("SELECT u.id,u.nombre,u.email,u.foto_perfil,u.cargo,u.telefono,IF(u.estado=1,'ACTIVO','INACTIVO') estado,GROUP_CONCAT(r.nombre ORDER BY r.nombre SEPARATOR ', ') roles,u.created_at FROM usuarios u LEFT JOIN usuario_rol ur ON ur.usuario_id=u.id LEFT JOIN roles r ON r.id=ur.rol_id WHERE u.email NOT LIKE 'historico-%@pucchun.pe' GROUP BY u.id ORDER BY u.estado DESC,u.nombre")->fetchAll();
         $roles=\db()->query("SELECT r.id,r.nombre,r.descripcion,IF(r.estado=1,'ACTIVO','INACTIVO') estado,COUNT(DISTINCT CASE WHEN u.estado=1 AND u.email NOT LIKE 'historico-%@pucchun.pe' THEN ur.usuario_id END) usuarios,COUNT(DISTINCT rp.permiso_id) permisos FROM roles r LEFT JOIN usuario_rol ur ON ur.rol_id=r.id LEFT JOIN usuarios u ON u.id=ur.usuario_id LEFT JOIN rol_permiso rp ON rp.rol_id=r.id GROUP BY r.id ORDER BY r.id")->fetchAll();
         $sessionSql="SELECT b.fecha_hora,u.nombre usuario,b.ip,b.user_agent,b.accion FROM bitacora_acceso b LEFT JOIN usuarios u ON u.id=b.usuario_id";
         [$sessions,$sessionPagination]=$this->paginateSql($sessionSql,'ORDER BY fecha_hora DESC');

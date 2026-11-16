@@ -45,6 +45,7 @@ try {
     $db->load('database/schemas/002_schema_v2.sql');
     $db->load('database/migrations/014_catalogo_bayer_nativo.sql');
     $db->load('database/migrations/015_almacenes_referencia_productos.sql');
+    $db->load('database/migrations/016_perfiles_usuarios.sql');
     $db->load('database/migrations/013_calculos_totales_documentos_guias.sql');
     $db->load('database/migrations/009_guias_desde_documentos_y_pagos.sql');
     fixtures($db->pdo);
@@ -166,6 +167,13 @@ try {
     }
     $page=request('/bayer',$bayer);
     ensure($page['status']===200,'Bayer portal');
+    $bayerProfile=request('/mi-perfil',$bayer);
+    ensure($bayerProfile['status']===200 && str_contains($bayerProfile['body'],'password_actual'),
+        'Cuenta BAYER puede editar perfil y cambiar contraseña propia');
+    ensure(request('/seguridad/usuarios/editar?id=10',$bayer)['status']===403,
+        'Cuenta BAYER no puede entrar al editor administrativo');
+    ensure(request('/avatar-usuario?id=10',$bayer)['status']===403,
+        'Cuenta BAYER no puede consultar fotos de otros usuarios');
     ensure(!str_contains($page['body'],'>Clientes<') && !str_contains($page['body'],'>Productos<'),'No global master counts');
     ensure(!str_contains($page['body'],'</script><script>alert(1)</script>'),'Bayer chart names escaped');
     foreach(['/bayer/datos?type=documents','/export?type=documents&format=json'] as $path) {
@@ -217,6 +225,15 @@ try {
     }
 
     $admin=[];loginAs('ADMIN',$admin);
+    $editUser=request('/seguridad/usuarios/editar?id=11',$admin);
+    ensure($editUser['status']===200 &&
+        str_contains($editUser['body'],'Restablecer contraseña') &&
+        str_contains($editUser['body'],'name="foto"'),
+        'El editor ADMIN muestra fotografía y cambio de contraseña');
+    ensure(request('/mi-perfil',$admin)['status']===200,
+        'Administrador accede a Mi perfil');
+    ensure(request('/avatar-usuario?id=11',$admin)['status']===404,
+        'Una foto no cargada no expone un archivo público');
 
     // Catálogos maestros: búsqueda por prefijo y respuesta apta para actualización en vivo.
     $masterPrefix=request('/maestros?tab=clientes&q=Cli',$admin,null,['Accept: text/html','X-Requested-With: XMLHttpRequest','X-BP-Live-Search: 1']);
