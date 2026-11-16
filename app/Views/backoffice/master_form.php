@@ -46,10 +46,12 @@ $title=($editing?'Editar ':'Nuevo ').mb_strtolower((string)$meta['title']);
                         class="form-control"
                         id="<?=e($inputId)?>"
                         name="record[<?=e($name)?>]"
-                        type="<?=e($type)?>"
+                        type="<?=e(in_array($type,['price','stock'],true)?'number':$type)?>"
                         value="<?=e($value)?>"
                         <?=isset($field['max'])?'maxlength="'.e($field['max']).'"':''?>
                         <?=$type==='number'?'min="0.0001" step="'.e($field['step']??'1').'"':''?>
+                        <?=$type==='price'?'min="0" step="0.01"':''?>
+                        <?=$type==='stock'?'min="0" max="999999999" step="1"':''?>
                         <?=$required?'required':''?>
                         autocomplete="off"
                     >
