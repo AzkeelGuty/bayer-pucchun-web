@@ -84,7 +84,7 @@ final class StockController
                 'bajo'=>(int)\input('stock_umbral',10),
             ],15,max(1,(int)\input('stock_pagina',1))),
             'latestStock'=>\has_role('ADMIN')
-                ? (new \\App\\Services\\PucchunStockSummaryService())->latest(40) : [],
+                ? (new \App\Services\PucchunStockSummaryService())->latest(40) : [],
             'bulkCounts'=>\has_role('ADMIN','SUPERVISOR') ? [
                 'BORRADOR'=>$this->repository->countByState('BORRADOR'),
                 'VALIDADO'=>$this->repository->countByState('VALIDADO'),
