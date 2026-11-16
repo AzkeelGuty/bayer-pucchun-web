@@ -97,7 +97,7 @@ req(str_contains($stockForm,'Escribe código o inicio del almacén...') && str_c
 req(str_contains($searchableJs,'function refresh(select)'),'Los selects buscables deben refrescar opciones dinámicas.');
 req(str_contains($formsJs,'BP_SearchableSelects?.refresh?.(select)'),'Los cascados de ubigeo/lote deben sincronizar el buscador.');
 req(str_contains($masterForm,'data-search-select'),'Los formularios maestros deben buscar relaciones sin scroll largo.');
-req(str_contains($guideIndex,'Mostrando') && str_contains($stockIndex,'Mostrando'),'Guías y Stock deben mostrar rangos paginados.');
+req(str_contains($guideIndex,'Mostrando') && str_contains($stockIndex,'15 por página') && str_contains($stockIndex,'stock-product-totals'),'Guías y el inventario consolidado Stock deben conservar paginación e indicadores individuales.');
 req(str_contains($backofficeController,'$perPage=15;'),'Backoffice debe limitar las tablas a 15 filas.');
 
 req(str_contains($routes,"/lookups"),'Debe existir endpoint interno de búsquedas bajo demanda.');
