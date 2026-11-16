@@ -26,16 +26,6 @@ $qs=['tab'=>'productos','q'=>$q,'estado'=>$estado];
     <div class="form-text mt-0">El código es el que figura en el reporte Bayer. No es necesario ingresar partner ni un segundo código.</div>
   </div>
   <div class="d-flex flex-wrap gap-2">
-    <form action="<?=url('/bayer-productos/publicar-todo')?>" method="post"
-      onsubmit="return confirm('¿Publicar para API todos los productos Bayer activos revisados?')">
-      <?=csrf_field()?>
-      <input type="hidden" name="confirmacion" value="PUBLICAR">
-      <button class="btn btn-success btn-with-icon" type="submit"><i class="bi bi-cloud-upload"></i>
-        Publicar todos en API</button>
-    </form>
-    <a class="btn btn-outline-primary btn-with-icon" href="<?=url('/bayer-productos/precios/importar')?>">
-      <i class="bi bi-file-earmark-spreadsheet"></i> Importar / actualizar precios Excel
-    </a>
     <a class="btn btn-primary btn-with-icon" href="<?=url('/bayer-productos/editar')?>"><i class="bi bi-plus-lg"></i> Agregar uno</a>
     <a class="btn btn-success btn-with-icon" href="<?=url('/bayer-productos/importar')?>"><i class="bi bi-file-earmark-spreadsheet"></i> Importar Excel original</a>
     <a class="btn btn-outline-primary btn-with-icon" data-native-navigation href="<?=url('/bayer-productos/plantilla')?>"><i class="bi bi-download"></i> Plantilla XLSX</a>
@@ -61,11 +51,11 @@ $qs=['tab'=>'productos','q'=>$q,'estado'=>$estado];
 </form>
 <div class="card"><div class="card-body">
   <p class="text-muted small mb-3"><strong><?=e((string)$total)?> productos Bayer</strong> · página <?=e((string)$page)?> de <?=e((string)$pages)?>.
-    Los inventarios Bayer son reportes del canal; las cantidades físicas de Pucchún se gestionan en Stock.</p>
+    Los inventarios y precios Bayer se consultan automáticamente en la API interna; la cantidad física Pucchún se gestiona en Stock.</p>
   <div class="table-responsive">
     <table class="table app-table align-middle">
       <thead><tr><th>Código Bayer</th><th>Producto / presentación</th><th>Marca</th>
-        <th class="text-end">Stock Bayer</th><th>Mes</th><th class="text-end">Precio sugerido c/IGV</th><th>Estado Bayer</th><th>Stock Pucchún</th><th>API</th><th>Acciones</th></tr></thead>
+        <th class="text-end">Stock Bayer</th><th>Mes</th><th class="text-end">Precio sugerido c/IGV</th><th>Estado Bayer</th><th>Stock Pucchún</th><th>Acciones</th></tr></thead>
       <tbody>
       <?php foreach($rows as $item):
         $status=(string)$item['stock_estado'];
@@ -91,7 +81,6 @@ $qs=['tab'=>'productos','q'=>$q,'estado'=>$estado];
           <?php endif; ?>
         </td>
         <td></td>
-        <td><?=$item['publicado']?'Publicado':'Pendiente'?></td>
         <td><div class="d-flex align-items-center flex-wrap gap-2">
             <a class="btn btn-sm btn-outline-primary" href="<?=url('/bayer-productos/ver?id='.(int)$item['id'])?>"><i class="bi bi-eye"></i> Ver</a>
             <a class="btn btn-sm btn-app-blue" href="<?=url('/bayer-productos/editar?id='.(int)$item['id'])?>"><i class="bi bi-pencil-square"></i> Editar</a>
@@ -105,18 +94,11 @@ $qs=['tab'=>'productos','q'=>$q,'estado'=>$estado];
                 <button type="submit" name="accion" value="ACTIVAR" class="btn btn-sm btn-outline-success">Activar</button>
               <?php endif; ?>
             </form>
-            <?php if(!$item['publicado']): ?>
-            <form action="<?=url('/bayer-productos/estado')?>" method="post" class="d-inline">
-              <?=csrf_field()?><input type="hidden" name="id" value="<?=e((string)$item['id'])?>">
-              <button type="submit" class="btn btn-sm btn-success" name="accion" value="PUBLICAR"
-                onclick="return confirm('¿Publicar este producto Bayer en la API de consulta?')">Publicar API</button>
-            </form>
-            <?php endif; ?>
             <a class="btn btn-sm btn-app-red" href="<?=url('/bayer-productos/eliminar?id='.(int)$item['id'])?>"><i class="bi bi-trash"></i> Eliminar</a>
         </div></td>
       </tr>
       <?php endforeach; ?>
-      <?php if(!$rows): ?><tr><td colspan="10"><div class="empty-state">
+      <?php if(!$rows): ?><tr><td colspan="9"><div class="empty-state">
         <strong>No se encontraron productos Bayer</strong>
         <span>Importa el Excel original del proveedor para cargar códigos, presentaciones y stock por mes.</span>
       </div></td></tr><?php endif; ?>
