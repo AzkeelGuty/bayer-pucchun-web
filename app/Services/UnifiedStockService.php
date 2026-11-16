@@ -28,15 +28,43 @@ final class UnifiedStockService
                   ) mv ON mv.snapshot_id=sc.id
                     AND mv.producto_id=sd.producto_id AND mv.unidad_id=sd.unidad_id "
             : '';
+        // Ajustes a productos ausentes del último conteo físico: se muestran
+        // igualmente en el consolidado sin alterar sus snapshots históricos.
+        $manualJoin=$ledger ? " LEFT JOIN (
+            SELECT mv.producto_id,mv.unidad_id,sc.almacen_id,
+                   SUM(mv.delta) AS delta,MAX(sc.fecha_stock) AS ultima_fecha
+            FROM stock_movimientos mv
+            JOIN stock_cabecera sc ON sc.id=mv.snapshot_id
+            WHERE sc.estado_registro='PUBLICADO'
+              AND NOT EXISTS (
+                SELECT 1 FROM stock_cabecera newer
+                WHERE newer.almacen_id=sc.almacen_id AND newer.estado_registro='PUBLICADO'
+                  AND (newer.fecha_stock>sc.fecha_stock OR
+                       (newer.fecha_stock=sc.fecha_stock AND newer.id>sc.id))
+              )
+              AND NOT EXISTS (
+                SELECT 1 FROM stock_detalle sd
+                WHERE sd.stock_id=sc.id AND sd.producto_id=mv.producto_id
+                  AND sd.unidad_id=mv.unidad_id
+              )
+            GROUP BY mv.producto_id,mv.unidad_id,sc.almacen_id
+        ) ma ON ma.producto_id=p.id " : '';
+        $qty=$ledger?'COALESCE(z.cantidad,ma.delta)':'z.cantidad';
+        $date=$ledger?'COALESCE(z.ultima_fecha,ma.ultima_fecha)':'z.ultima_fecha';
+        $warehouse=$ledger
+            ? 'COALESCE(z.almacen_id,ma.almacen_id,r.almacen_id)'
+            : 'COALESCE(z.almacen_id,r.almacen_id)';
+        $unit=$ledger?'COALESCE(z.unidad_id,ma.unidad_id,p.unidad_base_id)'
+                     :'COALESCE(z.unidad_id,p.unidad_base_id)';
         return "SELECT 'PUCCHUN' AS fuente,p.codigo AS codigo,p.nombre AS producto,
-                   COALESCE(u.codigo,'') AS unidad,z.cantidad AS cantidad,
-                   DATE_FORMAT(z.ultima_fecha,'%Y-%m-%d') AS periodo,
-                   COALESCE(z.almacen_id,r.almacen_id) AS almacen_id,
+                   COALESCE(u.codigo,'') AS unidad,{$qty} AS cantidad,
+                   DATE_FORMAT({$date},'%Y-%m-%d') AS periodo,
+                   {$warehouse} AS almacen_id,
                    COALESCE(a.nombre,'Sin almacén asignado') AS almacen,
-                   CASE WHEN z.cantidad IS NULL THEN 'SIN_DATO'
-                        WHEN z.cantidad<0 THEN 'RIESGO'
-                        WHEN z.cantidad=0 THEN 'SIN_STOCK'
-                        WHEN z.cantidad<=? THEN 'BAJO'
+                   CASE WHEN {$qty} IS NULL THEN 'SIN_DATO'
+                        WHEN {$qty}<0 THEN 'RIESGO'
+                        WHEN {$qty}=0 THEN 'SIN_STOCK'
+                        WHEN {$qty}<=? THEN 'BAJO'
                         ELSE 'CON_STOCK' END AS estado
                 FROM productos p
                 LEFT JOIN (
@@ -55,9 +83,10 @@ final class UnifiedStockService
                       )
                     GROUP BY sd.producto_id,sd.unidad_id,sc.almacen_id
                 ) z ON z.producto_id=p.id
+                {$manualJoin}
                 LEFT JOIN pucchun_producto_almacen r ON r.producto_id=p.id
-                LEFT JOIN almacenes a ON a.id=COALESCE(z.almacen_id,r.almacen_id)
-                LEFT JOIN unidades_medida u ON u.id=COALESCE(z.unidad_id,p.unidad_base_id)
+                LEFT JOIN almacenes a ON a.id={$warehouse}
+                LEFT JOIN unidades_medida u ON u.id={$unit}
                 UNION ALL
                 SELECT 'BAYER' AS fuente,b.codigo_bayer AS codigo,
                        b.nombre_bayer AS producto,'' AS unidad,

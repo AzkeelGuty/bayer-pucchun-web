@@ -111,7 +111,7 @@ final class HomologationController
         $tab=$this->tab();
         if($tab==='productos'){(new BayerCatalogController())->analyze();return;}
         try{
-            $rows=(new SimpleXlsxTable())->readUpload($_FILES['excel']??[]);
+            $rows=(new SimpleXlsxTable())->readUpload($_FILES['excel']??[],$this->service->definition($tab)['import']);
             $registerMissing=$tab==='productos' && (string)($_POST['registrar_productos_faltantes']??'')==='1';
             $result=$this->service->importRows($tab,$rows,(int)\auth_user()['id'],$registerMissing);
             \audit('homologaciones','importar_'.$tab);

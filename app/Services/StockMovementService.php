@@ -107,6 +107,56 @@ final class StockMovementService
         }
     }
 
+
+    /**
+     * Actualiza un saldo desde el editor de producto sin sobrescribir
+     * inventarios publicados, ventas anteriores ni existencias de otros SKUs.
+     * Siempre requiere un inventario físico ya publicado para el almacén.
+     */
+    public function setManualBalance(
+        int $productId,int $warehouseId,int $unitId,int $newQuantity,int $userId
+    ): void {
+        if(!$this->installed())
+            throw new HttpException(409,'Aplique las migraciones 017 y 018 para ajustar existencias.');
+        if($newQuantity<0 || $newQuantity>999999999 || !$productId || !$warehouseId || !$unitId || !$userId)
+            throw new HttpException(422,'Cantidad, producto, unidad, almacén o usuario inválidos.');
+        $own=!$this->pdo->inTransaction();
+        if($own)$this->pdo->beginTransaction();
+        try{
+            $lock=$this->pdo->prepare('SELECT id FROM productos WHERE id=? FOR UPDATE');
+            $lock->execute([$productId]);
+            if($lock->fetchColumn()===false)throw new HttpException(404,'Producto no encontrado.');
+            [$snapshot,$balance]=$this->currentBalance($warehouseId,$productId,$unitId);
+            if($snapshot<1)throw new HttpException(409,
+                'Registre y publique primero un inventario físico para ese almacén.');
+            $existing=$this->pdo->prepare(
+                'SELECT DISTINCT unidad_id FROM stock_detalle WHERE stock_id=? AND producto_id=?'
+            );
+            $existing->execute([$snapshot,$productId]);
+            $units=$existing->fetchAll(PDO::FETCH_COLUMN);
+            if($units && (count($units)>1 || (int)$units[0]!==$unitId))
+                throw new HttpException(409,'El inventario registrado utiliza otra unidad. Revise la unidad base.');
+            if($newQuantity===$balance){if($own)$this->pdo->commit();return;}
+            $adj=$this->pdo->prepare(
+                'INSERT INTO stock_ajustes_producto(producto_id,unidad_id,almacen_id,snapshot_id,
+                 cantidad_anterior,cantidad_nueva,created_by) VALUES(?,?,?,?,?,?,?)'
+            );
+            $adj->execute([$productId,$unitId,$warehouseId,$snapshot,$balance,$newQuantity,$userId]);
+            $adjustmentId=(int)$this->pdo->lastInsertId();
+            $move=$this->pdo->prepare(
+                "INSERT INTO stock_movimientos(snapshot_id,almacen_id,producto_id,unidad_id,
+                 documento_modulo,documento_id,detalle_id,tipo,delta,usuario_id)
+                 VALUES(?,?,?,?,'maestros',?,?,'AJUSTE',?,?)"
+            );
+            $move->execute([$snapshot,$warehouseId,$productId,$unitId,$productId,$adjustmentId,
+                (string)($newQuantity-$balance),$userId]);
+            if($own)$this->pdo->commit();
+        }catch(\Throwable $error){
+            if($own && $this->pdo->inTransaction())$this->pdo->rollBack();
+            throw $error;
+        }
+    }
+
     private function linkedDocument(string $module,array $header,int $id): ?array
     {
         if($module==='guias' && isset($header['documento_origen_id'])

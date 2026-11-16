@@ -2,15 +2,15 @@
 <section class="module-header has-back-navigation"><div>
   <div class="page-eyebrow">HOMOLOGACIONES BAYER</div>
   <h1 class="page-title">Importación masiva · <?=e($meta['title'])?></h1>
-  <p class="page-subtitle">Carga o actualiza homologaciones por código de partner y código interno en un único Excel.</p>
+  <p class="page-subtitle">Importa relaciones entre registros Bayer y Pucchún. Cada apartado utiliza su propia plantilla en español.</p>
 </div><a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?=url($back)?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a></section>
 <div class="row g-4">
   <div class="col-xl-5"><div class="card h-100"><div class="card-body p-4">
     <h2 class="h5">1. Descargar plantilla</h2>
-    <p>Utilice los encabezados originales de la plantilla; una fila representa una homologación.</p>
+    <p>Descarga la plantilla específica de <?=e(mb_strtolower((string)$meta['title']))?>; sus encabezados están en español.</p>
     <a class="btn btn-outline-primary w-100 mb-4" href="<?=url('/homologaciones/plantilla?tab='.rawurlencode($tab))?>" data-native-navigation>Descargar plantilla XLSX</a>
     <h2 class="h5">2. Completar los datos</h2>
-    <p>El código del partner y el código interno deben existir en el sistema. Las combinaciones existentes se actualizarán sin duplicarse.</p>
+    <p>Bayer ya está identificado por esta sección. El código Pucchún identifica el registro local, y la referencia externa permite relacionarlo con Bayer cuando exista.</p>
     <h2 class="h5">3. Importar a la base de datos</h2>
     <?php if($tab==='productos'): ?>
     <div class="alert alert-info mb-3" role="note">
@@ -32,9 +32,9 @@
           Registrar automáticamente productos con código interno faltante
         </label>
         <div class="form-text">
-          Se utilizarán <code>codigo_interno</code> y <code>nombre_bayer</code> del Excel.
+          Se utilizarán el código Pucchún y el nombre del producto registrado en Bayer.
           Los productos se crean inactivos, sin inventar unidades ni marcas.
-          <code>unidad_codigo</code> identifica la unidad de la homologación Bayer, no necesariamente la unidad base del producto Pucchún. Revise y asigne la unidad base en Catálogos maestros antes de activarlo.
+          El código de unidad indica la unidad utilizada en Bayer, que puede diferir de la unidad base de Pucchún. Revise y asigne la unidad base en Catálogos maestros antes de activarlo.
           Esta opción no modifica productos que ya existen.
         </div>
       </div>
@@ -48,7 +48,7 @@
       <thead><tr><th>Campo</th><th>Obligatorio</th><th>Descripción</th><th>Ejemplo</th></tr></thead>
       <tbody>
       <?php foreach($meta['import'] as $key=>$field): ?>
-        <tr><td><code><?=e($key)?></code></td><td><?=!empty($field['required'])?'Sí':'No'?></td><td><?=e($field['description'])?></td><td><?=e($field['example'])?></td></tr>
+        <tr><td><?=e(\App\Services\CatalogTemplateLabels::label($key,$tab))?></td><td><?=!empty($field['required'])?'Sí':'No'?></td><td><?=e($field['description'])?></td><td><?=e($field['example'])?></td></tr>
       <?php endforeach; ?>
       </tbody>
     </table></div>

@@ -89,7 +89,9 @@ try{
         'codigo_bayer'=>'CUS-101','nombre_bayer'=>'Cliente homologado','estado'=>'1',
         'valid_from'=>'','valid_until'=>'',
     ];
-    ensure(array_keys($row)===array_keys($template),'La estructura de Excel coincide con el contrato');
+    ensure(array_keys($template)===['codigo_interno','codigo_bayer','nombre_bayer','estado']
+        && !isset($template['partner_codigo'],$template['valid_from']),
+        'La nueva plantilla Bayer no solicita partner ni vigencias; importador admite el formato antiguo');
     $first=$hom->importRows('clientes',[$row],1);
     ensure($first['inserted']===1,'Importación alta');
     $second=$hom->importRows('clientes',[[...$row,'nombre_bayer'=>'Cliente actualizado']],1);

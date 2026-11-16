@@ -79,16 +79,22 @@ final class SimpleXlsxTable
             if(!empty($settings['required']))$mandatory[]=$key;
         $aliases=WarehouseExcelHeader::fields();
         $isProductImport=isset($expected['codigo'],$expected['nombre'],$expected['unidad_codigo']);
+        $scope=(string)($expected[array_key_first($expected)]['scope']??'');
         foreach($matrix as $index=>$cells){
             if((int)$index>30)break;
             $candidate=[];
             foreach($cells as $col=>$raw){
                 $key=$this->normalizeHeader((string)$raw);
-                if($isProductImport){
+                // La hoja puede utilizar títulos españoles o las claves de versiones anteriores.
+                if($expected){
+                    $resolved=CatalogTemplateLabels::resolve((string)$raw,$expected,$scope);
+                    if($resolved!==null)$key=$resolved;
+                }
+                if($key===$this->normalizeHeader((string)$raw) && $isProductImport){
                     $canonical=ProductExcelHeaderAliases::resolve(
                         (string)$raw,'pucchun_productos');
                     if($canonical!==null)$key=$canonical;
-                }else{
+                }elseif($key===$this->normalizeHeader((string)$raw)){
                     foreach($aliases as $field=>$names){
                         if(in_array($key,$names,true)){$key=$field;break;}
                     }
@@ -150,28 +156,32 @@ final class SimpleXlsxTable
 
         $keys=array_keys($columns);
         $isBayer=str_contains(mb_strtolower($title,'UTF-8'),'bayer');
+        $scope=CatalogTemplateLabels::scope($title,$columns);
+        $headings=array_map(static fn(string $key):string=>CatalogTemplateLabels::label($key,$scope),$keys);
         $productTemplate=$isBayer || isset($columns['almacen_nombre']);
         // "Carga" es la primera hoja; sólo contiene la cabecera, nunca datos
         // ficticios que podrían entrar accidentalmente en producción.
-        $sheet1=$this->sheetXml([$keys],true,false);
+        $sheet1=$this->sheetXml([$headings],true,false);
+        $scopeName=$isBayer?'Bayer':'Pucchún';
         $instructions=[
             [$title.' | Plantilla de importación XLSX'],
-            [$isBayer?'CATÁLOGO E INVENTARIOS BAYER':'CATÁLOGO INTERNO PUCCHÚN'],
-            ['1. Complete únicamente la hoja Carga. Cada producto ocupa una fila.'],
-            ['2. Los encabezados no deben modificarse; los campos opcionales pueden quedar vacíos.'],
-            ['3. Para almacenes, usar el nombre exacto o código del registro. No se aceptan coincidencias aproximadas.'],
-            ['4. Si el almacén es nuevo y hay varias sucursales, indique sucursal_codigo.'],
+            ['IMPORTACIÓN DE '.$title.' · '.$scopeName],
+            ['1. Complete los datos en la pestaña Carga. Cada registro ocupa una fila.'],
+            ['2. Los encabezados están en español y corresponden a este apartado. No cambie su significado.'],
+            ['3. Los campos opcionales se pueden dejar vacíos. Mantenga los códigos como texto para conservar ceros iniciales.'],
+            ['4. Los registros existentes se identifican por el código propio de este apartado y se actualizan.'],
+            [$scope==='productos' && !$isBayer
+              ? '5. Precio y cantidad son opcionales; para actualizar existencias físicas debe existir un inventario publicado y un almacén asignado.'
+              : '5. Revise el código del registro antes de importar. La carga corresponde únicamente al módulo actual.'],
             [$isBayer
-                ?'5. Stock vacío con período indica sin reporte; cero es 0; guion (-) desactiva. Los precios son por presentación.'
-                :'5. Esta plantilla registra productos, NO crea saldos físicos. Para inventario real, use Nuevo inventario Pucchún.'],
-            [$isBayer
-                ?'6. Precio e IGV son opcionales: indique tasa+importe o ambos importes. Fecha YYYY-MM-DD.'
-                :'6. unidad_codigo debe existir en Unidades. El producto se identifica por su código interno Pucchún.'],
+              ? '6. Bayer se identifica por el módulo; no ingrese código de partner ni códigos internos duplicados. La referencia externa es necesaria solo para vincular registros distintos.'
+              : '6. Los almacenes se relacionan por código o nombre exacto, sin emparejamientos aproximados.'],
             [''],
-            ['COLUMNA','OBLIGATORIA','DESCRIPCIÓN','EJEMPLO'],
+            ['ENCABEZADO','OBLIGATORIO','DESCRIPCIÓN','EJEMPLO'],
         ];
         foreach($columns as $key=>$meta)
-            $instructions[]=[$key,!empty($meta['required'])?'Sí':'No',
+            $instructions[]=[CatalogTemplateLabels::label($key,$scope),
+                !empty($meta['required'])?'Sí':'No',
                 (string)($meta['description']??''),(string)($meta['example']??'')];
         $sheet2=$this->sheetXml($instructions,false,true);
 
