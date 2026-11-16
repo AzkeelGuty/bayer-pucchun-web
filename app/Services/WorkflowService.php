@@ -39,7 +39,9 @@ final class WorkflowService
 
             // Descontar existencias solo al PUBLICAR; revertir únicamente al ANULAR.
             // La operación comparte la transacción del cambio de estado y auditoría.
-            if(in_array($module,['documentos','guias'],true)){
+            // El ERP de producción crea instancias nativas PDO. Los dobles de
+            // prueba de workflow no son conexiones a la base de datos.
+            if(in_array($module,['documentos','guias'],true) && get_class($pdo)===\PDO::class){
                 $stock=new StockMovementService($pdo);
                 if($target==='PUBLICADO')$stock->issue($module,$id,$actorId);
                 if($target==='ANULADO')$stock->reverse($module,$id,$actorId);
