@@ -32,7 +32,7 @@ final class SimpleXlsxExporter
         $sheetLastCol=$this->col($columnCount);
         $images=$this->prepareImages($meta);
 
-        $titleEndIndex=$images ? max(4,$columnCount-5) : $columnCount;
+        $titleEndIndex=$images ? max(4,$columnCount-2) : $columnCount;
         $titleEndCol=$this->col($titleEndIndex);
 
         $sheetRows=[];
@@ -82,9 +82,9 @@ final class SimpleXlsxExporter
                 foreach($keys as $key){
                     $value=$row[$key]??null;
                     $style=$ri%2===0?7:8;
-                    $numeric=in_array($key,['quantity','unitValue'],true) && is_numeric($value);
+                    $numeric=in_array($key,['quantity','unitValue','lineTotal'],true) && is_numeric($value);
                     if($numeric){
-                        $style=$key==='unitValue'?10:9;
+                        $style=in_array($key,['unitValue','lineTotal'],true)?10:9;
                         $cells[]=['value'=>(string)$value,'style'=>$style,'numeric'=>true];
                     }else{
                         // Identificadores permanecen como texto y no se transforman a notación científica.
@@ -385,11 +385,12 @@ final class SimpleXlsxExporter
         $rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
 
-        $baseCol=max(0,$columnCount-4);
+        // Insertar ambas marcas dentro de las dos últimas columnas del propio reporte.
+        $baseCol=max(0,$columnCount-2);
         foreach($images as $i=>$image){
             $relId=$i+1;
-            $col=$baseCol+($i*2);
-            $maxW=92;
+            $col=$baseCol+$i;
+            $maxW=60;
             $maxH=48;
             $ratio=min($maxW/max(1,$image['width']),$maxH/max(1,$image['height']));
             $width=max(24,(int)round($image['width']*$ratio));
@@ -398,12 +399,12 @@ final class SimpleXlsxExporter
             $cy=$height*9525;
 
             $drawing.='<xdr:oneCellAnchor>'
-                .'<xdr:from><xdr:col>'.$col.'</xdr:col><xdr:colOff>30000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>25000</xdr:rowOff></xdr:from>'
+                .'<xdr:from><xdr:col>'.$col.'</xdr:col><xdr:colOff>135000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>95000</xdr:rowOff></xdr:from>'
                 .'<xdr:ext cx="'.$cx.'" cy="'.$cy.'"/>'
                 .'<xdr:pic>'
                 .'<xdr:nvPicPr><xdr:cNvPr id="'.$relId.'" name="'.$this->xmlEsc((string)$image['label']).'"/><xdr:cNvPicPr/></xdr:nvPicPr>'
                 .'<xdr:blipFill><a:blip r:embed="rId'.$relId.'"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
-                .'<xdr:spPr><a:xfrm/><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>'
+                .'<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'.$cx.'" cy="'.$cy.'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>'
                 .'</xdr:pic><xdr:clientData/>'
                 .'</xdr:oneCellAnchor>';
 
