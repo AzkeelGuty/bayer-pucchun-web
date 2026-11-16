@@ -24,7 +24,8 @@ final class ExportController
             $value=trim((string)\input($key,''));
             if($value!=='') $filters[$key]=$value;
         }
-        $count=$type==='stock'
+        // El rol externo BAYER mantiene su alcance publicado, sin ver catálogos internos.
+        $count=$type==='stock' && !\has_role('BAYER')
             ? count((new UnifiedStockService())->reportRows($filters))
             : (new BayerDataService())->countDataset($type,$filters);
         header('Content-Type: application/json; charset=utf-8');
@@ -48,7 +49,7 @@ final class ExportController
         }
 
         $started=microtime(true);
-        $rows=$type==='stock'
+        $rows=$type==='stock' && !\has_role('BAYER')
             ? (new UnifiedStockService())->reportRows($filters)
             : (new BayerDataService())->completeDataset($type,$filters);
         $generatedAt=date('Y-m-d H:i:s');
