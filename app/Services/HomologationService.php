@@ -24,19 +24,28 @@ final class HomologationService
             'almacenes'=>['title'=>'Almacenes Bayer','table'=>'homologacion_almacenes','local_table'=>'almacenes','local_key'=>'almacen_id','local_code'=>'codigo','local_name'=>'nombre','lookup'=>'almacenes','external_key'=>'warehouse_id','external_name'=>'warehouse_name','code_max'=>20,'name_max'=>120],
             'vendedores'=>['title'=>'Vendedores Bayer','table'=>'homologacion_vendedores','local_table'=>'vendedores','local_key'=>'vendedor_id','local_code'=>'codigo','local_name'=>'nombres','lookup'=>'vendedores','external_key'=>'sales_id','external_name'=>'sales_name','code_max'=>20,'name_max'=>120],
         ];
-        foreach($base as &$config){
+        foreach($base as $scope=>&$config){
+            // El módulo determina automáticamente que el aliado es BAYER.
+            // Identificadores internos y externos tienen funciones distintas:
+            // el primero identifica la fila local; el otro identifica su par en Bayer.
             $columns=[
-                'partner_codigo'=>['description'=>'Código del partner, registrado en Partners','example'=>'BAYER','required'=>true],
-                'codigo_interno'=>['description'=>'Código del registro local existente','example'=>'MAT-001','required'=>true],
-                'codigo_bayer'=>['description'=>'Identificador externo en Bayer','example'=>'BAY-001','required'=>!empty($config['required_code'])],
-                'nombre_bayer'=>['description'=>'Denominación externa en Bayer','example'=>'Nombre homologado','required'=>false],
-                'estado'=>['description'=>'1=Activo, 0=Inactivo','example'=>'1','required'=>false],
-                'valid_from'=>['description'=>'Inicio vigencia YYYY-MM-DD','example'=>'2026-11-12','required'=>false],
-                'valid_until'=>['description'=>'Fin vigencia YYYY-MM-DD','example'=>'','required'=>false],
+                'codigo_interno'=>[
+                    'description'=>'Código del registro Pucchún que se relacionará',
+                    'example'=>$scope==='clientes'?'20609990011':'PUC-001','required'=>true,'scope'=>$scope],
+                'codigo_bayer'=>[
+                    'description'=>'Identificador de ese registro en Bayer, cuando exista',
+                    'example'=>'BAY-001','required'=>!empty($config['required_code']),'scope'=>$scope],
+                'nombre_bayer'=>[
+                    'description'=>'Nombre utilizado en el registro de Bayer (opcional)',
+                    'example'=>'Registro Bayer','required'=>false,'scope'=>$scope],
+                'estado'=>[
+                    'description'=>'1 activo / 0 inactivo',
+                    'example'=>'1','required'=>false,'scope'=>$scope],
             ];
-            if($config['table']==='homologacion_productos_bayer'){
-                $columns['unidad_codigo']=['description'=>'Código unidad Bayer opcional ya registrada','example'=>'NIU','required'=>false];
-            }
+            if($scope==='productos')
+                $columns['unidad_codigo']=[
+                    'description'=>'Unidad declarada en Bayer (opcional)',
+                    'example'=>'NIU','required'=>false,'scope'=>$scope];
             $config['import']=$columns;
         }
         unset($config);
@@ -241,10 +250,13 @@ final class HomologationService
         if($createMissingProducts && $tab!=='productos')
             throw new HttpException(422,'El registro automático de códigos faltantes solo corresponde a Productos Bayer.');
         if(count($rows)<1 || count($rows)>2000) throw new HttpException(422,'La plantilla admite de 1 a 2000 registros.');
-        $expected=array_keys($d['import']);
+        // Nuevas plantillas compactas y archivos anteriores son compatibles.
+        // partner_codigo y vigencias antiguas no se solicitan al usuario.
         $headers=array_keys($rows[0]);
-        if(array_diff($expected,$headers) || array_diff($headers,$expected)){
-            throw new HttpException(422,'Los encabezados no coinciden con la plantilla XLSX de homologación.');
+        $known=[...array_keys($d['import']),'partner_codigo','valid_from','valid_until','unidad_codigo'];
+        if(!in_array('codigo_interno',$headers,true) || array_diff($headers,$known)){
+            throw new HttpException(422,
+                'La plantilla no corresponde a este catálogo Bayer. Verifique el código Pucchún y sus columnas.');
         }
         if($this->pdo->inTransaction()) throw new \LogicException('Importación ya en una transacción.');
         $this->pdo->beginTransaction();
@@ -252,10 +264,12 @@ final class HomologationService
         try{
             foreach($rows as $i=>$row){
                 $line=$i+2;
-                $partnerCode=trim((string)($row['partner_codigo']??''));
+                $partnerCode=trim((string)($row['partner_codigo']??'BAYER'));
                 $localCode=trim((string)($row['codigo_interno']??''));
-                if($partnerCode==='' || $localCode==='') throw new HttpException(422,"Fila $line: complete partner_codigo y codigo_interno.");
-                $partner=$this->resolveCode('partners','codigo',$partnerCode,$line);
+                if($partnerCode!=='' && strtoupper($partnerCode)!=='BAYER')
+                    throw new HttpException(422,"Fila $line: esta sección solo admite homologaciones Bayer.");
+                if($localCode==='') throw new HttpException(422,"Fila $line: indique el código correspondiente a Pucchún.");
+                $partner=$this->resolveCode('partners','codigo','BAYER',$line);
                 $unitId=null;
                 if($tab==='productos'){
                     $unitCode=trim((string)($row['unidad_codigo']??''));
