@@ -46,6 +46,7 @@ final class MasterCatalogService
                     'unidad_base_id'=>['label'=>'Unidad base','type'=>'select','source'=>'unidades','required'=>true],
                     'categoria_id'=>['label'=>'Categoría','type'=>'select','source'=>'categorias','required'=>false],
                     'marca_id'=>['label'=>'Marca','type'=>'select','source'=>'marcas','required'=>false],
+                    'almacen_referencia_id'=>['label'=>'Almacén de referencia','type'=>'select','source'=>'almacenes','required'=>false,'virtual'=>true,'help'=>'Ubicación referencial si aún no existe inventario físico publicado.'],
                     'estado'=>$state,
                 ],
                 'import'=>[
@@ -238,6 +239,7 @@ final class MasterCatalogService
                 'marcas'=>$this->rows("SELECT id,nombre label FROM marcas ORDER BY nombre"),
                 'empresas'=>$this->rows("SELECT id,CONCAT(ruc,' · ',razon_social) label FROM empresas WHERE estado=1 ORDER BY razon_social"),
                 'sucursales'=>$this->rows("SELECT id,CONCAT(codigo,' · ',nombre) label FROM sucursales WHERE estado=1 ORDER BY nombre"),
+                'almacenes'=>$this->rows("SELECT id,CONCAT(codigo,' · ',nombre) label FROM almacenes WHERE estado=1 ORDER BY nombre"),
                 default=>[],
             };
         }
@@ -255,19 +257,38 @@ final class MasterCatalogService
             $fields=array_keys($definition['fields']);
             $select=[];
             foreach($fields as $field){
-                $select[]=$field;
+                if(!($definition['fields'][$field]['virtual']??false))$select[]=$field;
             }
             $st=$this->pdo->prepare('SELECT id,'.implode(',',$select).' FROM '.$definition['table'].' WHERE id=?');
             $st->execute([$id]);
         }
         $row=$st->fetch(PDO::FETCH_ASSOC);
         if(!$row) throw new HttpException(404,'Registro no encontrado.');
+        if($tab==='productos' && $this->tableExists('pucchun_producto_almacen'))
+            $row['almacen_referencia_id']=(new ProductWarehouseService($this->pdo))->find('PUCCHUN',$id);
         return $row;
     }
 
     public function save(string $tab,array $input,?int $id=null): int
     {
         $definition=$this->definition($tab);
+        if($tab==='productos' && array_key_exists('almacen_referencia_id',$input)){
+            if(!$this->tableExists('pucchun_producto_almacen'))
+                throw new HttpException(409,'Debe ejecutar la migración 015 de almacenes de productos.');
+            $warehouse=$input['almacen_referencia_id'];
+            unset($input['almacen_referencia_id']);
+            $ownTx=!$this->pdo->inTransaction();
+            if($ownTx)$this->pdo->beginTransaction();
+            try{
+                $saved=$this->save($tab,$input,$id);
+                (new ProductWarehouseService($this->pdo))->assign('PUCCHUN',$saved,$warehouse);
+                if($ownTx)$this->pdo->commit();
+                return $saved;
+            }catch(\Throwable $error){
+                if($ownTx && $this->pdo->inTransaction())$this->pdo->rollBack();
+                throw $error;
+            }
+        }
         $record=$this->normalize($tab,$input,$definition);
         if($tab==='ubigeo') return $this->saveUbigeo($record,$id);
 
@@ -436,6 +457,7 @@ final class MasterCatalogService
 
         $result=[];
         foreach($definition['fields'] as $name=>$field){
+            if($field['virtual']??false)continue;
             $value=$input[$name]??'';
             $required=(bool)($field['required']??false);
             $type=$field['type']??'text';
