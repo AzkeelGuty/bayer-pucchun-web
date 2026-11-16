@@ -40,6 +40,7 @@ final class BayerUnifiedImportService
             if(isset($sheets[$name])){
                 $sheets[$name]['tipo']='MIXTO';
                 $sheets[$name]['precios']=count($priceRows);
+                $sheets[$name]['priceSample']=array_slice($priceRows,0,20);
                 $sheets[$name]['errors']+=count($validated['issues']);
                 $sheets[$name]['priceIssues']=array_slice($validated['issues'],0,10);
             }else{
@@ -49,6 +50,7 @@ final class BayerUnifiedImportService
                     'priceIssues'=>array_slice($validated['issues'],0,10),
                     'statuses'=>[],'periods'=>[],
                     'sample'=>array_slice($priceRows,0,20),
+                    'priceSample'=>array_slice($priceRows,0,20),
                 ];
             }
         }
