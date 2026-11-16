@@ -56,9 +56,36 @@ final class BayerPriceImportService
                 if(!BayerPriceWorkbookReader::validDate($start) ||
                     ($end!==''&&(!BayerPriceWorkbookReader::validDate($end)||$end<$start)))
                     throw new HttpException(422,'Fecha de vigencia inválida.');
-                $net=self::decimal((string)($row['precio_sugerido_sin_igv']??''),'Precio sin IGV');
-                $vat=self::rate((string)($row['igv_porcentaje']??''),'IGV');
-                $gross=self::decimal((string)($row['precio_sugerido_con_igv']??''),'Precio con IGV');
+                $rawNet=trim((string)($row['precio_sugerido_sin_igv']??''));
+                $rawGross=trim((string)($row['precio_sugerido_con_igv']??''));
+                $rawVat=trim((string)($row['igv_porcentaje']??''));
+                if($rawNet==='' && $rawGross==='')
+                    throw new HttpException(422,'La fila no informa ningún precio.');
+                $net=$rawNet!==''?self::decimal($rawNet,'Precio sin IGV'):null;
+                $gross=$rawGross!==''?self::decimal($rawGross,'Precio con IGV'):null;
+                if($rawVat!==''){
+                    $vat=self::rate($rawVat,'IGV');
+                }elseif($net!==null && $gross!==null){
+                    // No presuponer 18 %: se deriva solo de los dos importes.
+                    if((float)$net==0.0){
+                        if((float)$gross!=0.0)
+                            throw new HttpException(422,'No se puede calcular IGV con precio neto cero.');
+                        $vat='0';
+                    }else{
+                        $derived=round(((float)$gross/(float)$net-1)*100,2);
+                        if($derived<0||$derived>100)
+                            throw new HttpException(422,'La tasa IGV deducida no es válida.');
+                        $vat=(string)$derived;
+                    }
+                }else{
+                    throw new HttpException(422,
+                        'Indique IGV o ambos importes (sin IGV y con IGV).');
+                }
+                if($net===null && $gross!==null)
+                    $net=number_format((float)$gross/(1+(float)$vat/100),2,'.','');
+                if($gross===null && $net!==null)
+                    $gross=number_format((float)$net*(1+(float)$vat/100),2,'.','');
+
                 $discount=self::rate((string)($row['descuento_dealer_porcentaje']??''),'Descuento',true);
                 if((float)$net>9999999999.99 || (float)$gross>9999999999.99)
                     throw new HttpException(422,'Importe mayor al máximo permitido.');
@@ -101,7 +128,7 @@ final class BayerPriceImportService
             'missing'=>$missing,'issues'=>$validation['issues']];
     }
 
-    public function importRows(array $rows,string $filename): array
+    public function importRows(array $rows,string $filename,bool $insideCatalogTransaction=false): array
     {
         if(!$rows || count($rows)>10000)
             throw new HttpException(422,'La carga debe contener de 1 a 10000 precios.');
@@ -113,8 +140,12 @@ final class BayerPriceImportService
             throw new HttpException(422,'Códigos Bayer no registrados: '.
                 implode(', ',array_slice($check['missing'],0,8)).
                 '. Registre primero esos productos en el catálogo Bayer.');
-        if($this->pdo->inTransaction())throw new \LogicException('Transacción de importación en curso.');
-        $this->pdo->beginTransaction();
+        if($insideCatalogTransaction){
+            if(!$this->pdo->inTransaction())throw new \LogicException('No hay transacción compartida.');
+        }else{
+            if($this->pdo->inTransaction())throw new \LogicException('Transacción de importación en curso.');
+            $this->pdo->beginTransaction();
+        }
         $inserted=0;$updated=0;$unchanged=0;
         try{
             $lookup=$this->pdo->prepare('SELECT id FROM bayer_productos_catalogo
@@ -129,8 +160,8 @@ final class BayerPriceImportService
             $update=$this->pdo->prepare('UPDATE bayer_precios_referencia SET
                 vigencia_hasta=?,moneda=?,sugerido_sin_igv=?,igv_porcentaje=?,
                 sugerido_con_igv=?,descuento_dealer=?,fuente=? WHERE id=?');
-            $unpublish=$this->pdo->prepare('UPDATE bayer_productos_catalogo
-                SET publicado=0 WHERE id=?');
+            $publish=$this->pdo->prepare('UPDATE bayer_productos_catalogo
+                SET publicado=1 WHERE id=? AND estado_catalogo=\'ACTIVO\'');
             $source=mb_substr($filename,0,180);
             foreach($validated['rows'] as $row){
                 $lookup->execute([$row['codigo_bayer']]);
@@ -172,12 +203,12 @@ final class BayerPriceImportService
                         $source,$old['id']]);
                     $updated++;
                 }
-                // Publicación explícita tras la revisión, como en el inventario Bayer.
-                $unpublish->execute([(int)$id]);
+                // Las consultas API internas reflejan inmediatamente el precio vigente.
+                $publish->execute([(int)$id]);
             }
-            $this->pdo->commit();
+            if(!$insideCatalogTransaction)$this->pdo->commit();
         }catch(Throwable $error){
-            if($this->pdo->inTransaction())$this->pdo->rollBack();
+            if(!$insideCatalogTransaction && $this->pdo->inTransaction())$this->pdo->rollBack();
             throw $error;
         }
         return ['insertados'=>$inserted,'actualizados'=>$updated,
