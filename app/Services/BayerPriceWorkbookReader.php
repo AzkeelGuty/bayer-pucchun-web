@@ -154,9 +154,11 @@ final class BayerPriceWorkbookReader
                 foreach($synonyms as $field=>$names)
                     if(in_array($key,$names,true))$keys[$field]=(int)$col;
             }
-            if(isset($keys['codigo_bayer'],$keys['precio_sugerido_sin_igv'],
-                $keys['igv_porcentaje'],$keys['precio_sugerido_con_igv'],
-                $keys['vigencia_desde'])){
+            // Código y al menos un campo de precio; IGV y vigencia son opcionales
+            // en el encabezado y se verifican al confirmar.
+            if(isset($keys['codigo_bayer']) &&
+                (isset($keys['precio_sugerido_sin_igv']) ||
+                 isset($keys['precio_sugerido_con_igv']))){
                 $header=$keys;$start=(int)$line;break;
             }
         }
