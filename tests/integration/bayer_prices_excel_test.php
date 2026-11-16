@@ -137,17 +137,17 @@ try{
 
     $base=dirname(__DIR__,2);
     $index=file_get_contents($base.'/app/Views/bayer_catalog/index.php');
-    $view=file_get_contents($base.'/app/Views/bayer_catalog/prices_import.php');
+    $view=file_get_contents($base.'/app/Views/bayer_catalog/import.php');
     $routes=file_get_contents($base.'/routes/web.php');
     ensure(!str_contains($index,'precios-cargar')&&!str_contains($index,'Cargar precios Bayer 2026')
-        &&str_contains($index,'/bayer-productos/precios/importar'),
-        'No existe el botón antiguo de cargar precios fijos');
-    foreach(['precios/analizar','precios/confirmar','precios/cancelar'] as $action)
-        ensure(str_contains($routes,"'/bayer-productos/".$action."'"),
-            'Ruta protegida de botón '.$action);
-    ensure(str_contains($view,'name="confirmacion"')
-        &&str_contains($view,'/bayer-productos/precios/cancelar')
+        &&!str_contains($index,'Importar / actualizar precios Excel'),
+        'No existe botón independiente para importar precios');
+    ensure(str_contains($routes,"'/bayer-productos/analizar'")
+        &&str_contains($routes,"'/bayer-productos/importar/cancelar'"),
+        'Las rutas de importar y cancelar son protegidas');
+    ensure(!str_contains($view,'type="checkbox"')
+        &&str_contains($view,'name="fecha_precios"')
         &&str_contains($view,'type="submit"'),
-        'Confirmación explícita y cancelar sin ventana nativa inconsistente');
+        'El asistente único contiene precios sin casilla adicional');
     echo 'BAYER PRICE XLSX/CSV & UPSERT OK ('.$GLOBALS['checks'].' checks)'.PHP_EOL;
 }finally{$db->close();}
