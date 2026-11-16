@@ -16,9 +16,21 @@ class AuthService
 
     public function user(int $id): ?array
     {
-        $st = $this->connection()->prepare('SELECT id,nombre,email FROM usuarios WHERE id=? AND estado=1');
-        $st->execute([$id]);
-        $user = $st->fetch(\PDO::FETCH_ASSOC);
+        // Compatible con instalaciones que aún no han aplicado la migración 016:
+        // el acceso no se bloquea mientras se actualiza la estructura de perfiles.
+        try {
+            $st=$this->connection()->prepare(
+                'SELECT id,nombre,email,foto_perfil FROM usuarios WHERE id=? AND estado=1'
+            );
+            $st->execute([$id]);
+            $user=$st->fetch(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $error) {
+            if((int)($error->errorInfo[1]??0)!==1054)throw $error;
+            $st=$this->connection()->prepare('SELECT id,nombre,email FROM usuarios WHERE id=? AND estado=1');
+            $st->execute([$id]);
+            $user=$st->fetch(\PDO::FETCH_ASSOC);
+            if(is_array($user))$user['foto_perfil']=null;
+        }
         if (!$user) {
             return null;
         }
