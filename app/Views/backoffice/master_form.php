@@ -1,13 +1,13 @@
 <?php
 $title=($editing?'Editar ':'Nuevo ').mb_strtolower((string)$meta['title']);
 ?>
-<section class="module-header">
+<section class="module-header has-back-navigation">
     <div>
         <div class="page-eyebrow"><i class="bi bi-database-gear"></i> CATÁLOGOS MAESTROS</div>
         <h1 class="page-title"><?=e($title)?></h1>
         <p class="page-subtitle"><?= $editing ? 'Actualiza los datos del registro seleccionado.' : 'Registra un elemento nuevo directamente en la base de datos.' ?></p>
     </div>
-    <a class="btn btn-outline-primary" href="<?=url('/maestros?tab='.rawurlencode($tab))?>"><i class="bi bi-arrow-left"></i> Volver al catálogo</a>
+    <a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?=url('/maestros?tab='.rawurlencode($tab))?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al catálogo</span></a>
 </section>
 
 <?php if($error!==''): ?>
