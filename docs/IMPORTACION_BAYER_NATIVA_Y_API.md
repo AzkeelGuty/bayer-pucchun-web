@@ -50,6 +50,57 @@ Se mantiene disponible una **plantilla alternativa simple de cinco columnas**: `
 
 **Nota:** si el proveedor almacenó un código originalmente con ceros iniciales como número en Excel, Excel pudo haberlos descartado antes de subirlo; el sistema no puede recuperarlos sin la fuente original. Los códigos deben permanecer como texto cuando existan ceros significativos.
 
+## Encabezados alternativos de reportes Bayer y productos Pucchún
+
+La importación no depende del orden de columnas ni exige encabezados en la
+primera fila. Los reportes mensuales originales Bayer pueden llevar títulos,
+datos de empresa, país, año y mes antes de la tabla. El sistema localiza una
+fila que incluya el código y el producto, incluso cuando las columnas comiencen
+en I, J, K y L. Los encabezados grises **CÓDIGO**, **PRODUCTO /
+PRESENTACIÓN**, **MARCA** y **CANTIDAD / UNIDADES** se reconocen tal cual,
+con mayúsculas, tildes, barras, espacios y otras separaciones.
+
+La detección utiliza un diccionario de equivalencias exactas normalizadas
+(`app/Services/ProductExcelHeaderAliases.php`). Algunos ejemplos:
+
+| Campo | Otras cabeceras admitidas |
+| --- | --- |
+| Código Bayer | CÓDIGO, COD. PRODUCTO, SKU, CODIGO SAP, MATERIAL ID, PRODUCT CODE |
+| Presentación | PRODUCTO / PRESENTACIÓN, NOMBRE COMERCIAL, DESCRIPCION PRODUCTO, PRODUCT NAME |
+| Marca | MARCA, BRAND, MARCA PRODUCTO |
+| Cantidad | CANTIDAD / UNIDADES, STOCK DISPONIBLE, EXISTENCIAS, SALDO UNIDADES, QTY |
+| Año / mes | YEAR, AÑO REPORTE, MONTH, MES INVENTARIO |
+| Período | PERÍODO STOCK, YEAR MONTH |
+| Almacén | ALMACÉN, ALMACENAMIENTO, NOMBRE DEL ALMACÉN, WAREHOUSE |
+| Almacén / sucursal (códigos) | CÓDIGO DE ALMACÉN, COD. ALMACEN, CÓDIGO SUCURSAL |
+| Precio sin IGV | PRECIO NETO, PRECIO SUGERIDO SIN IGV, PRECIO LISTA SIN IGV |
+| IGV | IGV %, PORCENTAJE DE IGV, TASA DE IGV, VAT RATE |
+| Precio con IGV | PRECIO SUGERIDO CON IGV, PRECIO FINAL CON IGV, PRECIO BRUTO |
+| Descuento | DESCUENTO DEALER %, DSCTO %, DESCUENTO DISTRIBUIDOR |
+| Vigencia | VIGENCIA DESDE, FECHA INICIO, VIGENCIA HASTA, FECHA FIN |
+
+En Pucchún (catálogo de Productos), también se admiten encabezados
+como **CÓDIGO PRODUCTO**, **NOMBRE DEL PRODUCTO**, **TIPO DE ARTÍCULO**,
+**UNIDAD DE MEDIDA**, **CATEGORÍA PRODUCTO**, **MARCA**, **ESTADO PRODUCTO**
+y los campos opcionales de almacén. Esta ampliación no cambia los
+encabezados exigidos por los otros catálogos maestros.
+
+La equivalencia se aplica al **nombre completo de la columna**, nunca
+por prefijos ambiguos. **Country Code, Region Code y Channel Code** son
+datos auxiliares y no se confunden con el código Bayer. Si una hoja incluye
+dos columnas que representan el mismo campo, la importación detiene esa
+hoja para corregir las cabeceras duplicadas.
+
+### Excel de prueba con estructura de reporte mensual
+
+El libro `Ejemplo_Bayer_Reportes_Cabeceras_Grises_Multipestanas.xlsx` contiene
+las hojas `SET_26`, `OCT_26`, `PRECIOS_DEMO`, `INSTRUCCIONES`
+y `CABECERAS ADMITIDAS`. Su encabezado gris reproduce las columnas
+comerciales habituales del reporte de canal, con datos **DEMO**;
+no contiene cantidades oficiales ni debe importarse en producción sin
+revisarlo previamente. El asistente reconoce cada hoja por sus cabeceras
+y permite seleccionar cuál registrar.
+
 ## Reconocimiento de almacenes al importar Excel
 
 Desde **Productos Bayer → Importar Excel original** o **Catálogos maestros
@@ -286,6 +337,7 @@ Una importación Bayer **no envía información a ningún servidor de Bayer**: s
 ```bat
 php tests\integration\bayer_native_catalog_test.php
 php tests\unit\bayer_native_preview_test.php
+php tests\unit\product_excel_header_aliases_test.php
 php tests\integration\bayer_prices_excel_test.php
 php tests\integration\bayer_unified_stock_api_test.php
 php tests\integration\stock_warehouse_filters_test.php
