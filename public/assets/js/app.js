@@ -659,3 +659,17 @@ document.addEventListener('input', (event) => {
     if (Number.isFinite(amount) && amount>=0)
         gross.value=(amount*(1+rate/100)).toFixed(2);
 });
+
+
+// Cantidad Bayer: solo es obligatoria cuando se elige registrar una cifra.
+document.addEventListener('change',(event)=>{
+    const select=event.target?.closest?.('[data-bayer-stock-action]');
+    if(!select)return;
+    const form=select.closest('form');
+    const wrap=form?.querySelector('[data-bayer-stock-qty-wrap]');
+    const amount=wrap?.querySelector('[name="inventario_cantidad"]');
+    if(!wrap||!amount)return;
+    const numeric=select.value==='CANTIDAD';
+    wrap.hidden=!numeric;
+    amount.required=numeric;
+});
