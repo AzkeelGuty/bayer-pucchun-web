@@ -30,7 +30,7 @@ $cards=[
     ['code'=>'SIN_DATO','label'=>'Sin reporte','count'=>(int)($summary['sin_dato']??0),'note'=>'Cantidad no informada','tone'=>'missing','icon'=>'bi-question-circle-fill'],
 ];
 $totals=[
-    ['label'=>'Productos individuales','count'=>(int)($summary['total_productos']??0),'icon'=>'bi-boxes','tone'=>'all','url'=>$sourceFilterUrl('')],
+    ['label'=>'Producto total de ambos','count'=>(int)($summary['total_productos']??0),'icon'=>'bi-boxes','tone'=>'all','url'=>$sourceFilterUrl('')],
     ['label'=>'Productos Bayer','count'=>(int)($summary['total_bayer']??0),'icon'=>'bi-box-seam','tone'=>'bayer','url'=>$sourceFilterUrl('BAYER')],
     ['label'=>'Productos Pucchún','count'=>(int)($summary['total_pucchun']??0),'icon'=>'bi-building','tone'=>'pucchun','url'=>$sourceFilterUrl('PUCCHUN')],
 ];
