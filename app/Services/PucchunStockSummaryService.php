@@ -15,13 +15,19 @@ final class PucchunStockSummaryService
     public function latest(int $limit=100): array
     {
         $limit=max(1,min(1000,$limit));
+        $ledger=(new StockMovementService($this->pdo))->installed();
+        $movementJoin=$ledger?" LEFT JOIN (SELECT snapshot_id,producto_id,unidad_id,SUM(delta) AS delta
+            FROM stock_movimientos GROUP BY snapshot_id,producto_id,unidad_id) mv
+            ON mv.snapshot_id=sc.id AND mv.producto_id=sd.producto_id AND mv.unidad_id=sd.unidad_id":'';
+        $amount=$ledger?'SUM(sd.cantidad)+COALESCE(MAX(mv.delta),0)':'SUM(sd.cantidad)';
         $sql="SELECT a.codigo warehouseId,a.nombre warehouseName,
                      p.codigo materialId,p.nombre materialName,
-                     u.codigo measureUnit,SUM(sd.cantidad) quantity,
+                     u.codigo measureUnit,{$amount} quantity,
                      DATE_FORMAT(sc.fecha_stock,'%Y-%m-%d') stockDate,
                      sc.id snapshotId
               FROM stock_cabecera sc
               JOIN stock_detalle sd ON sd.stock_id=sc.id
+              {$movementJoin}
               JOIN almacenes a ON a.id=sc.almacen_id
               JOIN productos p ON p.id=sd.producto_id
               JOIN unidades_medida u ON u.id=sd.unidad_id
