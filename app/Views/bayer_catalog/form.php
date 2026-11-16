@@ -45,6 +45,19 @@ $stockNames=['SIN_DATO'=>'Sin reporte','SIN_STOCK'=>'Sin stock (0)',
         <input class="form-control" id="bayer-marca" name="marca" maxlength="100"
                value="<?=e((string)($record['marca']??''))?>">
       </div>
+      <div class="col-md-4">
+        <label class="form-label" for="bayer-almacen">Almacén de referencia</label>
+        <select class="form-select" id="bayer-almacen" name="almacen_referencia_id">
+          <option value="">Sin almacén asignado</option>
+          <?php foreach($warehouseOptions??[] as $warehouse): ?>
+            <option value="<?=e((string)$warehouse['id'])?>"
+              <?=(int)($selectedWarehouse??0)===(int)$warehouse['id']?'selected':''?>>
+              <?=e($warehouse['nombre'])?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <div class="form-text">Ubicación de referencia del reporte Bayer; no crea stock Pucchún.</div>
+      </div>
       <?php if($editing): ?>
       <div class="col-md-4">
         <label class="form-label">Último mes Bayer reportado</label>
