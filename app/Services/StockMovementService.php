@@ -124,8 +124,15 @@ final class StockMovementService
     private function hasIssue(string $module,int $id): bool
     {
         $query=$this->pdo->prepare(
-            "SELECT 1 FROM stock_movimientos WHERE documento_modulo=? AND documento_id=?
-             AND tipo='SALIDA' LIMIT 1"
+            "SELECT 1 FROM stock_movimientos salida
+             WHERE salida.documento_modulo=? AND salida.documento_id=? AND salida.tipo='SALIDA'
+               AND NOT EXISTS (
+                 SELECT 1 FROM stock_movimientos rev
+                 WHERE rev.documento_modulo=salida.documento_modulo
+                   AND rev.documento_id=salida.documento_id
+                   AND rev.detalle_id=salida.detalle_id AND rev.tipo='REVERSION'
+               )
+             LIMIT 1"
         );
         $query->execute([$module,$id]);
         return $query->fetchColumn()!==false;
