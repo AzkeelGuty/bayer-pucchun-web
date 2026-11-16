@@ -93,7 +93,8 @@ final class BayerWorkbookReader
             $period=$row['periodo']??'';
             if($period!=='')$periods[$period]=true;
             $status='SIN_DATO';
-            if(($row['tiene_columna_stock']??'0')==='1'){
+            if(($row['tiene_columna_stock']??'0')==='1' &&
+                (trim((string)($row['cantidad']??''))!=='' || $period!=='')){
                 if(!preg_match('/^20[0-9]{2}-(0[1-9]|1[0-2])$/D',$period))$errors++;
                 try{$status=BayerCatalogService::marker((string)$row['cantidad'])['estado'];}
                 catch(HttpException $error){$errors++;$status='INVALIDO';}
