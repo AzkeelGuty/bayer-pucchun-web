@@ -304,7 +304,7 @@ final class BayerCatalogService
     {
         $sql="SELECT codigo_bayer AS materialId,nombre_bayer AS materialName,marca AS brand,
                 stock_reportado AS quantity,stock_periodo AS period,stock_estado AS stockStatus,
-                estado_catalogo AS catalogStatus,publicado AS published
+                estado_catalogo AS catalogStatus,1 AS published
               FROM bayer_productos_catalogo WHERE estado_catalogo='ACTIVO'";
         $params=[];
         if(trim((string)($filters['q']??''))!==''){
