@@ -73,6 +73,7 @@ jobs:
           php tests/unit/workflow_dialog_test.php
           php tests/unit/branding_configuration_test.php
           php tests/unit/report_xlsx_logo_layout_test.php
+          php tests/unit/catalog_templates_spanish_test.php
           php tests/unit/export_branding_path_test.php
           php tests/unit/new_requirements_test.php
           php tests/unit/workflow_action_buttons_test.php
