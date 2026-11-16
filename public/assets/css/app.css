@@ -1433,3 +1433,177 @@ input[data-internal-number],#guide-number[readonly]{
         width:auto;
     }
 }
+
+
+/* Inventario consolidado Bayer + Pucchún: jerarquía visual y semántica.
+   Cada color siempre se acompaña de un icono y una etiqueta legible. */
+.stock-dashboard{
+    --stock-green:#0d7751;
+    --stock-amber:#9a6200;
+    --stock-red:#bc2c25;
+    --stock-crimson:#93283b;
+    --stock-slate:#43607b;
+    --stock-purple:#6742a6;
+}
+.stock-dashboard-body{padding:22px}
+.stock-dashboard-title{
+    display:flex;align-items:center;gap:10px;
+    color:var(--bp-navy);font-weight:800;
+}
+.stock-dashboard-title>.bi{
+    display:grid;place-items:center;
+    width:36px;height:36px;flex-shrink:0;
+    border-radius:10px;background:var(--bp-blue-soft);
+    color:var(--bp-blue);font-size:1.12rem;
+}
+.stock-total-pill{
+    display:inline-flex;align-items:center;gap:8px;flex-shrink:0;
+    background:var(--bp-blue-soft);color:#0b548f;
+    border:1px solid #d3e4f4;border-radius:999px;
+    font-size:.77rem;font-weight:750;padding:8px 12px;
+}
+.stock-overview-grid{
+    display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:12px;margin:0 0 22px;
+}
+.stock-overview-card{
+    --stock-ink:#43607b;--stock-soft:#f2f6fa;
+    display:flex;flex-direction:column;min-width:0;
+    border:1px solid var(--bp-border);
+    border-top:3px solid var(--stock-ink);
+    border-radius:14px;background:#fff;
+    padding:15px 15px 13px;
+    text-decoration:none;color:var(--bp-text);
+    box-shadow:0 2px 9px rgba(13,58,93,.035);
+    transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease,background .18s ease;
+}
+.stock-overview-card--available,
+.stock-state-pill--available,
+.stock-line--available{--stock-ink:var(--stock-green);--stock-soft:#e8f8ef}
+.stock-overview-card--low,
+.stock-state-pill--low,
+.stock-line--low{--stock-ink:var(--stock-amber);--stock-soft:#fff5dd}
+.stock-overview-card--zero,
+.stock-state-pill--zero,
+.stock-line--zero{--stock-ink:var(--stock-red);--stock-soft:#fceceb}
+.stock-overview-card--negative,
+.stock-state-pill--negative,
+.stock-line--negative{--stock-ink:var(--stock-crimson);--stock-soft:#fce9ee}
+.stock-overview-card--missing,
+.stock-state-pill--missing,
+.stock-line--missing{--stock-ink:var(--stock-slate);--stock-soft:#edf3f9}
+.stock-overview-card--inactive,
+.stock-state-pill--inactive,
+.stock-line--inactive{--stock-ink:var(--stock-purple);--stock-soft:#f2edfc}
+.stock-overview-card-top{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
+    margin-bottom:15px;
+}
+.stock-overview-icon{
+    display:grid;place-items:center;width:40px;height:40px;
+    border-radius:12px;background:var(--stock-soft);color:var(--stock-ink);
+    font-size:1.15rem;
+}
+.stock-overview-arrow{font-size:.85rem;color:#8798a9}
+.stock-overview-label{
+    font-size:.8rem;color:#455d73;font-weight:700;line-height:1.3;
+    margin-bottom:6px;
+}
+.stock-overview-value{
+    color:var(--stock-ink);font-size:clamp(1.35rem,2vw,1.9rem);
+    font-weight:850;line-height:1.15;font-variant-numeric:tabular-nums;
+    overflow-wrap:anywhere;
+}
+.stock-overview-note{
+    font-size:.69rem;color:#6b7f92;line-height:1.35;margin-top:7px;
+}
+.stock-overview-card:hover,
+.stock-overview-card:focus-visible{
+    color:var(--bp-text);transform:translateY(-2px);
+    border-color:var(--stock-ink);
+    box-shadow:0 8px 20px rgba(8,51,85,.11);
+}
+.stock-overview-card.is-active{
+    background:var(--stock-soft);
+    border-color:var(--stock-ink);
+    box-shadow:inset 0 0 0 1px var(--stock-ink);
+}
+.stock-overview-card:focus-visible{
+    outline:3px solid #84bbee;outline-offset:3px;
+}
+.stock-inventory-table{margin-bottom:0;min-width:800px}
+.stock-inventory-table thead th{
+    padding:13px 11px;
+    background:#eaf3fa;color:#133e65;font-size:.72rem;
+    letter-spacing:.045em;white-space:nowrap;
+}
+.stock-inventory-table tbody td{
+    padding:13px 11px;vertical-align:middle;
+    border-bottom:1px solid #e9eef3;
+}
+.stock-inventory-table tbody tr.stock-line td:first-child{
+    box-shadow:inset 4px 0 0 var(--stock-ink);
+    padding-left:14px;
+}
+.stock-inventory-table tbody tr.stock-line:hover td{
+    background:#f3f8fc;
+}
+.stock-origin-tag{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:5px 9px;min-width:86px;border-radius:8px;
+    font-size:.72rem;line-height:1.2;font-weight:800;
+    white-space:nowrap;
+}
+.stock-origin-tag--bayer{background:#e8f1ff;color:#1454a8}
+.stock-origin-tag--pucchun{background:#e4f7ee;color:#116846}
+.stock-sku{
+    font-variant-numeric:tabular-nums;
+    font-size:.82rem;font-weight:800;color:#0e3656;
+    white-space:nowrap;
+}
+.stock-product-name{font-weight:550;color:#193e58}
+.stock-quantity{
+    font-variant-numeric:tabular-nums;
+    color:var(--bp-navy);font-size:.91rem;font-weight:800;
+}
+.stock-quantity--missing{color:#8597a8}
+.stock-period{
+    color:#536b80;font-size:.82rem;white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+}
+.stock-state-pill{
+    --stock-ink:#43607b;--stock-soft:#edf3f9;
+    display:inline-flex;align-items:center;gap:7px;
+    max-width:100%;min-height:28px;
+    border-radius:999px;padding:5px 10px;
+    background:var(--stock-soft);color:var(--stock-ink);
+    font-size:.74rem;font-weight:800;line-height:1.2;
+    white-space:nowrap;
+}
+.stock-state-pill>.bi{font-size:.84rem;line-height:1}
+.stock-empty{
+    padding:30px 16px;display:flex;flex-direction:column;
+    align-items:center;gap:6px;color:#61758a;text-align:center;
+}
+.stock-empty>.bi{font-size:1.6rem;color:var(--bp-blue)}
+.stock-empty strong{color:var(--bp-navy);font-weight:800}
+.stock-inventory-pagination{margin-top:15px}
+@media(max-width:1500px){
+    .stock-overview-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:767.98px){
+    .stock-dashboard-body{padding:16px}
+    .stock-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+    .stock-overview-card{padding:12px}
+    .stock-overview-card-top{margin-bottom:10px}
+    .stock-overview-icon{width:34px;height:34px}
+    .stock-total-pill{flex-shrink:1}
+}
+@media(max-width:380px){
+    .stock-overview-grid{grid-template-columns:1fr 1fr}
+    .stock-overview-note{font-size:.65rem}
+}
+@media(prefers-reduced-motion:reduce){
+    .stock-overview-card{transition:none}
+    .stock-overview-card:hover{transform:none}
+}
