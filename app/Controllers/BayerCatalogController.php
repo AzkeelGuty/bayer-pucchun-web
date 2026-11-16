@@ -34,8 +34,22 @@ final class BayerCatalogController
     {
         \require_role('ADMIN');
         $id=(int)\input('id',0);
-        $record=$id>0?$this->service()->find($id):[];
-        \view('bayer_catalog.form',['record'=>$record,'id'=>$id]);
+        $service=$this->service();
+        $record=$id>0?$service->find($id):[];
+        $prices=$id>0?$service->prices($id):[];
+        $selectedDate=trim((string)($_GET['precio_fecha']??''));
+        $activePrice=$prices[0]??[];
+        if($selectedDate!==''){
+            foreach($prices as $candidate){
+                if((string)$candidate['vigencia_desde']===$selectedDate){
+                    $activePrice=$candidate;
+                    break;
+                }
+            }
+        }
+        \view('bayer_catalog.form',[
+            'record'=>$record,'id'=>$id,'prices'=>$prices,'activePrice'=>$activePrice,
+        ]);
     }
 
     public function save(): void
@@ -43,9 +57,9 @@ final class BayerCatalogController
         \require_role('ADMIN');
         $id=(int)\input('id',0);
         try {
-            $saved=$this->service()->save($_POST,$id>0?$id:null);
+            $saved=$this->service()->saveWithPrice($_POST,$id>0?$id:null);
             \audit('bayer_productos',$id>0?'editar':'crear',$saved);
-            \flash('success',$id>0?'Producto Bayer actualizado.':'Producto Bayer registrado.');
+            \flash('success',$id>0?'Producto Bayer y precios actualizados.':'Producto Bayer registrado correctamente.');
             \redirect('/homologaciones?tab=productos');
         } catch(HttpException $error){
             \flash('error',$error->getMessage());
