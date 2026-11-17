@@ -122,8 +122,9 @@ $lookupProductos=e(url('/lookups?type=productos'));
                 <strong>Resumen de la guía de remisión</strong></div>
             <div class="commercial-summary-grid">
                 <div class="commercial-summary-note"><span data-total-items>0 productos</span>
+                    <div><strong>Cantidad acumulada: <span data-total-quantity>0</span></strong></div>
                     <span data-unit-quantities>—</span>
-                    <span class="text-muted small">Cantidades agrupadas por unidad de medida.</span></div>
+                    <span class="text-muted small">Suma numérica para control; las medidas diferentes se identifican por separado.</span></div>
                 <dl class="commercial-summary-values" data-money-available hidden>
                     <div><dt>Subtotal sin IGV</dt><dd data-total-subtotal>S/ 0.00</dd></div>
                     <div><dt>IGV e IPM (18 %)</dt><dd data-total-igv>S/ 0.00</dd></div>
