@@ -244,6 +244,41 @@
         }
     }
 
+    // Reducir logos raster grandes antes del POST sin perder transparencia.
+    // Los formatos SVG e ICO y los originales pequeños permanecen intactos.
+    async function optimizeUploads(formData) {
+        if (typeof createImageBitmap !== 'function') return;
+        for (const field of ['logo_primary', 'logo_partner', 'favicon']) {
+            const file=formData.get(field);
+            if (!(file instanceof File) || !/^image\/(?:png|jpeg|webp)$/.test(file.type)
+                || file.size < 250 * 1024) continue;
+            let bitmap=null;
+            try {
+                bitmap=await createImageBitmap(file);
+                const maxEdge=field==='favicon'?256:1000;
+                const scale=Math.min(1,maxEdge/Math.max(bitmap.width,bitmap.height));
+                if (scale===1 && file.size<500*1024) continue;
+                const canvas=document.createElement('canvas');
+                canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+                canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+                const context=canvas.getContext('2d');
+                if (!context) continue;
+                context.drawImage(bitmap,0,0,canvas.width,canvas.height);
+                const blob=await new Promise(resolve=>canvas.toBlob(resolve,file.type,0.84));
+                if (blob && blob.size < file.size*0.9 && blob.size <= 2*1024*1024) {
+                    formData.set(field,new File([blob],file.name,{
+                        type:file.type,lastModified:Date.now()
+                    }));
+                }
+            } catch (error) {
+                // Ante cualquier fallo se envía el archivo original.
+            } finally {
+                if (bitmap && typeof bitmap.close==='function') bitmap.close();
+            }
+        }
+    }
+    window.BP_Branding={optimizeUploads};
+
     document.addEventListener('click', event => {
         const form = getForm();
         if (!form) return;
