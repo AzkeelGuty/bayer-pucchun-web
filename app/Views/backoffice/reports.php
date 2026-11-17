@@ -182,9 +182,10 @@ $reportPageUrl=static fn(int $page): string => url('/reportes'.($page>1?'?page='
 <?php endforeach;?>
 </div>
 
-<div class="card mt-4 export-history-card" data-live-refresh="3000" data-live-refresh-key="export-history">
+<div class="card mt-4 export-history-card" data-live-refresh="0" data-live-refresh-key="export-history">
     <div class="card-header bg-white security-table-title security-table-title-between">
         <div><i class="bi bi-clock-history"></i><strong>Últimas exportaciones</strong></div>
+        <button type="button" class="btn btn-sm btn-outline-primary" data-live-refresh-now="export-history" title="Consultar exportaciones recientes"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Actualizar historial</button>
         <small><?=e($reportTotal)?> registros<?= $reportTotal>0 ? ' · Mostrando '.e($reportFirst).'–'.e($reportLast) : '' ?> · Página <?=e($reportPage)?> de <?=e($reportPages)?></small>
     </div>
     <div class="card-body p-0">
