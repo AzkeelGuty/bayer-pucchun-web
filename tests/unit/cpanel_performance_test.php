@@ -32,4 +32,18 @@ try {
     if($originalProcess===false) putenv('BAYER_PUBLIC_ROOT');
     else putenv('BAYER_PUBLIC_ROOT='.$originalProcess);
 }
+$reports=(string)file_get_contents($root.'/app/Views/backoffice/reports.php');
+$live=(string)file_get_contents($root.'/public/assets/js/soft-page-init.js');
+$app=(string)file_get_contents($root.'/public/assets/js/app.js');
+$tables=(string)file_get_contents($root.'/app/Views/backoffice/table.php');
+perf_assert(str_contains($reports,'data-live-refresh="0" data-live-refresh-key="export-history"'),
+    'El historial no debe disparar solicitudes periódicas cada 3 segundos');
+perf_assert(str_contains($reports,'data-live-refresh-now="export-history"'),
+    'El historial debe permitir actualizar voluntariamente');
+perf_assert(str_contains($live,'initLiveRefresh(document.querySelector('),
+    'La actualización única debe inicializarse en la carga de página');
+perf_assert(!str_contains($app,'const liveElements =') && !str_contains($app,'const runMasterSearch ='),
+    'App.js no debe duplicar temporizadores ni consultas incrementales');
+perf_assert(str_contains($tables,'data-live-refresh="60000"'),
+    'Las tablas secundarias deben refrescar a un intervalo razonable');
 echo "RENDIMIENTO CPANEL OK\n";
