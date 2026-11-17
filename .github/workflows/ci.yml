@@ -74,6 +74,8 @@ jobs:
           php tests/unit/stock_workflow_test.php
           php tests/unit/unified_stock_visual_test.php
           php tests/unit/cpanel_performance_test.php
+          bash -n scripts/deploy/cpanel_release.sh
+          bash tests/unit/cpanel_deploy_script_test.sh
           php tests/unit/workflow_transitions_test.php
           php tests/unit/document_permissions_test.php
           php tests/unit/guide_permissions_test.php
