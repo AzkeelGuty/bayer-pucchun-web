@@ -1,7 +1,21 @@
 <?php
 // Front controller compatible con Document Root = /public y con cPanel /public_html.
 $initialBufferLevel = ob_get_level();
-ob_start();
+$bpRequestStarted = microtime(true);
+// Medición optativa, sin datos privados. El buffer cubre controladores con exit.
+ob_start(static function (string $body) use ($bpRequestStarted): string {
+    if (filter_var(getenv('BP_PERFORMANCE_DIAGNOSTICS') ?: false, FILTER_VALIDATE_BOOLEAN)
+        && !headers_sent()) {
+        $timings=['app;dur='.number_format((microtime(true)-$bpRequestStarted)*1000,1,'.','')];
+        foreach (['session'=>'bp_session_ms','db-connect'=>'bp_db_connect_ms'] as $label=>$key) {
+            if (isset($GLOBALS[$key])) {
+                $timings[]=$label.';dur='.number_format((float)$GLOBALS[$key],1,'.','');
+            }
+        }
+        header('Server-Timing: '.implode(', ',$timings));
+    }
+    return $body;
+});
 try {
     $publicParent = dirname(__DIR__);
     $projectRoot = $publicParent;
