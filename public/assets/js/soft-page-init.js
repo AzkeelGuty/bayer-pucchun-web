@@ -318,7 +318,11 @@
         initAlerts(root);
         initBranding(root);
         initLiveRefresh(root);
-        initCharts(root);
+        if (root.querySelector('#salesChart, #statusChart, #distributionChart, #topChart')) {
+            ensureCharts().then(() => {
+                if (root.isConnected && window.dashboardData) initCharts(root);
+            }).catch(error => console.error('Gráficos:', error));
+        }
     }
 
     document.addEventListener('bp:navigation:complete', () => {
@@ -328,5 +332,12 @@
     // app.js ya no monta un segundo temporizador en la carga inicial.
     // Esta inicialización no duplica los gráficos que construye app.js.
     initLiveRefresh(document.querySelector('.app-main') || document);
+    // El primer render también inicializa los gráficos y el refresco,
+    // sin duplicar las inicializaciones tras navegación interna.
+    if (document.readyState==='loading') {
+        document.addEventListener('DOMContentLoaded', () => init(document.querySelector('.app-main') || document),{once:true});
+    } else {
+        init(document.querySelector('.app-main') || document);
+    }
     window.BP_SoftPageInit = {init};
 })();
