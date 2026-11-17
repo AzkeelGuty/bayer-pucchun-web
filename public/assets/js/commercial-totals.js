@@ -55,6 +55,7 @@
         if(![amountSum,baseSum,taxSum,totalSum].every(Number.isSafeInteger))invalid=true;
         return {
             lines:data,quantities,items:lines.length,
+            quantityTotal:Object.values(quantities).reduce((sum,q)=>sum+q,0),
             hasPrice,missingPrice,invalid,mode,
             subtotal:hasPrice&&mode?baseSum:null,
             igv:hasPrice&&mode?taxSum:null,
@@ -95,6 +96,7 @@
                 if(target)target.textContent=value;
             };
             set('total-items',totals.items+' '+(totals.items===1?'producto':'productos'));
+            set('total-quantity',totals.quantityTotal);
             const qtyContainer=summary.querySelector('[data-unit-quantities]');
             if(qtyContainer){
                 qtyContainer.replaceChildren();
