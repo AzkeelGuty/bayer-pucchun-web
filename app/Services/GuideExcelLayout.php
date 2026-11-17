@@ -57,12 +57,13 @@ final class GuideExcelLayout
                 'destination'=>implode(' / ',$destination),
             ]);
 
-            $totals=[];$products=[];
+            $totals=[];$products=[];$quantityTotal=0;
             foreach($lines as $line){
                 $unit=trim((string)($line['measureUnit']??'')) ?: 'Sin unidad';
                 $code=(string)($line['materialId']??'');
                 $qty=(float)($line['quantity']??0);
                 $totals[$unit]=($totals[$unit]??0)+$qty;
+                $quantityTotal+=$qty;
                 $products[$code!==''?$code:(string)($line['materialName']??'')]=true;
                 $rows[]=array_merge(['_kind'=>'detail'],array_fill_keys($keys,''),[
                     'productCode'=>$code,
@@ -71,13 +72,20 @@ final class GuideExcelLayout
                     'quantity'=>$line['quantity']??null,
                 ]);
             }
+            // Una sola fila final por guía. La suma de cantidades es un
+            // indicador de control: no convierte ni equipara LTR, KGM o NIU.
+            $mixed=count($totals)>1;
+            $parts=[];
             foreach($totals as $unit=>$quantity){
-                $rows[]=array_merge(['_kind'=>'subtotal'],array_fill_keys($keys,''),[
-                    'productName'=>'TOTAL DE GUÍA · '.count($products).' producto(s)',
-                    'unitCode'=>$unit,
-                    'quantity'=>$quantity,
-                ]);
+                $formatted=rtrim(rtrim(number_format($quantity,3,'.',''),'0'),'.');
+                $parts[]=$formatted.' '.$unit;
             }
+            $rows[]=array_merge(['_kind'=>'total'],array_fill_keys($keys,''),[
+                'productName'=>'TOTAL DE GUÍA · '.count($products).' producto(s)',
+                'unitCode'=>$mixed?'VARIAS':(string)(array_key_first($totals)??''),
+                'quantity'=>$quantityTotal,
+                'destination'=>$mixed?'Desglose: '.implode(' + ',$parts):'',
+            ]);
         }
         return [
             'keys'=>$keys,'labels'=>$labels,'rows'=>$rows,
