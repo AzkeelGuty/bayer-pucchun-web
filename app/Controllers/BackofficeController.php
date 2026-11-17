@@ -301,7 +301,7 @@ final class BackofficeController
         $sql="SELECT e.id,e.nombre_archivo,e.tipo_dataset,e.formato,e.record_count,e.resultado,e.generated_at,u.nombre usuario FROM exportaciones e JOIN usuarios u ON u.id=e.usuario_id";
         [$rows,$pagination]=$this->paginateSql($sql,'ORDER BY generated_at DESC');
         $stockReport=new \App\Services\UnifiedStockService();
-        $stockStatus=$stockReport->browse([],15,1)['summary'];
+        $stockStatus=$stockReport->overview();
         \view('backoffice.reports',[
             'rows'=>$rows,'pagination'=>$pagination,
             'stockReportSummary'=>$stockStatus,
