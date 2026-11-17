@@ -16,32 +16,48 @@ class AuthService
 
     public function user(int $id): ?array
     {
-        // Compatible con instalaciones que aún no han aplicado la migración 016:
-        // el acceso no se bloquea mientras se actualiza la estructura de perfiles.
+        // Un único SELECT para identidad y roles vigentes en cada petición.
+        // Preserva la revocación inmediata de usuarios/roles sin caché temporal.
+        // En servidores sin migración 016 se omite únicamente foto_perfil.
+        $withPhoto=true;
         try {
             $st=$this->connection()->prepare(
-                'SELECT id,nombre,email,foto_perfil FROM usuarios WHERE id=? AND estado=1'
+                'SELECT u.id,u.nombre,u.email,u.foto_perfil,r.nombre AS rol_activo
+                 FROM usuarios u
+                 JOIN usuario_rol ur ON ur.usuario_id=u.id
+                 JOIN roles r ON r.id=ur.rol_id AND r.estado=1
+                 WHERE u.id=? AND u.estado=1
+                 ORDER BY r.nombre'
             );
             $st->execute([$id]);
-            $user=$st->fetch(\PDO::FETCH_ASSOC);
+            $rows=$st->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $error) {
             if((int)($error->errorInfo[1]??0)!==1054)throw $error;
-            $st=$this->connection()->prepare('SELECT id,nombre,email FROM usuarios WHERE id=? AND estado=1');
+            $withPhoto=false;
+            $st=$this->connection()->prepare(
+                'SELECT u.id,u.nombre,u.email,r.nombre AS rol_activo
+                 FROM usuarios u
+                 JOIN usuario_rol ur ON ur.usuario_id=u.id
+                 JOIN roles r ON r.id=ur.rol_id AND r.estado=1
+                 WHERE u.id=? AND u.estado=1
+                 ORDER BY r.nombre'
+            );
             $st->execute([$id]);
-            $user=$st->fetch(\PDO::FETCH_ASSOC);
-            if(is_array($user))$user['foto_perfil']=null;
+            $rows=$st->fetchAll(\PDO::FETCH_ASSOC);
         }
-        if (!$user) {
-            return null;
+        if (!$rows) return null;
+        $user=$rows[0];
+        if(!$withPhoto)$user['foto_perfil']=null;
+        $roles=[];
+        foreach($rows as $row) {
+            $role=(string)($row['rol_activo']??'');
+            if(in_array($role,[...AccessPolicy::INTERNAL,'BAYER'],true))$roles[$role]=true;
         }
-        $st = $this->connection()->prepare('SELECT r.nombre FROM roles r JOIN usuario_rol ur ON ur.rol_id=r.id WHERE ur.usuario_id=? AND r.estado=1 ORDER BY r.nombre');
-        $st->execute([$id]);
-        $roles = array_values(array_intersect($st->fetchAll(\PDO::FETCH_COLUMN), [...AccessPolicy::INTERNAL, 'BAYER']));
-        if (!$roles) {
-            return null;
-        }
-        $user['roles'] = $roles;
-        $user['role'] = in_array('BAYER', $roles, true) ? 'BAYER' : $roles[0];
+        unset($user['rol_activo']);
+        $roles=array_keys($roles);
+        if(!$roles)return null;
+        $user['roles']=$roles;
+        $user['role']=in_array('BAYER',$roles,true)?'BAYER':$roles[0];
         return $user;
     }
 
