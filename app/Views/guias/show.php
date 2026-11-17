@@ -69,10 +69,11 @@
         <div class="commercial-summary-grid">
             <div class="commercial-summary-note">
                 <span><?=count($record['details'])?> <?=count($record['details'])===1?'producto':'productos'?></span>
+                <div><strong>Cantidad acumulada: <?=e((string)$totals['cantidad_total'])?></strong></div>
                 <div><?php foreach($totals['cantidades'] as $unit=>$quantity): ?>
                     <span class="commercial-unit-total"><?=e((string)$quantity)?> <?=e($unit)?></span>
                 <?php endforeach; ?></div>
-                <small class="text-muted">Cantidades agrupadas por unidad de medida.</small>
+                <small class="text-muted">Suma numérica para control y desglose por unidad; las medidas distintas no son equivalentes.</small>
             </div>
             <?php if($totals['valorizado']): ?>
             <dl class="commercial-summary-values">

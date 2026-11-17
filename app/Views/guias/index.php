@@ -60,7 +60,7 @@ $lastGuide=$total>0 ? min($total,$page*$perPage) : 0;
     <p class="text-muted small"><?=e($total)?> guías encontradas<?= $total>0 ? ' · Mostrando '.e($firstGuide).'–'.e($lastGuide) : '' ?> · Página <?=e($page)?> de <?=e($pages)?></p>
     <div class="table-responsive">
         <table class="table app-table align-middle">
-            <thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Sucursal</th><th>Ítems</th><th>Cantidad</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Sucursal</th><th>Ítems</th><th title="Suma numérica de cantidades registradas; las unidades se detallan por separado">Cantidad acumulada</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>
             <?php foreach ($rows as $r): ?>
                 <tr>
