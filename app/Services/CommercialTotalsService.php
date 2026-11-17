@@ -48,14 +48,14 @@ final class CommercialTotalsService
 
     /**
      * @return array{lineas:list<array>,subtotal:?int,igv:?int,total:?int,importe:int,modalidad:?string,
-     *               valorizado:bool,items:int,cantidades:array<string,int>}
+     *               valorizado:bool,items:int,cantidad_total:int,cantidades:array<string,int>}
      */
     public static function summarize(array $lines,?string $mode,array $unitNames=[]): array
     {
         if($mode!==null && !in_array($mode,['INCLUIDO','ADICIONAL'],true))
             throw new InvalidArgumentException('Modalidad de IGV inválida.');
         $rows=[]; $base=0; $tax=0; $total=0; $rawTotal=0; $hasPrice=false; $hasMissing=false;
-        $quantities=[];
+        $quantities=[]; $quantityTotal=0;
         foreach($lines as $line) {
             if(!is_array($line))throw new InvalidArgumentException('Detalle inválido.');
             $q=self::quantity($line['cantidad']??null);
@@ -63,6 +63,7 @@ final class CommercialTotalsService
             $unit=$unitNames[$unitKey]??($line['unidad_label']??($unitKey!==''?'Unidad '.$unitKey:'Unidades'));
             $unit=(string)$unit;
             $quantities[$unit]=($quantities[$unit]??0)+$q;
+            $quantityTotal+=$q;
             $p=$line['valor_unitario']??null;
             if($p===null || $p==='') {
                 $hasMissing=true;
@@ -104,6 +105,7 @@ final class CommercialTotalsService
             'modalidad'=>$mode,
             'valorizado'=>$hasPrice,
             'items'=>count($rows),
+            'cantidad_total'=>$quantityTotal,
             'cantidades'=>$quantities,
         ];
     }
