@@ -1,0 +1,51 @@
+/* Resumen comercial y cantidades: Documentos y Guías del ERP. */
+.commercial-summary{
+    border:1px solid #cfe1ef;border-radius:14px;
+    padding:18px 20px;background:#f8fbfd;
+}
+.commercial-summary-heading{
+    display:flex;align-items:center;gap:9px;
+    color:#0b3761;font-size:1rem;margin-bottom:14px;
+}
+.commercial-summary-grid{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(255px,370px);
+    column-gap:24px;row-gap:14px;align-items:start;
+}
+.commercial-summary-note{
+    display:flex;flex-direction:column;align-items:flex-start;gap:7px;
+    font-size:.88rem;color:#536c81;
+}
+.commercial-summary-note [data-total-items]{font-weight:700;color:#134b79}
+.commercial-unit-total{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:5px 10px;margin:2px 5px 2px 0;
+    border-radius:999px;background:#eaf4fc;color:#17466f;font-weight:600;
+    font-size:.8rem;
+}
+.commercial-summary-values{margin:0}
+.commercial-summary-values>div{
+    display:flex;gap:12px;justify-content:space-between;
+    align-items:baseline;padding:7px 0;
+}
+.commercial-summary-values dt{color:#52697d;font-size:.88rem;font-weight:500}
+.commercial-summary-values dd{margin:0;color:#102d48;font-weight:750;white-space:nowrap;font-variant-numeric:tabular-nums}
+.commercial-summary-values .commercial-grand-total{
+    border-top:2px solid #bed9e9;margin-top:8px;padding-top:14px;
+}
+.commercial-summary-values .commercial-grand-total dt{color:#0a3a66;font-weight:800;font-size:1rem}
+.commercial-summary-values .commercial-grand-total dd{color:#085a9d;font-size:1.35rem}
+.commercial-summary-help{
+    color:#617e94;font-size:.8rem;margin:11px 0 0;
+}
+.commercial-line-amount{display:inline-block;min-width:100px;color:#103f69;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+.commercial-options{background:#f8fbfd;border:1px solid #dce9f4;border-radius:12px}
+.commercial-summary [hidden],.commercial-summary-values[hidden]{display:none!important}
+@media(max-width:740px){
+    .commercial-summary{padding:14px}
+    .commercial-summary-grid{grid-template-columns:minmax(0,1fr)}
+    .commercial-summary-values .commercial-grand-total dd{font-size:1.2rem}
+}
+@media print{
+    .commercial-summary{break-inside:avoid;border-color:#ccc;box-shadow:none;background:#fff}
+    .commercial-summary-values .commercial-grand-total dd{color:#111}
+}

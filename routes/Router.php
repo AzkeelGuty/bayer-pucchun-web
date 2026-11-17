@@ -12,12 +12,21 @@ class Router
 
     public function get(string $path, callable|array $handler, array $middleware = []): void
     {
-        $this->routes['GET'][$path] = [$handler, $middleware];
+        $this->routes['GET'][$path] = [$handler, $middleware, false];
     }
 
     public function post(string $path, callable|array $handler, array $middleware = []): void
     {
-        $this->routes['POST'][$path] = [$handler, $middleware];
+        $this->routes['POST'][$path] = [$handler, $middleware, true];
+    }
+
+    /**
+     * POST destinado a clientes API sin cookie/sesión web.
+     * La protección CSRF no aplica porque la autenticación se realiza mediante Bearer token.
+     */
+    public function postApi(string $path, callable|array $handler, array $middleware = []): void
+    {
+        $this->routes['POST'][$path] = [$handler, $middleware, false];
     }
 
     public function before(callable $middleware): void
@@ -54,11 +63,11 @@ class Router
         if (!$route) {
             throw new HttpException(404, 'Recurso no encontrado.');
         }
-        [$handler, $middleware] = $route;
+        [$handler, $middleware, $verifyCsrf] = $route;
         foreach ($middleware as $guard) {
             $guard->handle();
         }
-        if ($method === 'POST') {
+        if ($method === 'POST' && $verifyCsrf) {
             \verify_csrf();
         }
         if (is_array($handler)) {

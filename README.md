@@ -18,6 +18,37 @@ El backend v2 incluye:
 
 **Pendiente funcional:** terminar la conexión de los formularios de captura y workflow con Schema v2 antes de considerar completa la versión funcional.
 
+
+## Catálogo Bayer independiente y API de ambos sistemas
+
+**Productos Bayer** ya no exige partner, código Pucchún, código Bayer adicional, vigencias ni unidad en su plantilla.
+Importa directamente el XLSX original del proveedor, incluyendo varias hojas y stock mensual (`-` desactivado, celda vacía sin dato, `0` sin stock). También incorpora 99 precios Dealer de la lista del 02/11/2026.
+
+Los datos Bayer permanecen separados del stock físico Pucchún. Los nuevos endpoints GET con Bearer permiten consultar ambos orígenes:
+`/api/v1/bayer/products`, `/api/v1/bayer/reported-inventory`, `/api/v1/bayer/prices`,
+`/api/v1/pucchun/all` y `/api/v1/pucchun/latest-stock` (además de los existentes).
+
+**Despliegue:** aplicar la nueva migración `014_catalogo_bayer_nativo.sql` después de 013.
+Guía completa: [Importación Bayer original, inventarios, precios y API](docs/IMPORTACION_BAYER_NATIVA_Y_API.md).
+
+## Cálculos de Documentos y Guías
+
+El ERP calcula por producto **cantidad × valor unitario** y muestra subtotal, IGV/IPM (18 %) y total en Documentos. Es obligatorio elegir si los valores unitarios incluyen IGV para evitar cobrarlo dos veces. Las Guías presentan cantidades agrupadas por unidad y valorización comercial **opcional**.
+
+Esta mejora requiere ejecutar la migración **013** después de 012 y no modifica registros previos. Más detalles: [Resumen comercial de Documentos y Guías](docs/RESUMENES_COMERCIALES_DOCUMENTOS_GUIAS.md).
+
+## Emisión electrónica SUNAT (módulo independiente)
+
+El panel `/sunat`, exclusivo de `ADMIN`, permite revisar la habilitación del emisor y emitir facturas **gravadas al IGV** mediante Greenter (UBL 2.1 / firma XML / servicio SUNAT), tras configurar datos tributarios auténticos. Guarda XML y CDR en almacenamiento privado y separa la numeración fiscal del identificador interno `INT-...`.
+
+- **Deshabilitado por defecto:** requiere `SUNAT_ENABLED=true`, certificado digital y credenciales SOL reales.
+- **Producción requiere autorización adicional:** `SUNAT_ALLOW_PRODUCTION=true`.
+- **No se han incluido certificados ni credenciales de ninguna empresa.** Sin ellos no es posible enviar un comprobante real.
+- Esta primera modalidad no emite boletas, notas ni GRE; cada procedimiento requiere sus datos, validaciones y comunicaciones específicas.
+- **Para bases existentes:** después de aplicar las migraciones 009, 010 y 011, aplicar `database/migrations/012_sunat_emision_cpe.sql`. Instalar dependencias con `composer install`.
+
+Instalación, pruebas y alcance: **[docs/EMISION_SUNAT_INTEGRACION.md](docs/EMISION_SUNAT_INTEGRACION.md)**.
+
 ## Arquitectura
 
 ```text
@@ -60,9 +91,24 @@ Views / Exportaciones / API
 
 Para actualizar una base v1 existente, revisar primero `database/README.md` y usar la migración `database/migrations/002_schema_v2.sql` con respaldo previo.
 
-## API
+## API REST Bayer
 
-La API REST está deshabilitada por defecto mediante `API_ENABLED=false`. La versión actual es de transición y no debe exponerse como API pública de producción sin completar hardening, tokens por cliente/scopes, rate limiting y auditoría de consumo.
+La integración sistema-a-sistema está disponible en `/api/v1/bayer` y permanece deshabilitada por defecto mediante `API_ENABLED=false`.
+
+Endpoints principales:
+
+- `GET /api/v1/bayer/all`: devuelve en una sola llamada todos los documentos/ventas, guías y stock **PUBLICADOS**;
+- `GET /api/v1/bayer/sales`;
+- `GET /api/v1/bayer/shipments`;
+- `GET /api/v1/bayer/inventory`.
+
+La autenticación usa `Authorization: Bearer <API_TOKEN>`. El canal REST devuelve JSON, admite filtros opcionales de fecha/sucursal/búsqueda y registra el consumo en la bitácora de acceso. Las exportaciones XLSX/JSON/TXT/PDF se mantienen como alternativa manual.
+
+En los datasets operativos, `quantity` representa un **conteo entero de productos/presentaciones**. El API identifica este criterio con `quantityUnit=NIU` y `quantityMeaning=PRODUCT_COUNT`; `measureUnit` se conserva como referencia de la unidad del catálogo/presentación.
+
+Configuración y ejemplos de integración: `docs/API_REST_BAYER.md`.
+
+En producción se debe usar HTTPS, un token largo y aleatorio, rotación de credenciales y límites de consumo adecuados al servidor.
 
 ## Trabajo en equipo
 
@@ -101,3 +147,7 @@ feature/* -> Pull Request -> develop -> pruebas -> Pull Request -> main
 ## Nota de alcance
 
 La solución actual es una plataforma de gestión de información / Data Hub preparada para una futura integración con ERP. La integración automática con ERP es evolución futura y no reemplaza el control de validación, publicación y auditoría.
+
+
+### Migración de comprobantes
+Ejecutar `database/migrations/008_estado_comprobante.sql` para agregar el estado comercial VIGENTE/ANULADO e incorporar Factura, Boleta, Nota de crédito y Nota de débito.

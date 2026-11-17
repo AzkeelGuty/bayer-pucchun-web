@@ -37,6 +37,16 @@ final class WorkflowService
                 default => throw new HttpException(422, "Transición no permitida: $from → $target."),
             };
 
+            // Descontar existencias solo al PUBLICAR; revertir únicamente al ANULAR.
+            // La operación comparte la transacción del cambio de estado y auditoría.
+            // El ERP de producción crea instancias nativas PDO. Los dobles de
+            // prueba de workflow no son conexiones a la base de datos.
+            if(in_array($module,['documentos','guias'],true) && get_class($pdo)===\PDO::class){
+                $stock=new StockMovementService($pdo);
+                if($target==='PUBLICADO')$stock->issue($module,$id,$actorId);
+                if($target==='ANULADO')$stock->reverse($module,$id,$actorId);
+            }
+
             if($target==='VALIDADO' || $target==='OBSERVADO'){
                 $st=$pdo->prepare('INSERT INTO validaciones(modulo,registro_id,usuario_id,resultado,observacion,validated_at,version) VALUES(?,?,?,?,?,CURRENT_TIMESTAMP,?)');
                 $st->execute([$module,$id,$actorId,$target,$reason ?: null,$newVersion]);
@@ -57,9 +67,18 @@ final class WorkflowService
 
             if($owns) $pdo->commit();
             return $newVersion;
+        } catch (HttpException $error) {
+            if($owns && $pdo->inTransaction()) $pdo->rollBack();
+            throw $error;
         } catch (RuntimeException $error) {
             if($owns && $pdo->inTransaction()) $pdo->rollBack();
-            throw new HttpException(409, 'El registro cambió mientras lo revisaba. Actualice la página e intente nuevamente.');
+            // Compatibility with persistState(): only its explicit concurrency failure is a 409.
+            // PDOException and unrelated runtime failures must reach the sanitized 500 handler.
+            if (get_class($error) === RuntimeException::class
+                && $error->getMessage() === 'Registro inexistente, estado de origen distinto o version desactualizada.') {
+                throw new HttpException(409, 'El registro cambió mientras lo revisaba. Actualice la página e intente nuevamente.');
+            }
+            throw $error;
         } catch (\InvalidArgumentException $error) {
             if($owns && $pdo->inTransaction()) $pdo->rollBack();
             throw new HttpException(422, $error->getMessage());
@@ -67,6 +86,44 @@ final class WorkflowService
             if($owns && $pdo->inTransaction()) $pdo->rollBack();
             throw $error;
         }
+    }
+
+    public function bulkTransition(
+        OperationalRepository $repository,
+        string $target,
+        int $actorId
+    ): array {
+        $source=match($target){
+            'VALIDADO'=>'BORRADOR',
+            'PUBLICADO'=>'VALIDADO',
+            default=>throw new HttpException(422,'Acción masiva no permitida.'),
+        };
+
+        $success=0;
+        $failed=0;
+        foreach($repository->workflowCandidates($source) as $candidate){
+            try{
+                $this->transition(
+                    $repository,
+                    (int)$candidate['id'],
+                    (int)$candidate['version'],
+                    $target,
+                    $actorId
+                );
+                $success++;
+            }catch(HttpException $error){
+                // Un registro que cambió mientras se procesaba no bloquea el resto.
+                $failed++;
+                \log_event('bulk_workflow_skip',[
+                    'module'=>$this->module($repository),
+                    'id'=>(int)$candidate['id'],
+                    'target'=>$target,
+                    'status'=>$error->status,
+                ]);
+            }
+        }
+
+        return ['success'=>$success,'failed'=>$failed,'source'=>$source,'target'=>$target];
     }
 
     private function module(OperationalRepository $repository): string

@@ -23,6 +23,9 @@ $home = auth_user() ? App\Policies\AccessPolicy::landing(auth_user()) : '/login'
         .error-code{display:inline-flex;padding:7px 11px;border-radius:999px;background:#eaf4fb;color:#075b9f;font-size:.8rem;font-weight:800}
         h1{margin:18px 0 10px;color:#0a3d66;font-size:clamp(1.7rem,4vw,2.35rem)}
         p{margin:0;color:#62778a;line-height:1.65}
+        details.debug-info{margin-top:18px;padding:14px;background:#f7f9fb;border:1px solid #dbe5ee;border-radius:10px}
+        details.debug-info summary{cursor:pointer;font-weight:700;color:#134b73}
+        details.debug-info pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.82rem;color:#35485b;margin:12px 0 0}
         .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
         a{display:inline-flex;align-items:center;justify-content:center;padding:11px 16px;border-radius:11px;text-decoration:none;font-weight:700}
         .primary{background:#075b9f;color:#fff}.secondary{border:1px solid #bcd0df;color:#075b9f}
@@ -34,6 +37,12 @@ $home = auth_user() ? App\Policies\AccessPolicy::landing(auth_user()) : '/login'
         <span class="error-code">Error <?=e($status)?></span>
         <h1><?=e($title)?></h1>
         <p><?=e($message)?></p>
+        <?php if (($debugDetails ?? null) !== null): ?>
+        <details class="debug-info" open>
+            <summary>Detalle técnico (solo desarrollo local)</summary>
+            <pre><?=e($debugDetails)?></pre>
+        </details>
+        <?php endif; ?>
         <div class="actions">
             <a class="primary" href="<?=e(url($home))?>">Volver al sistema</a>
             <a class="secondary" href="javascript:history.back()">Regresar</a>

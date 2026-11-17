@@ -20,13 +20,12 @@ $favicon = branding_logo_url('favicon');
             --brand-background:<?=e($brand['background_color'])?>;
         }
     </style>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <?php $cssVersion = @filemtime(base_path('public/assets/css/app.css')) ?: time(); ?>
-    <link rel="stylesheet" href="<?=url('/assets/css/app.css?v='.$cssVersion)?>">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="<?=asset_url('assets/css/app.css')?>">
 </head>
-<body class="<?= $u ? 'app-authenticated' : 'app-guest' ?> sidebar-theme-<?=e($brand['sidebar_theme'])?>">
+<body class="<?= $u ? 'app-authenticated' : 'app-guest' ?> sidebar-theme-<?=e($brand['sidebar_theme'])?> ui-density-<?=e($brand['ui_density'])?> ui-corners-<?=e($brand['corner_style'])?> ui-shadow-<?=e($brand['shadow_style'])?> sidebar-size-<?=e($brand['sidebar_size'])?> topbar-style-<?=e($brand['topbar_style'])?>">
 <?php if($u): ?>
 <div class="app-shell">
     <?php require base_path('app/Views/layouts/sidebar.php'); ?>
@@ -44,13 +43,17 @@ $favicon = branding_logo_url('favicon');
                 </div>
             </div>
             <div class="topbar-right">
-                <div class="user-chip" title="<?=e($u['nombre'])?> · <?=e($u['role'])?>">
-                    <span class="user-avatar"><?=e(strtoupper(substr((string)$u['nombre'],0,1)))?></span>
+                <a class="user-chip" href="<?=url('/mi-perfil')?>" title="Mi perfil · <?=e($u['nombre'])?>">
+                    <span class="user-avatar">
+                        <?php if(!empty($u['foto_perfil'])): ?>
+                            <img src="<?=url('/avatar-usuario?id='.(int)$u['id'])?>" alt="Mi foto de perfil">
+                        <?php else: ?><?=e(mb_strtoupper(mb_substr((string)$u['nombre'],0,1,'UTF-8'),'UTF-8'))?><?php endif; ?>
+                    </span>
                     <span class="user-copy">
                         <strong><?=e($u['nombre'])?></strong>
                         <small><?=e($u['role'])?></small>
                     </span>
-                </div>
+                </a>
                 <form method="post" action="<?=url('/logout')?>" class="m-0">
                     <?=csrf_field()?>
                     <button class="btn btn-logout btn-sm btn-with-icon" type="submit"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Salir</span></button>

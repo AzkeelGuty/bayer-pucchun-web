@@ -4,7 +4,7 @@
 <div class="card"><div class="card-body">
     <form method="get" action="<?= url('/export') ?>" id="export-form" class="row g-3 align-items-end">
         <div class="col-md-4">
-            <label class="form-label">Dataset</label>
+            <label class="form-label">Conjunto de datos</label>
             <select name="type" class="form-select" required>
                 <option value="documents">Documentos</option>
                 <option value="guides">Guías</option>
@@ -14,7 +14,6 @@
         <div class="col-md-3">
             <label class="form-label">Formato</label>
             <select name="format" class="form-select" required>
-                <option value="csv">CSV</option>
                 <option value="xlsx">XLSX</option>
                 <option value="pdf">PDF</option>
                 <option value="json">JSON</option>

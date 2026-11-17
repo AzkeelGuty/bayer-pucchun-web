@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Exceptions\HttpException;
-use App\Services\{BayerDataService,ExportPresentation,SimpleXlsxExporter,SimplePdfExporter};
+use App\Services\{BayerDataService,UnifiedStockService,ExportPresentation,SimpleXlsxExporter,SimplePdfExporter};
 
 final class ExportController
 {
@@ -20,13 +20,16 @@ final class ExportController
         $type=(string)\input('type','documents');
         if(!in_array($type,['documents','guides','stock'],true)) throw new HttpException(422,'Dataset inválido.');
         $filters=[];
-        foreach(['from','to','branch','q'] as $key){
+        foreach(['from','to','branch','q','document_status','fuente','estado','almacen_id','bajo'] as $key){
             $value=trim((string)\input($key,''));
             if($value!=='') $filters[$key]=$value;
         }
-        $rows=(new BayerDataService())->dataset($type,$filters);
+        // El rol externo BAYER mantiene su alcance publicado, sin ver catálogos internos.
+        $count=$type==='stock' && !\has_role('BAYER')
+            ? count((new UnifiedStockService())->reportRows($filters))
+            : (new BayerDataService())->countDataset($type,$filters);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['success'=>true,'count'=>count($rows)],JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success'=>true,'count'=>$count],JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -40,20 +43,22 @@ final class ExportController
         if(!in_array($format,['xlsx','json','txt','pdf'],true)) throw new HttpException(422,'Formato inválido.');
 
         $filters=[];
-        foreach(['from','to','branch','q'] as $key){
+        foreach(['from','to','branch','q','document_status','fuente','estado','almacen_id','bajo'] as $key){
             $value=trim((string)\input($key,''));
             if($value!=='') $filters[$key]=$value;
         }
 
         $started=microtime(true);
-        $rows=(new BayerDataService())->dataset($type,$filters);
+        $rows=$type==='stock' && !\has_role('BAYER')
+            ? (new UnifiedStockService())->reportRows($filters)
+            : (new BayerDataService())->completeDataset($type,$filters,$format==='xlsx' && $type==='guides');
         $generatedAt=date('Y-m-d H:i:s');
         $meta=ExportPresentation::metadata($type,$filters,$rows,(array)\auth_user(),$generatedAt);
 
         $slug=match($type){
             'documents'=>'documentos',
             'guides'=>'guias_remision',
-            'stock'=>'stock',
+            'stock'=>'stock_consolidado',
             default=>$type,
         };
         $base='pucchun_'.$slug.'_'.date('Ymd_His');

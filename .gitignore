@@ -11,3 +11,7 @@
 /storage/config/branding.json
 /public/uploads/branding/*
 !/public/uploads/branding/.gitkeep
+
+# Certificados privados y archivos de respuesta SUNAT (nunca publicar)
+/storage/private/
+!/storage/private/.gitkeep
