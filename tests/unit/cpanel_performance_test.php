@@ -56,6 +56,9 @@ perf_assert(!str_contains($header,'<script src="https://cdn.jsdelivr.net/npm/cha
 perf_assert(str_contains($live,'const ensureCharts = () =>') &&
     str_contains($live,'ensureCharts().then('),
     'Los gráficos deben cargar únicamente en paneles');
+perf_assert(str_contains($navigation,'window.Chart.getChart(canvas)') &&
+    str_contains($navigation,'chart.destroy()'),
+    'Los gráficos deben liberar su memoria al cambiar de pantalla');
 perf_assert(str_contains($auth,'JOIN usuario_rol ur ON ur.usuario_id=u.id') &&
     str_contains($auth,'r.nombre AS rol_activo'),
     'El usuario y sus roles se obtienen en una consulta');
