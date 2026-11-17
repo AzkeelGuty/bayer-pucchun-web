@@ -46,4 +46,27 @@ perf_assert(!str_contains($app,'const liveElements =') && !str_contains($app,'co
     'App.js no debe duplicar temporizadores ni consultas incrementales');
 perf_assert(str_contains($tables,'data-live-refresh="60000"'),
     'Las tablas secundarias deben refrescar a un intervalo razonable');
+$dashboard=(string)file_get_contents($root.'/app/Services/DashboardService.php');
+$auth=(string)file_get_contents($root.'/app/Services/AuthService.php');
+$stock=(string)file_get_contents($root.'/app/Services/UnifiedStockService.php');
+$header=(string)file_get_contents($root.'/app/Views/layouts/header.php');
+$reportsController=(string)file_get_contents($root.'/app/Controllers/BackofficeController.php');
+perf_assert(!str_contains($header,'<script src="https://cdn.jsdelivr.net/npm/chart.js'),
+    'Chart.js no debe bloquear todos los módulos');
+perf_assert(str_contains($live,'const ensureCharts = () =>') &&
+    str_contains($live,'ensureCharts().then('),
+    'Los gráficos deben cargar únicamente en paneles');
+perf_assert(str_contains($auth,'JOIN usuario_rol ur ON ur.usuario_id=u.id') &&
+    str_contains($auth,'r.nombre AS rol_activo'),
+    'El usuario y sus roles se obtienen en una consulta');
+perf_assert(str_contains($dashboard,'GROUP BY dd.producto_id') &&
+    str_contains($dashboard,'GROUP BY gd.producto_id') &&
+    str_contains($dashboard,'GROUP BY sd.producto_id'),
+    'El dashboard debe preagrupar resultados antes del UNION');
+perf_assert(str_contains($stock,'private function calculateSummary(') &&
+    str_contains($stock,'public function overview(') &&
+    !str_contains($stock,"$". "count=$this->pdo->prepare('SELECT COUNT(*)'"),
+    'Stock no debe ejecutar un segundo consolidado para el conteo');
+perf_assert(str_contains($reportsController,'$stockReport->overview()'),
+    'Reportes solo debe obtener resumen, no paginación completa de stock');
 echo "RENDIMIENTO CPANEL OK\n";
