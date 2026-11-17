@@ -111,6 +111,40 @@ final class UnifiedStockService
         return $s->fetchAll(PDO::FETCH_ASSOC);
     }
 
+
+    /** Resumen calculado sin ejecutar además la consulta paginada. */
+    private function calculateSummary(string $base,string $whereBase,array $params): array
+    {
+        // Totales únicos por catálogo y código: un SKU Pucchún puede estar en
+        // varios almacenes o unidades, pero no se contabiliza varias veces.
+        $unique="CONCAT(catalogo.fuente, ':', catalogo.codigo)";
+        $stats=$this->pdo->prepare(
+            "SELECT COUNT(*) AS total_filas,
+              COUNT(DISTINCT $unique) AS total_productos,
+              COUNT(DISTINCT CASE WHEN fuente='BAYER' THEN codigo END) AS total_bayer,
+              COUNT(DISTINCT CASE WHEN fuente='PUCCHUN' THEN codigo END) AS total_pucchun,
+              COUNT(DISTINCT CASE WHEN estado='CON_STOCK' THEN $unique END) AS disponible,
+              COUNT(DISTINCT CASE WHEN estado='BAJO' THEN $unique END) AS bajo,
+              COUNT(DISTINCT CASE WHEN estado='SIN_STOCK' THEN $unique END) AS cero,
+              COUNT(DISTINCT CASE WHEN estado='RIESGO' THEN $unique END) AS riesgo,
+              COUNT(DISTINCT CASE WHEN estado='SIN_DATO' THEN $unique END) AS sin_dato,
+              COUNT(CASE WHEN estado='CON_STOCK' THEN 1 END) AS filas_con_stock,
+              COUNT(CASE WHEN estado='BAJO' THEN 1 END) AS filas_bajo,
+              COUNT(CASE WHEN estado='SIN_STOCK' THEN 1 END) AS filas_sin_stock,
+              COUNT(CASE WHEN estado='RIESGO' THEN 1 END) AS filas_riesgo,
+              COUNT(CASE WHEN estado='SIN_DATO' THEN 1 END) AS filas_sin_dato"
+            .$base.$whereBase
+        );
+        $stats->execute($params);
+        return $stats->fetch(PDO::FETCH_ASSOC)?:[];
+    }
+
+    public function overview(int $low=10): array
+    {
+        $low=max(1,min(999999,$low));
+        return $this->calculateSummary(' FROM ('.$this->unifiedSql().') catalogo ','',[$low,$low]);
+    }
+
     public function browse(array $filters=[],int $perPage=15,int $page=1): array
     {
         $perPage=max(1,min(50,$perPage));
@@ -135,28 +169,7 @@ final class UnifiedStockService
             $params[]='%'.$q.'%';$params[]='%'.$q.'%';
         }
         $whereBase=$conditions?' WHERE '.implode(' AND ',$conditions):'';
-        // Totales únicos por catálogo y código: un SKU Pucchún puede estar en
-        // varios almacenes o unidades, pero no se contabiliza varias veces.
-        $unique="CONCAT(catalogo.fuente, ':', catalogo.codigo)";
-        $stats=$this->pdo->prepare(
-            "SELECT COUNT(*) AS total_filas,
-              COUNT(DISTINCT $unique) AS total_productos,
-              COUNT(DISTINCT CASE WHEN fuente='BAYER' THEN codigo END) AS total_bayer,
-              COUNT(DISTINCT CASE WHEN fuente='PUCCHUN' THEN codigo END) AS total_pucchun,
-              COUNT(DISTINCT CASE WHEN estado='CON_STOCK' THEN $unique END) AS disponible,
-              COUNT(DISTINCT CASE WHEN estado='BAJO' THEN $unique END) AS bajo,
-              COUNT(DISTINCT CASE WHEN estado='SIN_STOCK' THEN $unique END) AS cero,
-              COUNT(DISTINCT CASE WHEN estado='RIESGO' THEN $unique END) AS riesgo,
-              COUNT(DISTINCT CASE WHEN estado='SIN_DATO' THEN $unique END) AS sin_dato,
-              COUNT(CASE WHEN estado='CON_STOCK' THEN 1 END) AS filas_con_stock,
-              COUNT(CASE WHEN estado='BAJO' THEN 1 END) AS filas_bajo,
-              COUNT(CASE WHEN estado='SIN_STOCK' THEN 1 END) AS filas_sin_stock,
-              COUNT(CASE WHEN estado='RIESGO' THEN 1 END) AS filas_riesgo,
-              COUNT(CASE WHEN estado='SIN_DATO' THEN 1 END) AS filas_sin_dato"
-            .$base.$whereBase
-        );
-        $stats->execute($params);
-        $summary=$stats->fetch(PDO::FETCH_ASSOC)?:[];
+        $summary=$this->calculateSummary($base,$whereBase,$params);
         if($state!==''){$conditions[]='catalogo.estado=?';$params[]=$state;}
         $where=$conditions?' WHERE '.implode(' AND ',$conditions):'';
         // Las estadísticas ya recorren el consolidado completo: reutilizar
