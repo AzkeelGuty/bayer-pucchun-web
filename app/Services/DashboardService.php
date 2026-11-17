@@ -30,36 +30,31 @@ final class DashboardService
             ];
         }
 
-        $out=[];
-        foreach(['documentos_cabecera'=>'documentos','guias_cabecera'=>'guias','stock_cabecera'=>'stock'] as $table=>$key){
-            $where=[];
-            if($publishedOnly) $where[]="estado_registro='PUBLICADO'";
-            $owner=$this->ownerClause($ownerId);
-            if($owner!=='') $where[]=$owner;
-            $sql='SELECT COUNT(*) FROM '.$table.($where?' WHERE '.implode(' AND ',$where):'');
-            $out[$key]=(int)\db()->query($sql)->fetchColumn();
+        // Una sola petición a MySQL para todos los KPI, en lugar de
+        // múltiples round-trips con los mismos filtros de pertenencia.
+        $owner=$this->ownerClause($ownerId);
+        $owned=$owner!==''?' WHERE '.$owner:'';
+        $published=static fn(string $condition):string=>($owned!==''?$owned.' AND ':' WHERE ').$condition;
+        $sql="SELECT
+            (SELECT COUNT(*) FROM documentos_cabecera{$owned}) AS documentos,
+            (SELECT COUNT(*) FROM guias_cabecera{$owned}) AS guias,
+            (SELECT COUNT(*) FROM stock_cabecera{$owned}) AS stock,
+            (SELECT COUNT(*) FROM clientes) AS clientes,
+            (SELECT COUNT(*) FROM productos) AS productos,
+            (
+              (SELECT COUNT(*) FROM documentos_cabecera".$published("estado_registro='PUBLICADO'").")+
+              (SELECT COUNT(*) FROM guias_cabecera".$published("estado_registro='PUBLICADO'").")+
+              (SELECT COUNT(*) FROM stock_cabecera".$published("estado_registro='PUBLICADO'").")
+            ) AS publicados,
+            (
+              (SELECT COUNT(*) FROM documentos_cabecera".$published("estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')").")+
+              (SELECT COUNT(*) FROM guias_cabecera".$published("estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')").")+
+              (SELECT COUNT(*) FROM stock_cabecera".$published("estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')").")
+            ) AS pendientes";
+        $out=\db()->query($sql)->fetch() ?: [];
+        foreach(['documentos','guias','stock','clientes','productos','publicados','pendientes'] as $key){
+            $out[$key]=(int)($out[$key]??0);
         }
-
-        $out['clientes']=(int)\db()->query('SELECT COUNT(*) FROM clientes')->fetchColumn();
-        $out['productos']=(int)\db()->query('SELECT COUNT(*) FROM productos')->fetchColumn();
-
-        $ownerDoc=$this->ownerClause($ownerId);
-        $ownerGuide=$this->ownerClause($ownerId);
-        $ownerStock=$this->ownerClause($ownerId);
-        $docOwner=$ownerDoc!==''?' AND '.$ownerDoc:'';
-        $guideOwner=$ownerGuide!==''?' AND '.$ownerGuide:'';
-        $stockOwner=$ownerStock!==''?' AND '.$ownerStock:'';
-
-        $out['publicados']=(int)\db()->query("SELECT
-            (SELECT COUNT(*) FROM documentos_cabecera WHERE estado_registro='PUBLICADO'$docOwner)+
-            (SELECT COUNT(*) FROM guias_cabecera WHERE estado_registro='PUBLICADO'$guideOwner)+
-            (SELECT COUNT(*) FROM stock_cabecera WHERE estado_registro='PUBLICADO'$stockOwner)")->fetchColumn();
-
-        $out['pendientes']=(int)\db()->query("SELECT
-            (SELECT COUNT(*) FROM documentos_cabecera WHERE estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')$docOwner)+
-            (SELECT COUNT(*) FROM guias_cabecera WHERE estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')$guideOwner)+
-            (SELECT COUNT(*) FROM stock_cabecera WHERE estado_registro IN ('BORRADOR','VALIDADO','OBSERVADO')$stockOwner)")->fetchColumn();
-
         return $out;
     }
 
