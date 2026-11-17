@@ -40,6 +40,8 @@ try {
     }
 
     require $projectRoot . '/config/bootstrap.php';
+    // Marca inocua para identificar que el cPanel sirve la versión pública correcta.
+    header('X-BP-Release: bp-20261117-cpanel');
     header('Cache-Control: no-store');
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: strict-origin-when-cross-origin');
