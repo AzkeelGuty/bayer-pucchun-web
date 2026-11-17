@@ -13,6 +13,7 @@ ok(net.igv===65250,'IGV 18 %');
 ok(net.total===427750,'Total S/ 4277.50');
 ok(net.lines[0].importe===300000 && net.lines[1].importe===62500,'Importe por producto');
 ok(net.quantities.Kilogramo===4 && net.quantities.Litro===5,'Agrupar por unidad');
+ok(net.quantityTotal===9,'Cantidad acumulada distingue el resultado de los totales por unidad');
 const included=api.calculate(rows,'INCLUIDO');
 ok(included.subtotal===307203,'Subtotal desagregado cuando IGV incluido');
 ok(included.igv===55297,'IGV incluido exacto');
