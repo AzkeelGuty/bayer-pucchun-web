@@ -154,3 +154,48 @@ El comando es de solo lectura. Si responde `OK`, no existen cantidades fracciona
 
 ### Migración de comprobantes
 Ejecutar `database/migrations/008_estado_comprobante.sql` para agregar el estado comercial VIGENTE/ANULADO e incorporar Factura, Boleta, Nota de crédito y Nota de débito.
+
+
+## Solución definitiva para cPanel con raíz pública separada (noviembre de 2026)
+
+Cuando el servidor presenta \`/home/userinno/bayer-pucchun-web/\` y \`/home/userinno/public_html/\` como carpetas separadas, **ambas partes del software deben actualizarse juntas**. Un \`git pull\` solo en el directorio privado no copia los JS, CSS y el front controller a \`public_html\`. El \`public/index.php\` publicado identifica la raíz privada mediante \`BAYER_APP_ROOT\` o, por defecto, el directorio hermano \`bayer-pucchun-web\`; una carpeta distinta como \`bayer-pucchun-web-676\` no será utilizada automáticamente.
+
+### Publicación desde la Terminal de cPanel
+
+En el servidor que utiliza el directorio \`/home/userinno\`, ejecutar **una línea a la vez**:
+
+\`\`\`bash
+cd /home/userinno/bayer-pucchun-web
+git fetch origin integration/frontend-equipo
+git switch integration/frontend-equipo
+git pull --ff-only origin integration/frontend-equipo
+bash scripts/deploy/cpanel_release.sh --check
+bash scripts/deploy/cpanel_release.sh --deploy
+\`\`\`
+
+Si Git presenta modificaciones locales o conflictos, detenerse y conservarlas. No utilizar \`git reset --hard\` ni borrar el proyecto. Si el directorio no contiene \`.git\`, actualizar previamente la copia privada desde el ZIP oficial de la rama de integración, conservando el \`.env\`, \`storage/\` y los datos existentes.
+
+El script de despliegue:
+
+- Compara los archivos actuales con la versión privada antes de copiarlos.
+- Realiza una copia de seguridad de \`index.php\` y \`.htaccess\` en \`storage/deploy-backups\`.
+- Sincroniza todos los CSS y JS de \`public/assets/\` hacia \`public_html/assets/\` sin borrar archivos.
+- Instala el nuevo \`public/index.php\` en \`public_html/index.php\`.
+- Conserva el \`.htaccess\` de cPanel y sus manejadores PHP; añade caducidad de caché solo si faltan reglas.
+- No modifica \`public_html/uploads\`, \`.env\`, \`storage/config\`, \`.user.ini\`, \`php.ini\` ni la base de datos.
+
+### Alternativa desde Administrador de archivos
+
+Después de actualizar el código privado, copiar \`bayer-pucchun-web/public/index.php\` sobre \`public_html/index.php\` y el contenido de \`bayer-pucchun-web/public/assets/\` sobre \`public_html/assets/\`, sobrescribiendo CSS/JS. Conservar los logotipos de \`public_html/uploads/branding/\` y el \`.htaccess\` actual de cPanel. No subir \`app/\`, \`database/\`, \`config/\`, \`.env\` ni \`storage/\` al directorio público.
+
+### Confirmar en el navegador
+
+Entrar a \`https://innovasoft.site/maestros\`, abrir F12 > Network > seleccionar \`maestros\` > Headers > Response Headers. Debe existir:
+
+\`\`\`http
+X-BP-Release: bp-20261117-cpanel
+\`\`\`
+
+Si falta, el front controller público está desactualizado o se está sirviendo desde otra ruta. Una vez confirmado, activar temporalmente \`BP_PERFORMANCE_DIAGNOSTICS=1\` en el \`.env\` privado y examinar \`Server-Timing\` para diferenciar latencia PHP, sesión y conexión MySQL. Desactivar posteriormente. Si PHP responde rápido pero la navegación sigue lenta, revisar Network > Timing, los recursos externos y las limitaciones CPU/I/O de cPanel, además del estado de OPcache. No interpretar \`Cache-Control: no-store\` en respuestas HTML autenticadas como un error: evita guardar páginas privadas en caché.
+
+No es necesario volver a ejecutar migraciones SQL para corregir la sincronización pública.
