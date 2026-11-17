@@ -11,6 +11,14 @@ $router->before(static function (string $path): void {
     if (preg_match('~^/(usuarios|roles|permisos|configuracion)(/|$)~', $path)) {
         require_role('ADMIN');
     }
+    // Tras refrescar autenticación y comprobar el alcance, los endpoints
+    // de lectura autónoma pueden cerrar la sesión antes de trabajar.
+    // Evita que búsquedas y fotografías bloqueen otros clics del mismo usuario.
+    if (request_method()==='GET'
+        && in_array($path,['/lookups','/avatar-usuario','/documentos/siguiente-numero'],true)
+        && session_status()===PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
 });
 $internal = [new RoleMiddleware(AccessPolicy::INTERNAL)];
 $capture = [new RoleMiddleware(AccessPolicy::CAPTURE)];
