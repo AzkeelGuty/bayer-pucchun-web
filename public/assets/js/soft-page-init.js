@@ -3,6 +3,23 @@
 
     const rootStyle = () => getComputedStyle(document.documentElement);
 
+    // Chart.js solo se descarga al visitar un panel que contiene gráficas.
+    // Se comparte la promesa entre navegaciones y no bloquea formularios.
+    let chartLoader=null;
+    const ensureCharts = () => {
+        if (window.Chart) return Promise.resolve();
+        if (chartLoader) return chartLoader;
+        chartLoader=new Promise((resolve,reject)=>{
+            const script=document.createElement('script');
+            script.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+            script.async=true;
+            script.onload=()=>resolve();
+            script.onerror=()=>reject(new Error('No se pudo cargar la biblioteca de gráficos'));
+            document.head.appendChild(script);
+        }).catch(error=>{chartLoader=null;throw error;});
+        return chartLoader;
+    };
+
     function initAlerts(root) {
         root.querySelectorAll('.js-auto-dismiss').forEach((alert) => {
             if (alert.dataset.bpSoftAlertReady === '1') return;
