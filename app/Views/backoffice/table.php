@@ -204,7 +204,7 @@ $pageUrl=static function(int $page) use($base,$activeTab,$searchQuery): string {
 </form>
 <?php endif; ?>
 
-<div class="card data-table-card"<?=($isMasterTable||$hasPagination)?'':' data-live-refresh="6000" data-live-refresh-key="backoffice-data-table"'?>>
+<div class="card data-table-card"<?=($isMasterTable||$hasPagination)?'':' data-live-refresh="60000" data-live-refresh-key="backoffice-data-table"'?>>
     <?php if($isMasterTable||$hasPagination): ?>
     <div class="catalog-result-bar">
         <div>
