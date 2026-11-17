@@ -82,7 +82,7 @@ final class GuideExcelLayout
             }
             $rows[]=array_merge(['_kind'=>'total'],array_fill_keys($keys,''),[
                 'productName'=>'TOTAL DE GUÍA · '.count($products).' producto(s)',
-                'unitCode'=>$mixed?'VARIAS':(string)(array_key_first($totals)??''),
+                'unitCode'=>$mixed?'MIXTA':(string)(array_key_first($totals)??''),
                 'quantity'=>$quantityTotal,
                 'destination'=>$mixed?'Desglose: '.implode(' + ',$parts):'',
             ]);
