@@ -69,7 +69,7 @@
         <div class="commercial-summary-grid">
             <div class="commercial-summary-note">
                 <span><?=count($record['details'])?> <?=count($record['details'])===1?'producto':'productos'?></span>
-                <div><strong>Cantidad acumulada: <?=e((string)$totals['cantidad_total'])?></strong></div>
+                <div><strong>Total de cantidades de la guía: <?=e((string)$totals['cantidad_total'])?></strong></div>
                 <div><?php foreach($totals['cantidades'] as $unit=>$quantity): ?>
                     <span class="commercial-unit-total"><?=e((string)$quantity)?> <?=e($unit)?></span>
                 <?php endforeach; ?></div>
