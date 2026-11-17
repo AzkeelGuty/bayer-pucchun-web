@@ -10,6 +10,7 @@ if(!is_string($png))throw new RuntimeException('PNG de pruebas inválido.');
 $logo=tempnam(sys_get_temp_dir(),'guide-logo-').'.png';
 file_put_contents($logo,$png);
 $code='<?php'."\n"
+    .'require '.var_export($root.'/app/Helpers/functions.php',true).';'."\n"
     .'require '.var_export($root.'/app/Services/ExportPresentation.php',true).';'."\n"
     .'require '.var_export($root.'/app/Services/GuideExcelLayout.php',true).';'."\n"
     .'require '.var_export($root.'/app/Services/SimpleXlsxExporter.php',true).';'."\n"
