@@ -44,7 +44,11 @@ function db(): PDO {
     if ($pdo) return $pdo;
     $c=config('database');
     $dsn="mysql:host={$c['host']};port={$c['port']};dbname={$c['name']};charset={$c['charset']}";
+    $bpDbStarted=microtime(true);
     $pdo=new PDO($dsn,$c['user'],$c['pass'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);
+    if (filter_var(env('BP_PERFORMANCE_DIAGNOSTICS',false),FILTER_VALIDATE_BOOLEAN)) {
+        $GLOBALS['bp_db_connect_ms']=(microtime(true)-$bpDbStarted)*1000;
+    }
     return $pdo;
 }
 function e(mixed $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
@@ -73,7 +77,10 @@ function url(string $path=''): string { $base=config('app.url',''); return $base
 function asset_url(string $path): string {
     $relative=ltrim($path,'/');
     $absolute=public_path($relative);
-    $version=is_file($absolute) ? (string)@filemtime($absolute) : (string)time();
+    // Evitar que la versión cambie cada segundo cuando public_html está separado
+    // de la raíz del proyecto, lo cual invalidaba la caché de todos los JS/CSS.
+    $mtime=is_file($absolute) ? @filemtime($absolute) : false;
+    $version=$mtime!==false ? (string)$mtime : (string)config('app.asset_version','1');
     return url('/'.$relative).'?v='.rawurlencode($version);
 }
 function redirect(string $path): never { header('Location: '.url($path)); exit; }
