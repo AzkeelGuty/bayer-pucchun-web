@@ -19,7 +19,7 @@ El formulario exige seleccionar **«El valor unitario incluye IGV: Sí / No»**.
 
 ### Guías de remisión
 
-La guía presenta el listado de productos, **cantidad por producto** y **totales agrupados por unidad de medida**. Por ejemplo, 4 kilogramos y 5 litros se muestran por separado; nunca se suman falsamente como «9 unidades iguales».
+La guía presenta el listado de productos, **cantidad por producto**, **un total numérico de cantidades** y **un desglose por unidad de medida**. Por ejemplo, 4 kilogramos y 5 litros se presentan con cantidad acumulada 9 y desglose 4 KGM + 5 LTR; el acumulado es únicamente un indicador de control, sin equiparar kilogramos y litros.
 
 La **valorización comercial es opcional**: una guía creada solo para traslado no requiere precio ni subtotal. Si se introduce un precio en cualquier producto, se deben completar todos los valores y elegir si incluyen IGV. Entonces se muestran los importes, subtotal, IGV y **valor comercial referencial**. No constituye ni reemplaza un comprobante electrónico de venta.
 
