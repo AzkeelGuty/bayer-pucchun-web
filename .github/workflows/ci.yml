@@ -59,6 +59,8 @@ jobs:
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/core_security_test.php
           php -d zend.assertions=1 -d assert.exception=1 tests/unit/csrf_test.php
           php tests/unit/report_xlsx_logo_layout_test.php
+          php tests/unit/guide_excel_grouping_test.php
+          php tests/unit/guide_excel_xlsx_structure_test.php
           php tests/unit/catalog_templates_spanish_test.php
           php tests/unit/export_branding_path_test.php
           php tests/unit/workflow_test.php
