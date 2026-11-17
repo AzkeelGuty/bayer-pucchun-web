@@ -147,16 +147,29 @@ final class UnifiedStockService
               COUNT(DISTINCT CASE WHEN estado='BAJO' THEN $unique END) AS bajo,
               COUNT(DISTINCT CASE WHEN estado='SIN_STOCK' THEN $unique END) AS cero,
               COUNT(DISTINCT CASE WHEN estado='RIESGO' THEN $unique END) AS riesgo,
-              COUNT(DISTINCT CASE WHEN estado='SIN_DATO' THEN $unique END) AS sin_dato"
+              COUNT(DISTINCT CASE WHEN estado='SIN_DATO' THEN $unique END) AS sin_dato,
+              COUNT(CASE WHEN estado='CON_STOCK' THEN 1 END) AS filas_con_stock,
+              COUNT(CASE WHEN estado='BAJO' THEN 1 END) AS filas_bajo,
+              COUNT(CASE WHEN estado='SIN_STOCK' THEN 1 END) AS filas_sin_stock,
+              COUNT(CASE WHEN estado='RIESGO' THEN 1 END) AS filas_riesgo,
+              COUNT(CASE WHEN estado='SIN_DATO' THEN 1 END) AS filas_sin_dato"
             .$base.$whereBase
         );
         $stats->execute($params);
         $summary=$stats->fetch(PDO::FETCH_ASSOC)?:[];
         if($state!==''){$conditions[]='catalogo.estado=?';$params[]=$state;}
         $where=$conditions?' WHERE '.implode(' AND ',$conditions):'';
-        $count=$this->pdo->prepare('SELECT COUNT(*)'.$base.$where);
-        $count->execute($params);
-        $total=(int)$count->fetchColumn();
+        // Las estadísticas ya recorren el consolidado completo: reutilizar
+        // sus contadores de filas evita otro SELECT sobre UNION + snapshots.
+        // Los indicadores de producto siguen siendo DISTINCT por código.
+        $rowCounts=[
+            'CON_STOCK'=>'filas_con_stock',
+            'BAJO'=>'filas_bajo',
+            'SIN_STOCK'=>'filas_sin_stock',
+            'RIESGO'=>'filas_riesgo',
+            'SIN_DATO'=>'filas_sin_dato',
+        ];
+        $total=(int)($summary[$rowCounts[$state]??'total_filas']??0);
         $pages=max(1,(int)ceil($total/$perPage));
         $page=min($page,$pages);
         $offset=($page-1)*$perPage;
