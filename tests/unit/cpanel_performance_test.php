@@ -65,7 +65,7 @@ perf_assert(str_contains($dashboard,'GROUP BY dd.producto_id') &&
     'El dashboard debe preagrupar resultados antes del UNION');
 perf_assert(str_contains($stock,'private function calculateSummary(') &&
     str_contains($stock,'public function overview(') &&
-    !str_contains($stock,"$". "count=$this->pdo->prepare('SELECT COUNT(*)'"),
+    !str_contains($stock, '$count=$this->pdo->prepare('),
     'Stock no debe ejecutar un segundo consolidado para el conteo');
 perf_assert(str_contains($reportsController,'$stockReport->overview()'),
     'Reportes solo debe obtener resumen, no paginación completa de stock');
