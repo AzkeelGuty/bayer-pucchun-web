@@ -24,20 +24,31 @@ final class SimpleXlsxExporter
             exit('La extensión ZipArchive es necesaria para generar XLSX.');
         }
 
-        $keys=ExportPresentation::keys($rows);
-        $labels=ExportPresentation::labels($rows);
+        $isGuide=in_array((string)($meta['type']??''),['guides','shipments'],true);
+        $guideLayout=$isGuide?GuideExcelLayout::build($rows):null;
+        $displayRows=$guideLayout['rows']??$rows;
+        $keys=$guideLayout['keys']??ExportPresentation::keys($rows);
+        $labels=$guideLayout['labels']??ExportPresentation::labels($rows);
+        if($guideLayout!==null)$meta['record_count']=
+            $guideLayout['guide_count'].' guías · '.$guideLayout['product_lines'].' productos';
         $columnCount=max(8,count($keys),1);
         $dataColumnCount=max(1,count($keys));
         $lastCol=$this->col($dataColumnCount);
         $sheetLastCol=$this->col($columnCount);
         $images=$this->prepareImages($meta);
 
-        $titleEndIndex=$images ? max(4,$columnCount-2) : $columnCount;
+        $titleEndIndex=$images ? max(4,$columnCount-count($images)) : $columnCount;
         $titleEndCol=$this->col($titleEndIndex);
 
         $sheetRows=[];
-        $sheetRows[]=$this->row(1,[['value'=>(string)($meta['title']??'Reporte de datos'),'style'=>1]],34);
-        $sheetRows[]=$this->row(2,[['value'=>(string)($meta['system']??'Pucchún Data Hub').' · '.(string)($meta['partner']??'Bayer'),'style'=>2]],22);
+        // La franja azul también cubre las celdas de los logotipos.
+        $banner1=array_fill(0,$columnCount,['value'=>'','style'=>1]);
+        $banner2=array_fill(0,$columnCount,['value'=>'','style'=>2]);
+        $banner1[0]=['value'=>(string)($meta['title']??'Reporte de datos'),'style'=>1];
+        $banner2[0]=['value'=>(string)($meta['system']??'Pucchún Data Hub')
+            .' · '.(string)($meta['partner']??'Bayer'),'style'=>2];
+        $sheetRows[]=$this->row(1,$banner1,34);
+        $sheetRows[]=$this->row(2,$banner2,22);
         $sheetRows[]=$this->row(3,[],9);
 
         // Bloque de metadata en dos columnas visuales.
@@ -71,34 +82,50 @@ final class SimpleXlsxExporter
         ],22);
         $sheetRows[]=$this->row(8,[['value'=>'DATOS PUBLICADOS · INFORMACIÓN VALIDADA PARA CONSULTA Y ENTREGA','style'=>5]],24);
 
-        if($keys){
-            $cells=[];
-            foreach($labels as $label) $cells[]=['value'=>$label,'style'=>6];
-            $sheetRows[]=$this->row(9,$cells,27);
-
+        if($displayRows){
+            $headCells=[];
+            foreach($labels as $label)$headCells[]=['value'=>$label,'style'=>6];
+            $sheetRows[]=$this->row(9,$headCells,28);
             $rowNum=10;
-            foreach($rows as $ri=>$row){
+            foreach($displayRows as $ri=>$record){
+                $kind=(string)($record['_kind']??'detail');
                 $cells=[];
                 foreach($keys as $key){
-                    $value=$row[$key]??null;
-                    $style=$ri%2===0?7:8;
-                    $numeric=in_array($key,['quantity','unitValue','lineTotal'],true) && is_numeric($value);
-                    if($numeric){
-                        $style=in_array($key,['unitValue','lineTotal'],true)?10:9;
-                        $cells[]=['value'=>(string)$value,'style'=>$style,'numeric'=>true];
+                    $value=$record[$key]??null;
+                    if($isGuide){
+                        $style=match($kind){
+                            'guide'=>11,'subtotal'=>12,default=>$ri%2===0?7:8
+                        };
+                        $numeric=$key==='quantity' && is_numeric($value)
+                            && in_array($kind,['detail','subtotal'],true);
+                        if($numeric){
+                            $cells[]=['value'=>(string)$value,
+                                'style'=>$kind==='subtotal'?13:9,'numeric'=>true];
+                        }else{
+                            $cells[]=['value'=>$value===null?'':(string)$value,'style'=>$style];
+                        }
                     }else{
-                        // Identificadores permanecen como texto y no se transforman a notación científica.
-                        $cells[]=['value'=>ExportPresentation::displayValue($key,$value),'style'=>$style];
+                        $style=$ri%2===0?7:8;
+                        $numeric=in_array($key,['quantity','unitValue','lineTotal'],true)
+                            && is_numeric($value);
+                        if($numeric){
+                            $style=in_array($key,['unitValue','lineTotal'],true)?10:9;
+                            $cells[]=['value'=>(string)$value,'style'=>$style,'numeric'=>true];
+                        }else{
+                            $cells[]=['value'=>ExportPresentation::displayValue($key,$value),
+                                'style'=>$style];
+                        }
                     }
                 }
-                $sheetRows[]=$this->row($rowNum,$cells,21);
+                $sheetRows[]=$this->row($rowNum,$cells,$isGuide&&$kind==='guide'?29:22);
                 $rowNum++;
             }
         }else{
-            $sheetRows[]=$this->row(9,[['value'=>'Sin datos para los filtros seleccionados.','style'=>7]],26);
+            $sheetRows[]=$this->row(9,[['value'=>'Sin datos para los filtros seleccionados.',
+                'style'=>7]],26);
         }
 
-        $cols=$this->columnsXml($rows,$keys,$labels,$columnCount);
+        $cols=$this->columnsXml($displayRows,$keys,$labels,$columnCount);
         $mergeRefs=[
             'A1:'.$titleEndCol.'1',
             'A2:'.$titleEndCol.'2',
@@ -112,8 +139,8 @@ final class SimpleXlsxExporter
         foreach($mergeRefs as $ref) $mergeXml.='<mergeCell ref="'.$ref.'"/>';
         $mergeXml.='</mergeCells>';
 
-        $filterXml=$keys ? '<autoFilter ref="A9:'.$lastCol.(9+count($rows)).'"/>' : '';
-        $dimension='A1:'.$sheetLastCol.max(9,9+count($rows));
+        $filterXml=$displayRows && !$isGuide ? '<autoFilter ref="A9:'.$lastCol.(9+count($displayRows)).'"/>' : '';
+        $dimension='A1:'.$sheetLastCol.max(9,9+count($displayRows));
 
         $drawingXml='';
         $drawingRelXml='';
@@ -386,12 +413,12 @@ final class SimpleXlsxExporter
             .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
 
         // Insertar ambas marcas dentro de las dos últimas columnas del propio reporte.
-        $baseCol=max(0,$columnCount-2);
+        $baseCol=max(0,$columnCount-count($images));
         foreach($images as $i=>$image){
             $relId=$i+1;
             $col=$baseCol+$i;
-            $maxW=60;
-            $maxH=48;
+            $maxW=52;
+            $maxH=46;
             $ratio=min($maxW/max(1,$image['width']),$maxH/max(1,$image['height']));
             $width=max(24,(int)round($image['width']*$ratio));
             $height=max(20,(int)round($image['height']*$ratio));
@@ -399,7 +426,7 @@ final class SimpleXlsxExporter
             $cy=$height*9525;
 
             $drawing.='<xdr:oneCellAnchor>'
-                .'<xdr:from><xdr:col>'.$col.'</xdr:col><xdr:colOff>135000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>95000</xdr:rowOff></xdr:from>'
+                .'<xdr:from><xdr:col>'.$col.'</xdr:col><xdr:colOff>75000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>95000</xdr:rowOff></xdr:from>'
                 .'<xdr:ext cx="'.$cx.'" cy="'.$cy.'"/>'
                 .'<xdr:pic>'
                 .'<xdr:nvPicPr><xdr:cNvPr id="'.$relId.'" name="'.$this->xmlEsc((string)$image['label']).'"/><xdr:cNvPicPr/></xdr:nvPicPr>'
