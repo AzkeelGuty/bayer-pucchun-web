@@ -196,6 +196,15 @@
     const swapMain = (freshMain, freshDoc) => {
         const currentMain = document.querySelector('.app-main');
         if (!currentMain) throw new Error('No se encontró el contenedor principal.');
+        // Chart.js mantiene un registro interno de instancias: destruir los
+        // gráficos del panel anterior antes de intercambiar el HTML evita
+        // conservar lienzos y observadores desconectados en memoria.
+        if (window.Chart?.getChart) {
+            currentMain.querySelectorAll('canvas').forEach((canvas) => {
+                const chart=window.Chart.getChart(canvas);
+                if (chart) chart.destroy();
+            });
+        }
         currentMain.innerHTML = freshMain.innerHTML;
         syncShell(freshDoc);
     };
