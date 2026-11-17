@@ -94,13 +94,13 @@ final class SimpleXlsxExporter
                     $value=$record[$key]??null;
                     if($isGuide){
                         $style=match($kind){
-                            'guide'=>11,'subtotal'=>12,default=>$ri%2===0?7:8
+                            'guide'=>11,'total'=>12,default=>$ri%2===0?7:8
                         };
                         $numeric=$key==='quantity' && is_numeric($value)
-                            && in_array($kind,['detail','subtotal'],true);
+                            && in_array($kind,['detail','total'],true);
                         if($numeric){
                             $cells[]=['value'=>(string)$value,
-                                'style'=>$kind==='subtotal'?13:9,'numeric'=>true];
+                                'style'=>$kind==='total'?14:9,'numeric'=>true];
                         }else{
                             $cells[]=['value'=>$value===null?'':(string)$value,'style'=>$style];
                         }
@@ -117,7 +117,7 @@ final class SimpleXlsxExporter
                         }
                     }
                 }
-                $sheetRows[]=$this->row($rowNum,$cells,$isGuide&&$kind==='guide'?29:22);
+                $sheetRows[]=$this->row($rowNum,$cells,$isGuide&&$kind==='guide'?29:($isGuide&&$kind==='total'?30:22));
                 $rowNum++;
             }
         }else{
@@ -262,7 +262,8 @@ final class SimpleXlsxExporter
                 foreach(array_slice($rows,0,150) as $row){
                     $max=max($max,mb_strlen(ExportPresentation::displayValue($key,$row[$key]??null)));
                 }
-                $width=min(34,max(11,$max+2));
+                $cap=$key==='destination' ? 50 : 34;
+                $width=min($cap,max(11,$max+2));
             }else{
                 $width=14;
             }
@@ -279,7 +280,7 @@ final class SimpleXlsxExporter
 
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             .'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-            .'<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.000"/><numFmt numFmtId="165" formatCode="#,##0.00"/></numFmts>'
+            .'<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0.000"/><numFmt numFmtId="165" formatCode="#,##0.00"/><numFmt numFmtId="166" formatCode="#,##0"/></numFmts>'
             .'<fonts count="6">'
             .'<font><sz val="10"/><name val="Calibri"/></font>'
             .'<font><b/><sz val="20"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
@@ -299,7 +300,7 @@ final class SimpleXlsxExporter
             .'</fills>'
             .'<borders count="2"><border/><border><left style="thin"><color rgb="FFD9E6EF"/></left><right style="thin"><color rgb="FFD9E6EF"/></right><top style="thin"><color rgb="FFD9E6EF"/></top><bottom style="thin"><color rgb="FFD9E6EF"/></bottom></border></borders>'
             .'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-            .'<cellXfs count="14">'
+            .'<cellXfs count="15">'
             .'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
             .'<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf>'
             .'<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf>'
@@ -314,6 +315,7 @@ final class SimpleXlsxExporter
             .'<xf numFmtId="0" fontId="5" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>'
             .'<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>'
             .'<xf numFmtId="164" fontId="4" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>'
+            .'<xf numFmtId="166" fontId="4" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>'
             .'</cellXfs>'
             .'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
             .'</styleSheet>';
