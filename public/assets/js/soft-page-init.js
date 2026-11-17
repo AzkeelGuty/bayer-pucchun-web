@@ -113,47 +113,69 @@
         root.querySelectorAll('[data-live-refresh][data-live-refresh-key]').forEach((element) => {
             if (element.dataset.bpSoftLiveReady === '1') return;
             element.dataset.bpSoftLiveReady = '1';
-            const interval = Math.max(2000, Number(element.dataset.liveRefresh || 5000));
+
+            // 0 = actualización por acción del usuario, sin consultas periódicas.
+            // El resto se limita a intervalos >= 30 s para evitar saturar cPanel.
+            const requested = Number(element.dataset.liveRefresh || 0);
+            const interval = Number.isFinite(requested) && requested > 0
+                ? Math.max(30000, requested) : 0;
+            const initialUrl = location.href;
             let busy = false;
 
             const refresh = async () => {
-                if (!element.isConnected || document.hidden || busy) return;
+                if (!element.isConnected || location.href !== initialUrl || document.hidden || busy) return;
                 busy = true;
                 try {
-                    const response = await fetch(location.href, {
+                    const response = await fetch(initialUrl, {
                         credentials:'same-origin',
                         cache:'no-store',
                         headers:{'X-Requested-With':'XMLHttpRequest','Cache-Control':'no-cache'}
                     });
                     if (!response.ok) return;
                     const html = await response.text();
+                    if (!element.isConnected || location.href !== initialUrl) return;
                     const doc = new DOMParser().parseFromString(html, 'text/html');
                     const key = element.dataset.liveRefreshKey;
                     const fresh = doc.querySelector('[data-live-refresh-key="' + CSS.escape(key) + '"]');
-                    if (fresh && fresh.innerHTML !== element.innerHTML) element.innerHTML = fresh.innerHTML;
-                } catch (_) {
+                    if (fresh && fresh.innerHTML !== element.innerHTML) {
+                        element.innerHTML = fresh.innerHTML;
+                    }
+                } catch (error) {
+                    // La carga de la pantalla debe continuar ante fallos temporales.
                 } finally {
                     busy = false;
                 }
             };
 
-            const schedule = () => {
-                window.setTimeout(async () => {
-                    if (!element.isConnected) return;
-                    await refresh();
-                    schedule();
-                }, interval);
-            };
-            schedule();
+            if (interval > 0) {
+                const schedule = () => {
+                    window.setTimeout(async () => {
+                        if (!element.isConnected || location.href !== initialUrl) return;
+                        await refresh();
+                        schedule();
+                    }, interval);
+                };
+                schedule();
+            }
 
-            root.querySelectorAll('a.export-format, .format-actions a').forEach((link) => {
-                if (link.dataset.bpSoftExportReady === '1') return;
-                link.dataset.bpSoftExportReady = '1';
-                link.addEventListener('click', () => {
-                    window.setTimeout(refresh, 450);
-                    window.setTimeout(refresh, 1400);
-                });
+            // El historial se actualiza explícitamente, sin consultas continuas.
+            element.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-live-refresh-now]');
+                if (!button || button.dataset.liveRefreshNow !== element.dataset.liveRefreshKey) return;
+                event.preventDefault();
+                refresh();
             });
+
+            // Una única comprobación después de iniciar una descarga real.
+            if (element.dataset.liveRefreshKey === 'export-history') {
+                root.querySelectorAll('form.report-dataset-export').forEach((form) => {
+                    if (form.dataset.bpExportHistoryReady === '1') return;
+                    form.dataset.bpExportHistoryReady = '1';
+                    form.addEventListener('submit', () => {
+                        window.setTimeout(refresh, 4500);
+                    });
+                });
+            }
         });
     }
 
@@ -286,5 +308,8 @@
         init(document.querySelector('.app-main') || document);
     });
 
+    // app.js ya no monta un segundo temporizador en la carga inicial.
+    // Esta inicialización no duplica los gráficos que construye app.js.
+    initLiveRefresh(document.querySelector('.app-main') || document);
     window.BP_SoftPageInit = {init};
 })();
