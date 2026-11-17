@@ -1,8 +1,8 @@
 # Exportación de guías de remisión y logotipos
 
-La exportación XLSX de **Guías de remisión** utiliza un encabezado por número único de guía, seguido de sus líneas de productos y un subtotal por unidad de medida.
+La exportación XLSX de **Guías de remisión** utiliza un encabezado por número único de guía, seguido de sus líneas de productos y una única fila de total por guía.
 
-Cada bloque incluye número de guía, fecha, documento e identificación del cliente, documento de venta de origen (si existe), vendedor, sucursal y destino. Esos datos no se repiten en cada producto. Las filas siguientes presentan código de producto, presentación, unidad y cantidad. Al final del bloque se genera **una única fila TOTAL DE GUÍA**, con número de productos distintos y la suma numérica de las cantidades. Cuando existen unidades diferentes, la celda de unidad indica **VARIAS** y el desglose conserva la unidad original de cada cantidad (ejemplo: **3 KGM + 3 LTR + 5 NIU = 11 de cantidad acumulada**). Este acumulado es un indicador de control, no una conversión física entre kilogramos, litros y unidades.
+Cada bloque incluye número de guía, fecha, documento e identificación del cliente, documento de venta de origen (si existe), vendedor, sucursal y destino. Esos datos no se repiten en cada producto. Las filas siguientes presentan código de producto, presentación, unidad y cantidad. Al final del bloque se genera **una única fila TOTAL DE GUÍA**, con número de productos distintos y la suma numérica de las cantidades. Cuando existen unidades diferentes, la celda de unidad indica **MIXTA** y el desglose conserva la unidad original de cada cantidad (ejemplo: **3 KGM + 3 LTR + 5 NIU = 11 de cantidad acumulada**). Este acumulado es un indicador de control, no una conversión física entre kilogramos, litros y unidades.
 
 La columna **Estado SUNAT** no se incluye en el Excel de guías. Los datos originales y sus estados permanecen disponibles para los procesos que los necesiten, sin alterar los formatos JSON/TXT ni las operaciones del ERP.
 
