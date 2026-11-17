@@ -69,7 +69,7 @@ try{
             && str_contains($sheet,'Producto C'),'Detalle de guía incompleto.');
         $assert(substr_count($sheet,'TOTAL DE GUÍA')===1 &&
             str_contains($sheet,'<v>11</v>') &&
-            str_contains($sheet,'VARIAS') &&
+            str_contains($sheet,'MIXTA') &&
             str_contains($sheet,'Desglose: 3 KGM + 3 LTR + 5 NIU'),
             'El total de guía debe aparecer una sola vez con 11 y desglose de medidas.');
         $assert(!str_contains($sheet,'ESTADO SUNAT') &&
