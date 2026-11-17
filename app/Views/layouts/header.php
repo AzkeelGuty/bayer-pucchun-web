@@ -20,6 +20,7 @@ $favicon = branding_logo_url('favicon');
             --brand-background:<?=e($brand['background_color'])?>;
         }
     </style>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?=asset_url('assets/css/app.css')?>">
