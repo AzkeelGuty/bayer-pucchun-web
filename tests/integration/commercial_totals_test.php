@@ -16,6 +16,7 @@ ensure($additional['igv']===65250,'IGV e IPM 18 % S/ 652.50');
 ensure($additional['total']===427750,'Total S/ 4,277.50');
 ensure($additional['lineas'][0]['importe']===300000,'Primera línea S/ 3,000.00');
 ensure($additional['lineas'][1]['importe']===62500,'Segunda línea S/ 625.00');
+ensure($additional['cantidad_total']===9,'Guía acumula cantidades numéricas, sin equiparar unidades diferentes');
 ensure($additional['cantidades']['KGM']===4 && $additional['cantidades']['LTR']===5,
     'No sumar unidades heterogéneas en una cifra única');
 $included=Totals::summarize($example,'INCLUIDO',['1'=>'KGM','2'=>'LTR']);
@@ -40,6 +41,7 @@ $transport=Totals::summarize([
 ],null,['1'=>'KGM','2'=>'LTR']);
 ensure(!$transport['valorizado'] && $transport['total']===null,'Guía sin precios es exclusivamente de traslado');
 ensure($transport['cantidades']['KGM']===7 && $transport['cantidades']['LTR']===2,'Guía muestra cantidades por unidad');
+ensure($transport['cantidad_total']===9,'Guía sin precios conserva cantidad total de control');
 
 $db=new TestDatabase();
 try{
