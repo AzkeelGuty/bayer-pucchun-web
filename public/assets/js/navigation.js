@@ -456,7 +456,7 @@
         },delay);
     });
 
-    document.addEventListener('submit', (event) => {
+    document.addEventListener('submit', async (event) => {
         const form = event.target;
         if (!(form instanceof HTMLFormElement)) return;
         if (form.matches('[data-native-navigation],[data-no-soft-nav]')) return;
@@ -489,12 +489,30 @@
             return;
         }
 
-        navigate(action.href, {
-            historyMode:'push',
-            method:'POST',
-            body:data,
-            fallback:true
-        });
+        // Mantener CSRF, permisos y comportamiento original del POST.
+        const submitter=event.submitter;
+        if (form.matches('[data-branding-form]')) {
+            if (submitter instanceof HTMLButtonElement) submitter.disabled=true;
+            try {
+                if (window.BP_Branding?.optimizeUploads) {
+                    await window.BP_Branding.optimizeUploads(data);
+                }
+            } catch (error) {
+                console.warn('Se enviarán los archivos originales.',error);
+            }
+        }
+        try {
+            await navigate(action.href, {
+                historyMode:'push',
+                method:'POST',
+                body:data,
+                fallback:true
+            });
+        } finally {
+            if (submitter instanceof HTMLButtonElement && submitter.isConnected) {
+                submitter.disabled=false;
+            }
+        }
     });
 
     window.addEventListener('popstate', (event) => {
