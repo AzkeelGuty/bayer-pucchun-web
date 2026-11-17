@@ -47,7 +47,7 @@ $check($guideRows[0]['guideNumber']==='INT-GD-000000000010'
     'Identidad y guía deben mostrarse una sola vez');
 $check($details[0]['customerName']==='' && $details[1]['guideNumber']==='',
     'No repetir cliente o número de guía en cada producto');
-$check((int)$totals[0]['quantity']===11 && $totals[0]['unitCode']==='VARIAS',
+$check((int)$totals[0]['quantity']===11 && $totals[0]['unitCode']==='MIXTA',
     'Guía 10: 3 KGM + 3 LTR + 5 NIU deben sumar 11 como indicador numérico');
 $check($totals[0]['destination']==='Desglose: 3 KGM + 3 LTR + 5 NIU',
     'Guía 10: preservar diferencias de unidades en un solo renglón');
