@@ -19,12 +19,16 @@ $code='<?php'."\n"
          'customerName'=>'CLIENTE UNICO EJEMPLO','customerId'=>'45149906',
          'sourceDocumentNumber'=>'INT-FAC-000001','salesName'=>'Luis',
          'branchName'=>'Chincha','materialId'=>'00000007946',
-         'materialName'=>'Producto A','measureUnit'=>'LTR','quantity'=>3,
+         'materialName'=>'Producto A','measureUnit'=>'KGM','quantity'=>3,
          'sunatStatus'=>'NO_EMITIDA'],
         ['documentNumber'=>'INT-GD-000000001','documentDate'=>'2026-11-16',
          'customerName'=>'CLIENTE UNICO EJEMPLO','customerId'=>'45149906',
          'materialId'=>'000000050176','materialName'=>'Producto B',
-         'measureUnit'=>'LTR','quantity'=>4,'sunatStatus'=>'NO_EMITIDA'],
+         'measureUnit'=>'LTR','quantity'=>3,'sunatStatus'=>'NO_EMITIDA'],
+        ['documentNumber'=>'INT-GD-000000001','documentDate'=>'2026-11-16',
+         'customerName'=>'CLIENTE UNICO EJEMPLO','customerId'=>'45149906',
+         'materialId'=>'00000005505','materialName'=>'Producto C',
+         'measureUnit'=>'NIU','quantity'=>5,'sunatStatus'=>'NO_EMITIDA'],
     ],true).';'."\n"
     .'(new \App\Services\SimpleXlsxExporter())->output($rows,"guias.xlsx",'
     .var_export(['type'=>'guides','title'=>'Reporte de guías de remisión',
@@ -61,10 +65,13 @@ try{
             'Cliente duplicado en cada producto de la misma guía.');
         $assert(substr_count($sheet,'INT-GD-000000001')===1,
             'Número único repetido en cada producto de la misma guía.');
-        $assert(str_contains($sheet,'Producto A') && str_contains($sheet,'Producto B'),
-            'Detalle de guía incompleto.');
-        $assert(str_contains($sheet,'TOTAL DE GUÍA') &&
-            str_contains($sheet,'<v>7</v>'),'Subtotal de guía no calculado.');
+        $assert(str_contains($sheet,'Producto A') && str_contains($sheet,'Producto B')
+            && str_contains($sheet,'Producto C'),'Detalle de guía incompleto.');
+        $assert(substr_count($sheet,'TOTAL DE GUÍA')===1 &&
+            str_contains($sheet,'<v>11</v>') &&
+            str_contains($sheet,'VARIAS') &&
+            str_contains($sheet,'Desglose: 3 KGM + 3 LTR + 5 NIU'),
+            'El total de guía debe aparecer una sola vez con 11 y desglose de medidas.');
         $assert(!str_contains($sheet,'ESTADO SUNAT') &&
             !str_contains($sheet,'NO_EMITIDA'),
             'Estado SUNAT todavía visible en Excel.');
@@ -79,10 +86,10 @@ try{
             'Anclajes de logos fuera del ancho de la tabla.');
         $assert(count(array_filter($images,'is_string'))===2,
             'No se insertaron ambos logotipos.');
-        $assert(str_contains($styles,'cellXfs count="14"'),
+        $assert(str_contains($styles,'cellXfs count="15"'),
             'No existen estilos para cabeceras y subtotales.');
     }finally{$zip->close();}
-    echo "GUIAS XLSX REALES OK (grupos, totales, imágenes y cuadro institucional)\n";
+    echo "GUIAS XLSX REALES OK (total único 11, desglose, logos y formato)\n";
 }finally{
     @unlink($runner);@unlink($logo);@unlink($xlsx);
 }
