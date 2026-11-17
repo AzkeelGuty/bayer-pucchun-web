@@ -166,7 +166,7 @@ try{
         str_contains($view,'report-stock-stats') &&
         str_contains($view,'report-stock-source'),
         'Reportes usan el consolidado e indicadores por origen');
-    ensure(str_contains($xlsx,'$baseCol=max(0,$columnCount-2)') &&
+    ensure(str_contains($xlsx,'$baseCol=max(0,$columnCount-count($images))') &&
         str_contains($xlsx,'$maxW=52') &&
         str_contains($xlsx,'$banner1=array_fill(0,$columnCount'),
         'Logos de Excel se anclan al encabezado, no fuera de la tabla');
