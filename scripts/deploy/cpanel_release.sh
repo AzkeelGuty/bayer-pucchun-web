@@ -90,9 +90,10 @@ if command -v rsync >/dev/null 2>&1; then
     rsync -rlt --chmod=D755,F644 "$APP_DIR/public/assets/" "$PUBLIC_DIR/assets/"
 else
     (cd "$APP_DIR/public/assets" && tar -cf - .) | (cd "$PUBLIC_DIR/assets" && tar -xf -)
-    find "$PUBLIC_DIR/assets" -type d -exec chmod 0755 {} +
-    find "$PUBLIC_DIR/assets" -type f -exec chmod 0644 {} +
 fi
+# Algunos rsync no aplican --chmod sin --perms. Fijar permisos explícitamente.
+find "$PUBLIC_DIR/assets" -type d -exec chmod 0755 {} +
+find "$PUBLIC_DIR/assets" -type f -exec chmod 0644 {} +
 
 # Sustitución atómica del front controller; no modificar .user.ini, php.ini ni uploads/.
 new_index="$(mktemp "$PUBLIC_DIR/.index.php.deploy.XXXXXXXX")"
