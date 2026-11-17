@@ -34,14 +34,16 @@ final class BayerDataService
         $st=\db()->prepare($sql);$st->execute($p);return $this->normalizeQuantities($st->fetchAll());
     }
 
-    public function shipments(array $filters=[],?int $limit=1000,int $offset=0): array
+    public function shipments(array $filters=[],?int $limit=1000,int $offset=0,bool $includeCommercial=false): array
     {
         $p=[];$w=$this->dateFilter($filters,$p,'gc','fecha');
         $branch=trim((string)($filters['branch']??''));
         if($branch!==''){$w[]='s.codigo=?';$p[]=$branch;}
         $q=trim((string)($filters['q']??''));
         if($q!==''){$w[]='(gc.numero LIKE ? OR c.razon_social LIKE ? OR pr.nombre LIKE ? OR pr.codigo LIKE ?)';$like=$q.'%';array_push($p,$like,$like,$like,$like);}
-        $sql="SELECT e.ruc dealerId,e.razon_social dealerName,gc.numero documentNumber,gc.estado_sunat sunatStatus,gc.documento_origen_id sourceDocumentId,od.numero sourceDocumentNumber,DATE_FORMAT(gc.fecha,'%Y-%m-%d') documentDate,v.codigo salesId,TRIM(CONCAT(v.nombres,' ',COALESCE(v.apellidos,''))) salesName,s.codigo branchId,s.nombre branchName,c.tipo_doc customerDocumentType,c.nro_doc customerId,c.razon_social customerName,pr.codigo materialId,pr.nombre materialName,um.codigo measureUnit,gd.cantidad quantity,pv.nombre province,dp.nombre department,ds.nombre district FROM guias_cabecera gc LEFT JOIN documentos_cabecera od ON od.id=gc.documento_origen_id JOIN clientes c ON c.id=gc.cliente_id JOIN vendedores v ON v.id=gc.vendedor_id JOIN sucursales s ON s.id=gc.sucursal_id JOIN empresas e ON e.id=s.empresa_id JOIN guias_detalle gd ON gd.guia_id=gc.id JOIN productos pr ON pr.id=gd.producto_id JOIN unidades_medida um ON um.id=gd.unidad_id LEFT JOIN distritos ds ON ds.id=gc.distrito_id LEFT JOIN provincias pv ON pv.id=gc.provincia_id LEFT JOIN departamentos dp ON dp.id=gc.departamento_id WHERE ".implode(' AND ',$w)." ORDER BY gc.fecha DESC,gc.id DESC".$this->limitClause($limit,$offset);
+        // Campos comerciales solo para XLSX: API y otras salidas mantienen su contrato.
+        $commercialColumns=$includeCommercial ? ',gc.precio_igv_modalidad guideTaxMode,gd.valor_unitario unitValue' : '';
+        $sql="SELECT e.ruc dealerId,e.razon_social dealerName,gc.numero documentNumber,gc.estado_sunat sunatStatus,gc.documento_origen_id sourceDocumentId,od.numero sourceDocumentNumber,DATE_FORMAT(gc.fecha,'%Y-%m-%d') documentDate,v.codigo salesId,TRIM(CONCAT(v.nombres,' ',COALESCE(v.apellidos,''))) salesName,s.codigo branchId,s.nombre branchName,c.tipo_doc customerDocumentType,c.nro_doc customerId,c.razon_social customerName,pr.codigo materialId,pr.nombre materialName,um.codigo measureUnit,gd.cantidad quantity{$commercialColumns},pv.nombre province,dp.nombre department,ds.nombre district FROM guias_cabecera gc LEFT JOIN documentos_cabecera od ON od.id=gc.documento_origen_id JOIN clientes c ON c.id=gc.cliente_id JOIN vendedores v ON v.id=gc.vendedor_id JOIN sucursales s ON s.id=gc.sucursal_id JOIN empresas e ON e.id=s.empresa_id JOIN guias_detalle gd ON gd.guia_id=gc.id JOIN productos pr ON pr.id=gd.producto_id JOIN unidades_medida um ON um.id=gd.unidad_id LEFT JOIN distritos ds ON ds.id=gc.distrito_id LEFT JOIN provincias pv ON pv.id=gc.provincia_id LEFT JOIN departamentos dp ON dp.id=gc.departamento_id WHERE ".implode(' AND ',$w)." ORDER BY gc.fecha DESC,gc.id DESC".$this->limitClause($limit,$offset);
         $st=\db()->prepare($sql);$st->execute($p);return $this->normalizeQuantities($st->fetchAll());
     }
 
@@ -78,8 +80,10 @@ final class BayerDataService
     }
 
     /** API integration path: return every matching published row, without the portal's display cap. */
-    public function completeDataset(string $type,array $filters=[]): array
+    public function completeDataset(string $type,array $filters=[],bool $guideExcelPrices=false): array
     {
+        if($guideExcelPrices && in_array($type,['guides','shipments'],true))
+            return $this->shipments($filters,null,0,true);
         return $this->dataset($type,$filters,null,0);
     }
 

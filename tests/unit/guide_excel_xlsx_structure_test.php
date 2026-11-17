@@ -12,6 +12,7 @@ file_put_contents($logo,$png);
 $code='<?php'."\n"
     .'require '.var_export($root.'/app/Helpers/functions.php',true).';'."\n"
     .'require '.var_export($root.'/app/Services/ExportPresentation.php',true).';'."\n"
+    .'require '.var_export($root.'/app/Services/CommercialTotalsService.php',true).';'."\n"
     .'require '.var_export($root.'/app/Services/GuideExcelLayout.php',true).';'."\n"
     .'require '.var_export($root.'/app/Services/SimpleXlsxExporter.php',true).';'."\n"
     .'$rows='.var_export([
@@ -20,15 +21,16 @@ $code='<?php'."\n"
          'sourceDocumentNumber'=>'INT-FAC-000001','salesName'=>'Luis',
          'branchName'=>'Chincha','materialId'=>'00000007946',
          'materialName'=>'Producto A','measureUnit'=>'KGM','quantity'=>3,
+         'unitValue'=>'10.00','guideTaxMode'=>'ADICIONAL',
          'sunatStatus'=>'NO_EMITIDA'],
         ['documentNumber'=>'INT-GD-000000001','documentDate'=>'2026-11-16',
          'customerName'=>'CLIENTE UNICO EJEMPLO','customerId'=>'45149906',
          'materialId'=>'000000050176','materialName'=>'Producto B',
-         'measureUnit'=>'LTR','quantity'=>3,'sunatStatus'=>'NO_EMITIDA'],
+         'measureUnit'=>'LTR','quantity'=>3,'unitValue'=>'20.00','sunatStatus'=>'NO_EMITIDA'],
         ['documentNumber'=>'INT-GD-000000001','documentDate'=>'2026-11-16',
          'customerName'=>'CLIENTE UNICO EJEMPLO','customerId'=>'45149906',
          'materialId'=>'00000005505','materialName'=>'Producto C',
-         'measureUnit'=>'NIU','quantity'=>5,'sunatStatus'=>'NO_EMITIDA'],
+         'measureUnit'=>'NIU','quantity'=>5,'unitValue'=>'30.00','sunatStatus'=>'NO_EMITIDA'],
     ],true).';'."\n"
     .'(new \App\Services\SimpleXlsxExporter())->output($rows,"guias.xlsx",'
     .var_export(['type'=>'guides','title'=>'Reporte de guías de remisión',
@@ -70,26 +72,35 @@ try{
         $assert(substr_count($sheet,'TOTAL DE GUÍA')===1 &&
             str_contains($sheet,'<v>11</v>') &&
             str_contains($sheet,'MIXTA') &&
-            str_contains($sheet,'Desglose: 3 KGM + 3 LTR + 5 NIU'),
-            'El total de guía debe aparecer una sola vez con 11 y desglose de medidas.');
+            !str_contains($sheet,'Desglose:'),
+            'Una fila de total con 11 y sin desglose en la columna destino.');
+        $assert(str_contains($sheet,'VALOR UNITARIO (S/)') &&
+            str_contains($sheet,'IMPORTE (S/)') &&
+            str_contains($sheet,'IGV (S/)') &&
+            str_contains($sheet,'TOTAL (S/)'),
+            'Columnas monetarias ausentes.');
+        $assert(str_contains($sheet,'<c r="M14" s="15"><v>240</v></c>') &&
+            str_contains($sheet,'<c r="N14" s="15"><v>43.2</v></c>') &&
+            str_contains($sheet,'<c r="O14" s="15"><v>283.2</v></c>'),
+            'Total comercial esperado: S/ 283.20, de los que S/ 43.20 son IGV.');
         $assert(!str_contains($sheet,'ESTADO SUNAT') &&
             !str_contains($sheet,'NO_EMITIDA'),
             'Estado SUNAT todavía visible en Excel.');
-        // Dos últimas columnas K,L (índices 10 y 11) dentro del encabezado.
-        $assert(str_contains($sheet,'<c r="K1" s="1"') &&
-            str_contains($sheet,'<c r="L1" s="1"') &&
-            str_contains($sheet,'<c r="K2" s="2"') &&
-            str_contains($sheet,'<c r="L2" s="2"'),
+        // Los logos se anclan a O,P, las dos últimas columnas del reporte.
+        $assert(str_contains($sheet,'<c r="O1" s="1"') &&
+            str_contains($sheet,'<c r="P1" s="1"') &&
+            str_contains($sheet,'<c r="O2" s="2"') &&
+            str_contains($sheet,'<c r="P2" s="2"'),
             'Las celdas de logo quedan fuera de la franja azul.');
         preg_match_all('~<xdr:from><xdr:col>(\d+)</xdr:col>~',$drawing,$match);
-        $assert(($match[1]??[])===['10','11'],
+        $assert(($match[1]??[])===['14','15'],
             'Anclajes de logos fuera del ancho de la tabla.');
         $assert(count(array_filter($images,'is_string'))===2,
             'No se insertaron ambos logotipos.');
-        $assert(str_contains($styles,'cellXfs count="15"'),
+        $assert(str_contains($styles,'cellXfs count="16"'),
             'No existen estilos para cabeceras y subtotales.');
     }finally{$zip->close();}
-    echo "GUIAS XLSX REALES OK (total único 11, desglose, logos y formato)\n";
+    echo "GUIAS XLSX REALES OK (total único 11, montos e IGV, logos y formato)\n";
 }finally{
     @unlink($runner);@unlink($logo);@unlink($xlsx);
 }

@@ -51,7 +51,7 @@ final class ExportController
         $started=microtime(true);
         $rows=$type==='stock' && !\has_role('BAYER')
             ? (new UnifiedStockService())->reportRows($filters)
-            : (new BayerDataService())->completeDataset($type,$filters);
+            : (new BayerDataService())->completeDataset($type,$filters,$format==='xlsx' && $type==='guides');
         $generatedAt=date('Y-m-d H:i:s');
         $meta=ExportPresentation::metadata($type,$filters,$rows,(array)\auth_user(),$generatedAt);
 
