@@ -1,6 +1,7 @@
 <?php
 require_once base_path('app/Views/components/workflow_control.php');
 require_once base_path('app/Views/components/bulk_workflow.php');
+$fiscalNumbers=(new \App\Services\BayerFiscalReferenceService(db()))->displayNumbers('guias',array_column($rows,'id'));
 $guidePageUrl=static function(int $n) use($filters): string {
     $params=$filters;
     if($n>1) $params['page']=$n;
@@ -60,11 +61,11 @@ $lastGuide=$total>0 ? min($total,$page*$perPage) : 0;
     <p class="text-muted small"><?=e($total)?> guías encontradas<?= $total>0 ? ' · Mostrando '.e($firstGuide).'–'.e($lastGuide) : '' ?> · Página <?=e($page)?> de <?=e($pages)?></p>
     <div class="table-responsive">
         <table class="table app-table align-middle">
-            <thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Sucursal</th><th>Ítems</th><th title="Suma numérica de cantidades registradas; las unidades se detallan por separado">Cantidad acumulada</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Número fiscal</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Sucursal</th><th>Ítems</th><th title="Suma numérica de cantidades registradas; las unidades se detallan por separado">Cantidad acumulada</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>
             <?php foreach ($rows as $r): ?>
                 <tr>
-                    <td><strong><?= e($r['numero']) ?></strong></td>
+                    <td><strong><?=e(\App\Services\BayerFiscalReferenceService::displayLabel($fiscalNumbers[$r['id']]??null,(int)$r['id']))?></strong></td>
                     <td><?= e($r['fecha']) ?></td>
                     <td><?= e($r['cliente']) ?></td>
                     <td><?= e($r['vendedor']) ?></td>

@@ -1,6 +1,7 @@
 <?php
 require_once base_path('app/Views/components/workflow_control.php');
 require_once base_path('app/Views/components/bulk_workflow.php');
+$fiscalNumbers=(new \App\Services\BayerFiscalReferenceService(db()))->displayNumbers('documentos',array_column($rows,'id'));
 $link=function(int $n)use($q,$state,$docState):string{
     return url('/documentos?'.http_build_query(['q'=>$q,'state'=>$state,'doc_state'=>$docState,'page'=>$n]));
 };
@@ -56,12 +57,12 @@ $link=function(int $n)use($q,$state,$docState):string{
         <div class="table-responsive">
             <table class="table app-table align-middle">
                 <thead>
-                    <tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>Sucursal</th><th>Cantidad</th><th>Comprobante</th><th>Estado del flujo</th><th>Acciones</th></tr>
+                    <tr><th>Número fiscal</th><th>Fecha</th><th>Cliente</th><th>Sucursal</th><th>Cantidad</th><th>Comprobante</th><th>Estado del flujo</th><th>Acciones</th></tr>
                 </thead>
                 <tbody>
                 <?php foreach($rows as $r): ?>
                     <tr>
-                        <td><strong><?=e($r['numero'])?></strong></td>
+                        <td><strong><?=e(\App\Services\BayerFiscalReferenceService::displayLabel($fiscalNumbers[$r['id']]??null,(int)$r['id']))?></strong></td>
                         <td><?=e($r['fecha'])?></td>
                         <td><?=e($r['cliente'])?></td>
                         <td><?=e($r['sucursal'])?></td>

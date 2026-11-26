@@ -84,10 +84,15 @@ final class DocumentScreenService
         if(!in_array($docState,['VIGENTE','ANULADO'],true)) $docState='';
         $where=['1=1']; $params=[];
         if(\has_role('DIGITADOR') && !\has_role('ADMIN','SUPERVISOR','GERENCIA')) { $where[]='h.created_by=?'; $params[]=(int)\auth_user()['id']; }
-        if($q!=='') { $where[]='(h.numero LIKE ? OR c.razon_social LIKE ? OR v.nombres LIKE ? OR s.nombre LIKE ?)'; for($i=0;$i<4;$i++) $params[]='%'.$q.'%'; }
+        $fiscalJoin='';$fiscalSearch='';
+        if($q!=='' && (new BayerFiscalReferenceService(\db()))->available()){
+            $fiscalJoin=" LEFT JOIN empresas fe ON fe.id=s.empresa_id LEFT JOIN bayer_referencias_fiscales fr ON fr.documento_id=h.id AND fr.ruc_emisor=fe.ruc LEFT JOIN sunat_emisiones fem ON fem.documento_id=h.id AND fem.ambiente='PRODUCCION' AND fem.ruc_emisor=fe.ruc";
+            $fiscalSearch=" OR fr.numero_fiscal LIKE ? OR (fem.estado IN ('ACEPTADO','ACEPTADO_OBSERVADO') AND CONCAT(fem.serie,'-',LPAD(fem.correlativo,8,'0')) LIKE ?)";
+        }
+        if($q!=='') { $where[]='(h.numero LIKE ? OR c.razon_social LIKE ? OR v.nombres LIKE ? OR s.nombre LIKE ?'.$fiscalSearch.')'; for($i=0;$i<($fiscalSearch!==''?6:4);$i++) $params[]='%'.$q.'%'; }
         if($state!=='') { $where[]='h.estado_registro=?'; $params[]=$state; }
         if($docState!=='') { $where[]='h.estado_comprobante=?'; $params[]=$docState; }
-        $joins=' FROM documentos_cabecera h JOIN clientes c ON c.id=h.cliente_id JOIN vendedores v ON v.id=h.vendedor_id JOIN sucursales s ON s.id=h.sucursal_id WHERE '.implode(' AND ',$where);
+        $joins=' FROM documentos_cabecera h JOIN clientes c ON c.id=h.cliente_id JOIN vendedores v ON v.id=h.vendedor_id JOIN sucursales s ON s.id=h.sucursal_id'.$fiscalJoin.' WHERE '.implode(' AND ',$where);
         $st=\db()->prepare('SELECT COUNT(*)'.$joins); $st->execute($params); $total=(int)$st->fetchColumn();
         $perPage=15;
         $pages=max(1,(int)ceil($total/$perPage));
