@@ -51,10 +51,18 @@ foreach([$docController,$guideController,$docForm,$guideForm,$docJs,$formsJs] as
     // La numeración ahora se asigna desde el servidor al guardar.
 
 }
-req(str_contains($docForm,'data-internal-number') && str_contains($docForm,'readonly'),
-    'Documento debe mostrar la referencia automática de solo lectura.');
-req(str_contains($guideForm,'Número interno (automático)') && str_contains($guideForm,'readonly'),
-    'Guía debe mostrar la referencia automática de solo lectura.');
+$fiscalCapture=$read('app/Views/components/fiscal_number_capture.php');
+$softInit=$read('public/assets/js/soft-page-init.js');
+$css=$read('public/assets/css/app.css');
+req(str_contains($docForm,'components/fiscal_number_capture.php') && str_contains($guideForm,'components/fiscal_number_capture.php'),
+    'Documentos y guías deben reutilizar el campo de numeración automática.');
+req(str_contains($fiscalCapture,'readonly data-internal-number') && str_contains($fiscalCapture,'->preview(') && !str_contains($fiscalCapture,'name="numero_fiscal"'),
+    'Mostrar vista previa de solo lectura y sin numeración manual.');
+req(str_contains($css,'input[data-internal-number]') && str_contains($css,'background:#f1f7fc!important;color:#104572!important'),
+    'Conservar los colores originales del número automático.');
+req(str_contains($softInit,'data-fiscal-preview-url') && str_contains($softInit,"type?.addEventListener('change',refresh)") && str_contains($softInit,"branch?.addEventListener('change',refresh)"),
+    'Actualizar vista previa al cambiar tipo de documento o sucursal.');
+req(str_contains($routes,'/guias/siguiente-numero'),'Guía debe actualizar la vista previa de su correlativo.');
 req(str_contains($docController,'createAutoNumbered(') && str_contains($guideController,'createAutoNumbered('),
     'La captura debe reservar el correlativo real al guardar.');
 req(str_contains($routes,'/documentos/siguiente-numero'),
