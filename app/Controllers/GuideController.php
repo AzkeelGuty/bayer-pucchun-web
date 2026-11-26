@@ -119,7 +119,7 @@ final class GuideController
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
         \view('guias.form',$this->viewData(null)+[
             'defaultDate'=>date('Y-m-d'),
-            'numberPreview'=>(new InternalNumberingService(\db()))->previewGuide(),
+            // No se presenta ni reserva un correlativo interno durante la captura.
         ]);
     }
 
@@ -252,6 +252,10 @@ final class GuideController
         ];
         $header=$this->applyClientDefaults($header);
         $errors=[];
+        $rawFiscal=\input('numero_fiscal','');
+        $fiscal=is_string($rawFiscal)?trim($rawFiscal):'';
+        $confirmed=\input('confirmado_fiscal')==='1';
+        if($fiscal!==''&&($editing||!\has_role('ADMIN')||!$confirmed))$errors['numero_fiscal']='Solo el administrador puede registrar una GRE real confirmada al crear.';
         foreach($editing?['numero','fecha']:['fecha'] as $k) if(trim((string)$header[$k])==='') $errors[$k]='Campo obligatorio';
         foreach(['cliente_id','vendedor_id','sucursal_id'] as $k) if((int)$header[$k]<1) $errors[$k]='Seleccione una opción válida';
         $geo=[$header['departamento_id'],$header['provincia_id'],$header['distrito_id']];
@@ -302,11 +306,15 @@ final class GuideController
                 $this->repository->updateDraft($id,(int)\input('version',0),$header,$lines,(int)\auth_user()['id']);
                 \audit('guias','editar',$id); \flash('success','Guía actualizada correctamente.');
             }else{
-                $id=$this->repository->createAutoNumbered($header,$lines,(int)\auth_user()['id']);
+                $id=$fiscal!==''?$this->repository->createWithFiscalReference($header,$lines,(int)\auth_user()['id'],$fiscal,$confirmed):$this->repository->createAutoNumbered($header,$lines,(int)\auth_user()['id']);
                 \audit('guias','crear',$id); \flash('success','Guía registrada en borrador.');
             }
         }catch(\Throwable $e){
             \log_event('guide_save_error',['type'=>get_class($e)]);
+            if($e instanceof HttpException){
+                $_SESSION['_old']=$_POST; $_SESSION['_errors']=['numero_fiscal'=>$e->getMessage()];
+                \redirect($editing?'/guias/editar?id='.(int)\input('id',0):'/guias/nuevo');
+            }
             throw new HttpException(422,'No se pudo guardar la guía. Revise los datos.');
         }
         \redirect('/guias/ver?id='.$id);

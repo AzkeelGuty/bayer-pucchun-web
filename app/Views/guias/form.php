@@ -5,7 +5,6 @@ $correcting = $editing && (($record['header']['estado_registro'] ?? '') === 'OBS
 // Al corregir un error, conservar cantidades y precios recién escritos.
 $postedRows=is_array($_SESSION['_old']['detalle']??null)?array_values($_SESSION['_old']['detalle']):null;
 $detailRows=$postedRows?:($editing ? $record['details'] : [['producto_id' => '', 'unidad_id' => '', 'cantidad' => '1']]);
-$numberValue = $editing ? (string)old('numero') : (string)($numberPreview ?? '');
 $dateValue = (string)old('fecha');
 if (!$editing && $dateValue === '') $dateValue = (string)($defaultDate ?? date('Y-m-d'));
 $lookupClientes=e(url('/lookups?type=clientes'));
@@ -35,10 +34,13 @@ $lookupProductos=e(url('/lookups?type=productos'));
         <h2 class="h5 mb-3">Datos generales</h2>
         <div class="row g-3">
             <div class="col-md-4">
-                <label class="form-label" for="guide-number">Número interno (automático)</label>
-                <input class="form-control <?=form_error('numero')?'is-invalid':''?>" id="guide-number" name="numero" maxlength="25" value="<?=e($numberValue)?>" readonly required>
-                <div class="invalid-feedback"><?=e(form_error('numero'))?></div>
-                <div class="form-text"><i class="bi bi-shield-check me-1"></i>Número interno asignado automáticamente al guardar.</div>
+                <?php
+                $fiscalScope='guias';$fiscalId=$editing?(int)$record['header']['id']:0;
+                $fiscalCapture=(string)old('numero_fiscal');
+                $fiscalConfirmed=old('confirmado_fiscal')==='1';
+                $fiscalError=form_error('numero_fiscal');
+                require base_path('app/Views/components/fiscal_number_capture.php');
+                ?>
             </div>
             <div class="col-md-4">
                 <label class="form-label" for="guide-date">Fecha</label>

@@ -1,5 +1,5 @@
 <?php
-if(has_role('ADMIN') && ($fiscalHeader['estado_registro']??'')==='PUBLICADO'):
+if(has_role('ADMIN') && in_array($fiscalHeader['estado_registro']??'',['BORRADOR','OBSERVADO','PUBLICADO'],true)):
     $fiscalService=new \App\Services\BayerFiscalReferenceService(db());
     if($fiscalService->available()):
         $fiscalRef=$fiscalService->find($fiscalScope,(int)$fiscalHeader['id']);

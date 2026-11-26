@@ -40,7 +40,7 @@ final class DocumentController
             'precio_igv_modalidad'=>null];
         if(is_array($defaultType)){
             $header['tipo_documento_id']=$defaultType['id']??'';
-            $header['numero']=(new InternalNumberingService(\db()))->previewDocument((int)$header['tipo_documento_id']);
+            // El correlativo interno se asigna al guardar, no se muestra al usuario.
         }
 
         $this->form($header,[],false,[],$catalogs);
@@ -126,7 +126,7 @@ final class DocumentController
             : 'VIGENTE';
         $details=is_array($_POST['details']??null)?array_values($_POST['details']):[];
         $id=(int)\input('id',0); $version=(int)\input('version',0);
-        if($editing) { $r=$this->record($id); if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); }
+        if($editing) { $r=$this->record($id); if(!in_array((string)$r['header']['estado_registro'],['BORRADOR','OBSERVADO'],true)||(int)$r['header']['version']!==$version) throw new HttpException(409,'El documento cambió. Abre de nuevo su detalle antes de editar.'); $header['numero']=(string)$r['header']['numero']; }
         // Conservar referencia de pago histórica al editar, aunque esté oculta.
         if($editing && !array_key_exists('referencia_pago',$header)) $header['referencia_pago']=$r['header']['referencia_pago']??null;
         $screen=new DocumentScreenService();
@@ -148,7 +148,14 @@ final class DocumentController
                 catch(HttpException $ignored) { /* El validador mostrará el tipo de documento inválido. */ }
             }
         }
+        $rawFiscal=\input('numero_fiscal','');
+        $fiscal=is_string($rawFiscal)?trim($rawFiscal):'';
+        $confirmed=\input('confirmado_fiscal')==='1';
+        $header['numero_fiscal_captura']=$fiscal;
+        $header['confirmado_fiscal_captura']=$confirmed;
         $errors=$screen->validate($header,$details,$catalogs);
+        if($fiscal!==''&&($editing||!\has_role('ADMIN')||!$confirmed))
+            $errors['numero_fiscal']='Solo el administrador puede registrar un comprobante real confirmado al crear.';
         if(!$errors && $editing) {
             $duplicate=$this->repository->findByNumber((int)$header['tipo_documento_id'],trim((string)$header['numero']));
             if($duplicate && (int)$duplicate['header']['id']!==$id)
@@ -159,10 +166,11 @@ final class DocumentController
         $lines=[]; foreach($details as $line) $lines[]=array_intersect_key($line+['valor_unitario'=>'0'],array_flip(['producto_id','unidad_id','cantidad','valor_unitario']));
         try {
             if($editing) $this->repository->updateDraft($id,$version,$header,$lines,(int)\auth_user()['id']);
+            elseif($fiscal!=='') $id=$this->repository->createWithFiscalReference($header,$lines,(int)\auth_user()['id'],$fiscal,$confirmed);
             else $id=$this->repository->createAutoNumbered($header,$lines,(int)\auth_user()['id']);
         } catch(\Throwable $error) {
             \log_event('document_screen_save_error',['type'=>get_class($error)]);
-            http_response_code(409); $this->form(array_merge($header,['id'=>$id,'version'=>$version]),$details,$editing,['save'=>'No se pudo guardar. Revisa duplicados o cambios simultáneos y vuelve a intentarlo.']); return;
+            http_response_code(409); $this->form(array_merge($header,['id'=>$id,'version'=>$version,'numero_fiscal_captura'=>$fiscal,'confirmado_fiscal_captura'=>$confirmed]),$details,$editing,['save'=>$error instanceof HttpException?$error->getMessage():'No se pudo guardar. Revisa duplicados o cambios simultáneos y vuelve a intentarlo.']); return;
         }
         \audit('documentos',$editing?'editar':'crear',$id); \flash('success','Documento guardado en borrador.'); \redirect('/documentos/ver?id='.$id);
     }
