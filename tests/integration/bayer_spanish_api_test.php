@@ -8,7 +8,7 @@ use App\Exceptions\HttpException;
 
 $db=new TestDatabase();
 try{
-    foreach(['database/schemas/002_schema_v2.sql','database/migrations/009_guias_desde_documentos_y_pagos.sql','database/migrations/012_sunat_emision_cpe.sql','database/migrations/019_integracion_bayer_espanol.sql','database/migrations/019_integracion_bayer_espanol.sql'] as $file)$db->load($file);
+    foreach(['database/schemas/002_schema_v2.sql','database/migrations/009_guias_desde_documentos_y_pagos.sql','database/migrations/010_numeracion_interna_automatica.sql','database/migrations/012_sunat_emision_cpe.sql','database/migrations/013_calculos_totales_documentos_guias.sql','database/migrations/019_integracion_bayer_espanol.sql','database/migrations/019_integracion_bayer_espanol.sql'] as $file)$db->load($file);
     $pdo=$db->pdo;fixtures($pdo);
     $pdo->exec("UPDATE empresas SET ruc='20123456789',razon_social='Distribuidor de prueba' WHERE id=1");
     $pdo->exec("UPDATE clientes SET tipo_doc='01',departamento_id=2,provincia_id=2,distrito_id=2 WHERE id=1");
@@ -57,5 +57,23 @@ try{
     ensure(!isset($stock[0]['codigo_sucursal'])&&str_contains($stock[0]['nombre_almacen'],'D2-P2-X2')&&$stock[0]['lote']===null,'Almacén geográfico y lote opcional');
     ensure($api->rows('facturas',['from'=>'2026-11-13'])===[],'Filtro por fecha');
     ensure($pdo->query('SELECT numero FROM documentos_cabecera WHERE id=1')->fetchColumn()==='INT-FAC-00000001','No renumerar la base');
+    $docs=new \App\Repositories\DocumentRepository($pdo);
+    $draftHeader=['tipo_documento_id'=>1,'numero'=>'','fecha'=>'2026-11-26','cliente_id'=>1,'vendedor_id'=>1,'sucursal_id'=>1,'estado_comprobante'=>'VIGENTE','medio_pago'=>'EFECTIVO','precio_igv_modalidad'=>'ADICIONAL'];
+    $draftLines=[['producto_id'=>1,'unidad_id'=>1,'cantidad'=>1,'valor_unitario'=>10]];
+    $draftId=$docs->createWithFiscalReference($draftHeader,$draftLines,1,'F001-999',true);
+    ensure($refs->displayNumbers('documentos',[$draftId])[$draftId]==='F001-00000999','Número fiscal desde captura');
+    ensure(count($api->rows('facturas'))===2,'Un borrador con referencia real no se publica automáticamente');
+    $before=(int)$pdo->query('SELECT COUNT(*) FROM documentos_cabecera')->fetchColumn();
+    rejects(fn()=>$docs->createWithFiscalReference($draftHeader,$draftLines,1,'F001-999',true),HttpException::class);
+    ensure((int)$pdo->query('SELECT COUNT(*) FROM documentos_cabecera')->fetchColumn()===$before,'Referencia duplicada revierte la creación completa');
+    $guideRepo=new \App\Repositories\GuideRepository($pdo);
+    $guideHeader=['numero'=>'','fecha'=>'2026-11-26','cliente_id'=>1,'vendedor_id'=>1,'sucursal_id'=>1,'departamento_id'=>null,'provincia_id'=>null,'distrito_id'=>null,'precio_igv_modalidad'=>null];
+    $guideId=$guideRepo->createWithFiscalReference($guideHeader,[['producto_id'=>1,'unidad_id'=>1,'cantidad'=>1,'valor_unitario'=>null]],1,'T001-999',true);
+    ensure($refs->displayNumbers('guias',[$guideId])[$guideId]==='T001-00000999','Número fiscal desde nueva guía');
+    ensure(count($api->rows('guias'))===1,'Guía en borrador no se publica automáticamente');
+    ensure($refs->displayNumbers('documentos',[1,2,3])[1]==='F001-00000101','Mostrar número de producción');
+    ensure($refs->displayNumbers('documentos',[3])[3]===null,'No mostrar el correlativo beta');
+    ensure($refs->displayNumbers('guias',[1])[1]==='T001-00000205','Mostrar número fiscal de guía');
+    ensure(!str_contains(BayerFiscalReferenceService::displayLabel(null,3),'INT-'),'No mostrar identificador interno como comprobante');
     echo "BAYER API ESPAÑOL OK\n";
 }finally{$db->close();}
