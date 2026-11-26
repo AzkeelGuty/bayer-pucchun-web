@@ -102,6 +102,10 @@ final class ApiController
                     'expiresInSeconds'=>(int)\config('app.api_token_ttl',28800),
                 ],
                 'endpoints'=>[
+                    '/api/v2/bayer/todo',
+                    '/api/v2/bayer/facturas',
+                    '/api/v2/bayer/guias',
+                    '/api/v2/bayer/stock',
                     '/api/v1/bayer/all',
                     '/api/v1/bayer/sales',
                     '/api/v1/bayer/shipments',
@@ -307,6 +311,41 @@ final class ApiController
         }
     }
 
+    public function facturasEs(): void {$this->serveSpanish('facturas');}
+    public function guiasEs(): void {$this->serveSpanish('guias');}
+    public function stockEs(): void {$this->serveSpanish('stock');}
+    public function todoEs(): void {$this->serveSpanish('todo');}
+
+    private function serveSpanish(string $dataset): void
+    {
+        $this->guard();
+        try{
+            foreach(['desde'=>'from','hasta'=>'to','sucursal'=>'branch','busqueda'=>'q','estado_documento'=>'document_status'] as $es=>$en){
+                if(isset($_GET[$es])&&!isset($_GET[$en]))$_GET[$en]=$_GET[$es];
+            }
+            if(($_GET['document_status']??null)==='1')$_GET['document_status']='VIGENTE';
+            if(($_GET['document_status']??null)==='0')$_GET['document_status']='ANULADO';
+            $filters=$this->filters();
+            $service=new \App\Services\BayerSpanishService(\db());
+            $sets=$dataset==='todo'?['facturas','guias','stock']:[$dataset];
+            $data=[];$counts=[];
+            foreach($sets as $name){$data[$name]=$service->rows($name,$filters);$counts[$name]=count($data[$name]);}
+            $this->recordAccess('api_bayer_v2_'.$dataset);
+            $this->respond([
+                'metadatos'=>['version_api'=>'v2','id_solicitud'=>$this->requestId,
+                    'fecha_generacion'=>date(DATE_ATOM),'conjunto'=>$dataset,
+                    'total_registros'=>array_sum($counts),'registros_por_conjunto'=>$counts,
+                    'criterio_documentos'=>'PUBLICADOS_CON_NUMERO_FISCAL_REAL'],
+                'datos'=>$dataset==='todo'?$data:$data[$dataset],
+            ]);
+        }catch(\InvalidArgumentException $e){$this->error('INVALID_FILTER',$e->getMessage(),422);}
+        catch(HttpException $e){$this->error('INTEGRATION_ERROR',$e->getMessage(),$e->status);}
+        catch(Throwable $e){
+            \log_event('api_bayer_v2_error',['type'=>get_class($e)]);
+            $this->error('INTERNAL_ERROR','No se pudo completar la consulta.',500);
+        }
+    }
+
     private function credentials(): array
     {
         $contentType=strtolower((string)($_SERVER['CONTENT_TYPE']??''));
@@ -464,7 +503,7 @@ final class ApiController
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store, private');
         header('X-Content-Type-Options: nosniff');
-        header('X-API-Version: '.self::VERSION);
+        header('X-API-Version: '.(isset($payload['metadatos']['version_api'])?'v2':self::VERSION));
         header('X-Request-ID: '.$this->requestId);
         echo json_encode(
             $payload,

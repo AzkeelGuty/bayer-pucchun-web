@@ -118,6 +118,11 @@ $router->get('/bayer/descargas',[BayerController::class,'downloads'],$published)
 $router->get('/export',[ExportController::class,'export'],$published);
 $router->postApi('/api/v1/auth/login',[ApiController::class,'login']);
 $router->postApi('/api/v1/auth/logout',[ApiController::class,'logout']);
+$router->get('/api/v2/bayer/todo',[ApiController::class,'todoEs']);
+$router->get('/api/v2/bayer/facturas',[ApiController::class,'facturasEs']);
+$router->get('/api/v2/bayer/guias',[ApiController::class,'guiasEs']);
+$router->get('/api/v2/bayer/stock',[ApiController::class,'stockEs']);
+$router->post('/sunat/referencia-bayer',[\App\Controllers\BayerFiscalReferenceController::class,'save'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/api/v1/bayer',[ApiController::class,'info']);
 $router->get('/api/v1/bayer/all',[ApiController::class,'all']);
 $router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
