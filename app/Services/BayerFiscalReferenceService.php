@@ -40,19 +40,54 @@ final class BayerFiscalReferenceService
         $st=$this->pdo->prepare("SELECT r.*,CONCAT_WS(' / ',dp.nombre,p.nombre,d.nombre) ubicacion FROM bayer_referencias_fiscales r LEFT JOIN distritos d ON d.id=r.distrito_despacho_id LEFT JOIN provincias p ON p.id=d.provincia_id LEFT JOIN departamentos dp ON dp.id=p.departamento_id WHERE r.$key=?");
         $st->execute([$id]);return $st->fetch(PDO::FETCH_ASSOC)?:null;
     }
-    public function save(string $scope,int $id,string $number,?int $district,bool $confirmed,int $actor): void
+    /** Consulta en lote; no devuelve referencias internas como números fiscales. */
+    public function displayNumbers(string $scope,array $ids): array
+    {
+        $ids=array_values(array_unique(array_filter(array_map('intval',$ids),static fn(int $id):bool=>$id>0)));
+        if(!$ids||!$this->available())return [];
+        $doc=$scope==='documentos';
+        if(!$doc&&$scope!=='guias')throw new \InvalidArgumentException('Módulo inválido.');
+        $table=$doc?'documentos_cabecera':'guias_cabecera';
+        $key=$doc?'documento_id':'guia_id';
+        $number=$doc?"CASE WHEN em.estado IN ('ACEPTADO','ACEPTADO_OBSERVADO') THEN CONCAT(em.serie,'-',LPAD(em.correlativo,8,'0')) WHEN em.id IS NULL THEN rf.numero_fiscal ELSE NULL END":'rf.numero_fiscal';
+        $emission=$doc?" LEFT JOIN sunat_emisiones em ON em.documento_id=h.id AND em.ambiente='PRODUCCION' AND em.ruc_emisor=e.ruc":"";
+        $ph=implode(',',array_fill(0,count($ids),'?'));
+        $st=$this->pdo->prepare("SELECT h.id,$number numero_fiscal FROM $table h JOIN sucursales s ON s.id=h.sucursal_id JOIN empresas e ON e.id=s.empresa_id LEFT JOIN bayer_referencias_fiscales rf ON rf.$key=h.id AND rf.ruc_emisor=e.ruc".$emission." WHERE h.id IN ($ph)");
+        $st->execute($ids);return array_column($st->fetchAll(PDO::FETCH_ASSOC),'numero_fiscal','id');
+    }
+
+    public static function displayLabel(?string $number,int $id=0): string
+    {
+        return $number!==null&&$number!==''?$number:('Pendiente de número fiscal'.($id>0?' · #'.$id:''));
+    }
+
+    public function assertIdentity(string $scope,int $id): void
+    {
+        if(!$this->available())return;
+        $doc=$scope==='documentos';
+        if(!$doc&&$scope!=='guias')throw new \InvalidArgumentException('Módulo inválido.');
+        $key=$doc?'documento_id':'guia_id';$table=$doc?'documentos_cabecera':'guias_cabecera';
+        $sql="SELECT rf.ruc_emisor,rf.tipo_cpe,e.ruc,".($doc?'td.codigo tipo':"'09' tipo")." FROM $table h JOIN bayer_referencias_fiscales rf ON rf.$key=h.id AND rf.numero_fiscal IS NOT NULL JOIN sucursales s ON s.id=h.sucursal_id JOIN empresas e ON e.id=s.empresa_id ".($doc?'JOIN tipos_documento td ON td.id=h.tipo_documento_id ':'')."WHERE h.id=?";
+        $st=$this->pdo->prepare($sql);$st->execute([$id]);$row=$st->fetch(PDO::FETCH_ASSOC);
+        if($row&&($row['ruc_emisor']!==$row['ruc']||$row['tipo_cpe']!==self::type((string)$row['tipo'])))
+            throw new HttpException(409,'No se puede cambiar el emisor o tipo de un registro con número fiscal asociado.');
+    }
+
+    public function save(string $scope,int $id,string $number,?int $district,bool $confirmed,int $actor,bool $allowDraft=false): void
     {
         if(!$this->available())throw new HttpException(409,'Ejecute la migración 019.');
         if($id<1||$actor<1)throw new HttpException(422,'Registro inválido.');
         $doc=$scope==='documentos';
         if(!$doc&&$scope!=='guias')throw new HttpException(422,'Módulo inválido.');
         $key=$doc?'documento_id':'guia_id';$table=$doc?'documentos_cabecera':'guias_cabecera';
-        $this->pdo->beginTransaction();
+        $ownsTransaction=!$this->pdo->inTransaction();
+        if($ownsTransaction)$this->pdo->beginTransaction();
         try{
             $sql="SELECT h.id,h.estado_registro,e.ruc,".($doc?'t.codigo tipo':"'09' tipo")." FROM $table h JOIN sucursales s ON s.id=h.sucursal_id JOIN empresas e ON e.id=s.empresa_id ".($doc?'JOIN tipos_documento t ON t.id=h.tipo_documento_id ':'')."WHERE h.id=? FOR UPDATE";
             $st=$this->pdo->prepare($sql);$st->execute([$id]);$record=$st->fetch(PDO::FETCH_ASSOC);
             if(!$record)throw new HttpException(404,'Registro no encontrado.');
-            if($record['estado_registro']!=='PUBLICADO')throw new HttpException(409,'Solo se registran referencias fiscales de documentos publicados.');
+            $states=$allowDraft?['BORRADOR','OBSERVADO','PUBLICADO']:['PUBLICADO'];
+            if(!in_array($record['estado_registro'],$states,true))throw new HttpException(409,'El estado del registro no permite asociar una referencia fiscal.');
             $type=self::type((string)$record['tipo']);$ruc=(string)$record['ruc'];
             if(!preg_match('/^[0-9]{11}$/D',$ruc)||$ruc==='00000000000')throw new HttpException(422,'Configure el RUC real del distribuidor.');
             $st=$this->pdo->prepare("SELECT * FROM bayer_referencias_fiscales WHERE $key=? FOR UPDATE");
@@ -84,9 +119,9 @@ final class BayerFiscalReferenceService
                 $st=$this->pdo->prepare("INSERT INTO bayer_referencias_fiscales($key,ruc_emisor,tipo_cpe,numero_fiscal,distrito_despacho_id,registrado_por) VALUES(?,?,?,?,?,?)");
                 $st->execute([$id,$ruc,$type,$fiscal,$district,$actor]);
             }
-            $this->pdo->commit();
+            if($ownsTransaction)$this->pdo->commit();
         }catch(\Throwable $e){
-            if($this->pdo->inTransaction())$this->pdo->rollBack();
+            if($ownsTransaction&&$this->pdo->inTransaction())$this->pdo->rollBack();
             if($e instanceof PDOException&&(int)($e->errorInfo[1]??0)===1062)throw new HttpException(409,'Número fiscal asociado a otro registro del emisor.');
             throw $e;
         }

@@ -32,6 +32,25 @@ class GuideRepository extends OperationalRepository
         });
     }
 
+    /** Creación y registro fiscal externo en una única transacción. */
+    public function createWithFiscalReference(array $header,array $details,int $actorId,string $number,bool $confirmed): int
+    {
+        return $this->atomic(function () use($header,$details,$actorId,$number,$confirmed): int {
+            $id=$this->createAutoNumbered($header,$details,$actorId);
+            (new \App\Services\BayerFiscalReferenceService($this->pdo))->save('guias',$id,$number,null,$confirmed,$actorId,true);
+            return $id;
+        });
+    }
+
+    public function updateDraft(int $id,int $expectedVersion,array $header,array $details,int $actorId): int
+    {
+        return $this->atomic(function () use($id,$expectedVersion,$header,$details,$actorId): int {
+            $version=parent::updateDraft($id,$expectedVersion,$header,$details,$actorId);
+            (new \App\Services\BayerFiscalReferenceService($this->pdo))->assertIdentity('guias',$id);
+            return $version;
+        });
+    }
+
     public function findBySourceDocument(int $documentId): ?int
     {
         if($documentId<1) return null;

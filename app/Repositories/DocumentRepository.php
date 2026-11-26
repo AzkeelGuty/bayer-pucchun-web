@@ -49,6 +49,25 @@ class DocumentRepository extends OperationalRepository
         });
     }
 
+    /** Creación y registro fiscal externo en una única transacción. */
+    public function createWithFiscalReference(array $header,array $details,int $actorId,string $number,bool $confirmed): int
+    {
+        return $this->atomic(function () use($header,$details,$actorId,$number,$confirmed): int {
+            $id=$this->createAutoNumbered($header,$details,$actorId);
+            (new \App\Services\BayerFiscalReferenceService($this->pdo))->save('documentos',$id,$number,null,$confirmed,$actorId,true);
+            return $id;
+        });
+    }
+
+    public function updateDraft(int $id,int $expectedVersion,array $header,array $details,int $actorId): int
+    {
+        return $this->atomic(function () use($id,$expectedVersion,$header,$details,$actorId): int {
+            $version=parent::updateDraft($id,$expectedVersion,$header,$details,$actorId);
+            (new \App\Services\BayerFiscalReferenceService($this->pdo))->assertIdentity('documentos',$id);
+            return $version;
+        });
+    }
+
     public function findByNumber(int $typeId, string $number): ?array
     {
         $id = $this->execute('SELECT id FROM documentos_cabecera WHERE tipo_documento_id=? AND numero=?', [$typeId, $number])->fetchColumn();
