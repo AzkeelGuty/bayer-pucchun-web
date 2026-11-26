@@ -1,7 +1,7 @@
 <?php
 require_once base_path('app/Views/components/workflow_control.php');
 require_once base_path('app/Views/components/bulk_workflow.php');
-$fiscalNumbers=(new \App\Services\BayerFiscalReferenceService(db()))->displayNumbers('documentos',array_column($rows,'id'));
+$fiscalNumbers=(new \App\Services\AutomaticFiscalNumberService(db()))->labels('documentos',array_column($rows,'id'));
 $link=function(int $n)use($q,$state,$docState):string{
     return url('/documentos?'.http_build_query(['q'=>$q,'state'=>$state,'doc_state'=>$docState,'page'=>$n]));
 };
@@ -62,7 +62,7 @@ $link=function(int $n)use($q,$state,$docState):string{
                 <tbody>
                 <?php foreach($rows as $r): ?>
                     <tr>
-                        <td><strong><?=e(\App\Services\BayerFiscalReferenceService::displayLabel($fiscalNumbers[$r['id']]??null,(int)$r['id']))?></strong></td>
+                        <td><strong><?=e($fiscalNumbers[$r['id']]??'Pendiente de número fiscal')?></strong></td>
                         <td><?=e($r['fecha'])?></td>
                         <td><?=e($r['cliente'])?></td>
                         <td><?=e($r['sucursal'])?></td>

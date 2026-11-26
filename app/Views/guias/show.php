@@ -1,6 +1,6 @@
 <?php $h = $record['header'];
-$fiscalNumbers=(new \App\Services\BayerFiscalReferenceService(db()))->displayNumbers('guias',[(int)$h['id']]);
-$fiscalDisplay=\App\Services\BayerFiscalReferenceService::displayLabel($fiscalNumbers[$h['id']]??null,(int)$h['id']); ?>
+$fiscalNumbers=(new \App\Services\AutomaticFiscalNumberService(db()))->labels('guias',[(int)$h['id']]);
+$fiscalDisplay=$fiscalNumbers[$h['id']]??'Pendiente de número fiscal'; ?>
 <div class="mb-3"><a class="btn btn-app-blue btn-with-icon btn-back-list" href="<?= url('/guias') ?>"><i class="bi bi-arrow-left" aria-hidden="true"></i><span>Volver al listado</span></a></div>
 <link rel="stylesheet" href="<?=asset_url('assets/css/commercial-totals.css')?>">
 <div class="d-flex justify-content-between align-items-center">

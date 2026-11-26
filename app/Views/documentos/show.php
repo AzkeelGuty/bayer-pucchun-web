@@ -12,8 +12,8 @@ $options=match($state){
     default=>[]
 };
 $voucherState=(string)($document['estado_comprobante']??'VIGENTE');
-$fiscalNumbers=(new \App\Services\BayerFiscalReferenceService(db()))->displayNumbers('documentos',[(int)$document['id']]);
-$fiscalDisplay=\App\Services\BayerFiscalReferenceService::displayLabel($fiscalNumbers[$document['id']]??null,(int)$document['id']);
+$fiscalNumbers=(new \App\Services\AutomaticFiscalNumberService(db()))->labels('documentos',[(int)$document['id']]);
+$fiscalDisplay=$fiscalNumbers[$document['id']]??'Pendiente de número fiscal';
 ?>
 <link rel="stylesheet" href="<?=asset_url('assets/css/documentos-captura.css')?>">
 <link rel="stylesheet" href="<?=asset_url('assets/css/commercial-totals.css')?>">
