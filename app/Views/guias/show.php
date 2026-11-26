@@ -39,6 +39,7 @@
     <?php endif; ?>
 </div></div>
 
+<?php $fiscalScope='guias';$fiscalHeader=$h;require base_path('app/Views/backoffice/bayer_fiscal_reference.php'); ?>
 <div class="card mb-3"><div class="card-body">
     <h6 class="card-title">Detalle de productos · <?=count($record['details'])?> líneas</h6>
     <div class="table-responsive">
