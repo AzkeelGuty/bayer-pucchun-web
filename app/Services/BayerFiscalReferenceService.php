@@ -104,6 +104,16 @@ final class BayerFiscalReferenceService
                     if($st->fetchColumn())throw new HttpException(409,'Ya existe un intento en producción; revise su resultado.');
                 }
                 [$serie,$correlativo]=explode('-',$fiscal);
+                $automatic=new AutomaticFiscalNumberService($this->pdo);
+                if($automatic->available()){
+                    $automatic->lockSeries($ruc,$type,$serie);
+                    $st=$this->pdo->prepare("SELECT documento_id,guia_id FROM sunat_numeros_reservados WHERE ruc_emisor=? AND tipo_cpe=? AND serie=? AND correlativo=?");
+                    $st->execute([$ruc,$type,$serie,(int)$correlativo]);
+                    $reservation=$st->fetch(PDO::FETCH_ASSOC);
+                    if($reservation&&(int)($reservation[$key]??0)!==$id)
+                        throw new HttpException(409,'El número está reservado para otro registro.');
+                    $automatic->advance($ruc,$type,$serie,(int)$correlativo);
+                }
                 $st=$this->pdo->prepare("SELECT 1 FROM sunat_emisiones WHERE ruc_emisor=? AND tipo_cpe=? AND serie=? AND correlativo=? AND ambiente='PRODUCCION' LIMIT 1");
                 $st->execute([$ruc,$type,$serie,(int)$correlativo]);
                 if($st->fetchColumn())throw new HttpException(409,'El número ya está registrado en emisiones SUNAT.');

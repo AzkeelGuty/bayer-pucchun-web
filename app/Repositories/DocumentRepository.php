@@ -45,7 +45,9 @@ class DocumentRepository extends OperationalRepository
         return $this->atomic(function () use($header,$details,$actorId): int {
             $header['numero']=(new \App\Services\InternalNumberingService($this->pdo))
                 ->nextDocument((int)($header['tipo_documento_id']??0));
-            return parent::create($header,$details,$actorId);
+            $id=parent::create($header,$details,$actorId);
+            (new \App\Services\AutomaticFiscalNumberService($this->pdo))->reserve('documentos',$id);
+            return $id;
         });
     }
 
@@ -53,7 +55,8 @@ class DocumentRepository extends OperationalRepository
     public function createWithFiscalReference(array $header,array $details,int $actorId,string $number,bool $confirmed): int
     {
         return $this->atomic(function () use($header,$details,$actorId,$number,$confirmed): int {
-            $id=$this->createAutoNumbered($header,$details,$actorId);
+            $header['numero']=(new \App\Services\InternalNumberingService($this->pdo))->nextDocument((int)($header['tipo_documento_id']??0));
+            $id=parent::create($header,$details,$actorId);
             (new \App\Services\BayerFiscalReferenceService($this->pdo))->save('documentos',$id,$number,null,$confirmed,$actorId,true);
             return $id;
         });
@@ -64,6 +67,8 @@ class DocumentRepository extends OperationalRepository
         return $this->atomic(function () use($id,$expectedVersion,$header,$details,$actorId): int {
             $version=parent::updateDraft($id,$expectedVersion,$header,$details,$actorId);
             (new \App\Services\BayerFiscalReferenceService($this->pdo))->assertIdentity('documentos',$id);
+            $automatic=new \App\Services\AutomaticFiscalNumberService($this->pdo);
+            if($automatic->find('documentos',$id))$automatic->reserve('documentos',$id);
             return $version;
         });
     }

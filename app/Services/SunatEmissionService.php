@@ -101,6 +101,17 @@ final class SunatEmissionService
             );
             $st->execute([$ruc,'01',$serie,$ambiente]);
             $folio=(int)$st->fetchColumn();
+            $automatic=new AutomaticFiscalNumberService($this->pdo);
+            if($ambiente==='PRODUCCION'){
+                $reserved=$automatic->find('documentos',$documentId);
+                if($reserved){
+                    if($reserved['ruc_emisor']!==$ruc||$reserved['tipo_cpe']!=='01'||$reserved['serie']!==$serie)
+                        throw new HttpException(409,'La reserva fiscal no coincide con el RUC o serie configurada.');
+                    $folio=(int)$reserved['correlativo'];
+                }else{
+                    $folio=$automatic->nextAvailable($ruc,'01',$serie,$initial);
+                }
+            }
             SunatInvoiceBuilder::documentName($ruc,$serie,$folio);
             if($ambiente==='PRODUCCION' && (new BayerFiscalReferenceService($this->pdo))->available()){
                 $external=$this->pdo->prepare("SELECT 1 FROM bayer_referencias_fiscales WHERE ruc_emisor=? AND tipo_cpe='01' AND numero_fiscal=?");
@@ -108,7 +119,7 @@ final class SunatEmissionService
                 if($external->fetchColumn())throw new HttpException(409,'El correlativo fiscal ya existe como referencia externa. Revise la serie y el correlativo.');
             }
             $st=$this->pdo->prepare(
-                'UPDATE sunat_series_fiscales SET siguiente=? WHERE ruc_emisor=? AND tipo_cpe=? AND serie=? AND ambiente=?'
+                'UPDATE sunat_series_fiscales SET siguiente=GREATEST(siguiente,?) WHERE ruc_emisor=? AND tipo_cpe=? AND serie=? AND ambiente=?'
             );
             $st->execute([$folio+1,$ruc,'01',$serie,$ambiente]);
             $st=$this->pdo->prepare(

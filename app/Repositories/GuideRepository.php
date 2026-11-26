@@ -28,7 +28,9 @@ class GuideRepository extends OperationalRepository
     {
         return $this->atomic(function () use($header,$details,$actorId): int {
             $header['numero']=(new \App\Services\InternalNumberingService($this->pdo))->nextGuide();
-            return parent::create($header,$details,$actorId);
+            $id=parent::create($header,$details,$actorId);
+            (new \App\Services\AutomaticFiscalNumberService($this->pdo))->reserve('guias',$id);
+            return $id;
         });
     }
 
@@ -36,7 +38,8 @@ class GuideRepository extends OperationalRepository
     public function createWithFiscalReference(array $header,array $details,int $actorId,string $number,bool $confirmed): int
     {
         return $this->atomic(function () use($header,$details,$actorId,$number,$confirmed): int {
-            $id=$this->createAutoNumbered($header,$details,$actorId);
+            $header['numero']=(new \App\Services\InternalNumberingService($this->pdo))->nextGuide();
+            $id=parent::create($header,$details,$actorId);
             (new \App\Services\BayerFiscalReferenceService($this->pdo))->save('guias',$id,$number,null,$confirmed,$actorId,true);
             return $id;
         });
@@ -47,6 +50,8 @@ class GuideRepository extends OperationalRepository
         return $this->atomic(function () use($id,$expectedVersion,$header,$details,$actorId): int {
             $version=parent::updateDraft($id,$expectedVersion,$header,$details,$actorId);
             (new \App\Services\BayerFiscalReferenceService($this->pdo))->assertIdentity('guias',$id);
+            $automatic=new \App\Services\AutomaticFiscalNumberService($this->pdo);
+            if($automatic->find('guias',$id))$automatic->reserve('guias',$id);
             return $version;
         });
     }
