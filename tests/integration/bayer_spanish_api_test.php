@@ -8,7 +8,7 @@ use App\Exceptions\HttpException;
 
 $db=new TestDatabase();
 try{
-    foreach(['database/schemas/002_schema_v2.sql','database/migrations/009_guias_desde_documentos_y_pagos.sql','database/migrations/010_numeracion_interna_automatica.sql','database/migrations/012_sunat_emision_cpe.sql','database/migrations/013_calculos_totales_documentos_guias.sql','database/migrations/019_integracion_bayer_espanol.sql','database/migrations/019_integracion_bayer_espanol.sql'] as $file)$db->load($file);
+    foreach(['database/schemas/002_schema_v2.sql','database/migrations/009_guias_desde_documentos_y_pagos.sql','database/migrations/010_numeracion_interna_automatica.sql','database/migrations/012_sunat_emision_cpe.sql','database/migrations/013_calculos_totales_documentos_guias.sql','database/migrations/019_integracion_bayer_espanol.sql','database/migrations/019_integracion_bayer_espanol.sql','database/migrations/020_numeracion_automatica_formato_sunat.sql','database/migrations/020_numeracion_automatica_formato_sunat.sql'] as $file)$db->load($file);
     $pdo=$db->pdo;fixtures($pdo);
     $pdo->exec("UPDATE empresas SET ruc='20123456789',razon_social='Distribuidor de prueba' WHERE id=1");
     $pdo->exec("UPDATE clientes SET tipo_doc='01',departamento_id=2,provincia_id=2,distrito_id=2 WHERE id=1");
@@ -75,5 +75,22 @@ try{
     ensure($refs->displayNumbers('documentos',[3])[3]===null,'No mostrar el correlativo beta');
     ensure($refs->displayNumbers('guias',[1])[1]==='T001-00000205','Mostrar número fiscal de guía');
     ensure(!str_contains(BayerFiscalReferenceService::displayLabel(null,3),'INT-'),'No mostrar identificador interno como comprobante');
-    echo "BAYER API ESPAÑOL OK\n";
+    $_ENV['SUNAT_SERIE_FACTURA']='F001';
+    $_ENV['SUNAT_CORRELATIVO_INICIAL']='1';
+    $_ENV['SUNAT_SERIE_GUIA']='T001';
+    $_ENV['SUNAT_CORRELATIVO_GUIA']='1';
+    $automatic=new \App\Services\AutomaticFiscalNumberService($pdo);
+    $a=$docs->createAutoNumbered($draftHeader,$draftLines,1);
+    $b=$docs->createAutoNumbered($draftHeader,$draftLines,1);
+    ensure($automatic->labels('documentos',[$a])[$a]==='F001-00001000 · Pendiente de emisión','El contador continúa después de la referencia fiscal existente');
+    ensure($automatic->labels('documentos',[$b])[$b]==='F001-00001001 · Pendiente de emisión','Correlativos automáticos únicos');
+    ensure($refs->displayNumbers('documentos',[$a])[$a]===null,'Reserva no equivale a comprobante emitido');
+    rejects(fn()=>$refs->save('documentos',$b,'F001-1000',null,true,1,true),HttpException::class);
+    $g=$guideRepo->createAutoNumbered($guideHeader,[['producto_id'=>1,'unidad_id'=>1,'cantidad'=>1,'valor_unitario'=>null]],1);
+    ensure($automatic->labels('guias',[$g])[$g]==='T001-00001000 · Pendiente de emisión','Serie independiente para guías');
+    ensure(count($api->rows('facturas'))===2&&count($api->rows('guias'))===1,'Reservas sin emitir no alteran datos fiscales entregados a Bayer');
+    $docs->deleteDraft($a,1,1);
+    $c=$docs->createAutoNumbered($draftHeader,$draftLines,1);
+    ensure($automatic->labels('documentos',[$c])[$c]==='F001-00001002 · Pendiente de emisión','No reutilizar un número tras eliminar borrador');
+    echo "BAYER API ESPAÑOL Y NUMERACION AUTOMATICA OK\n";
 }finally{$db->close();}

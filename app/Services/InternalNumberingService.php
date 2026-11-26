@@ -22,7 +22,8 @@ final class InternalNumberingService
         if ($typeId < 1) throw new HttpException(422,'Tipo de documento inválido.');
         $st=$this->pdo->prepare('SELECT codigo FROM tipos_documento WHERE id=?');
         $st->execute([$typeId]);
-        $code=strtoupper((string)$st->fetchColumn());
+        $raw=strtoupper((string)$st->fetchColumn());
+        $code=match($raw){'01'=>'FAC','03'=>'BOL','07'=>'NCR','08'=>'NDB',default=>$raw};
         if(!in_array($code,['FAC','BOL','NCR','NDB'],true)){
             throw new HttpException(422,'La numeración interna requiere factura, boleta, nota de crédito o nota de débito.');
         }
