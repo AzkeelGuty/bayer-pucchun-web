@@ -126,6 +126,7 @@ jobs:
           php tests/integration/bayer_product_editor_navigation_test.php
           php tests/integration/bulk_workflow_test.php
           php tests/integration/api_auth_test.php
+          php tests/integration/bayer_spanish_api_test.php
           php tests/integration/user_account_profiles_test.php
           php tests/integration/stock_movements_reports_test.php
           php tests/integration/core_security_test.php
