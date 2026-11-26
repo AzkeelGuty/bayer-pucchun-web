@@ -21,6 +21,7 @@ final class WorkflowStatement extends PDOStatement {
     public function __construct(private int $affected = 1) {}
     public function execute(?array $params = null): bool { return true; }
     public function rowCount(): int { return $this->affected; }
+    public function fetchColumn(int $column = 0): mixed { return 0; }
 }
 final class WorkflowPermissionRows extends PDOStatement {
     private int $userId = 0;
@@ -49,6 +50,10 @@ final class WorkflowPDO extends PDO {
             return new WorkflowPermissionRows($this);
         }
         return new WorkflowStatement();
+    }
+    public function query(string $query, ?int $fetchMode = null, mixed ...$fetchModeArgs): PDOStatement|false {
+        if(str_contains($query,'information_schema.TABLES')) return new WorkflowStatement(0);
+        throw new RuntimeException('Consulta no simulada: '.$query);
     }
     public function lastInsertId(?string $name = null): string|false { return '10'; }
 }
