@@ -314,7 +314,44 @@
         });
     }
 
+    function initFiscalPreview(root) {
+        root.querySelectorAll('[data-fiscal-preview-url]').forEach(number => {
+            if (number.dataset.fiscalPreviewReady) return;
+            const form = number.closest('form');
+            if (!form) return;
+            number.dataset.fiscalPreviewReady = '1';
+            const type = form.querySelector('[name="header[tipo_documento_id]"]');
+            const branch = form.querySelector('[name="header[sucursal_id]"],[name="sucursal_id"]');
+            let serial = 0;
+            let timer;
+            const refresh = () => {
+                const request = ++serial;
+                clearTimeout(timer);
+                timer = setTimeout(async () => {
+                    const params = new URLSearchParams();
+                    if (type) params.set('tipo_documento_id',type.value);
+                    if (branch) params.set('sucursal_id',branch.value);
+                    try {
+                        const response = await fetch(number.dataset.fiscalPreviewUrl+'?'+params.toString(),{
+                            headers:{Accept:'application/json'},credentials:'same-origin',cache:'no-store'
+                        });
+                        if (!response.ok) throw new Error('Vista previa no disponible');
+                        const data = await response.json();
+                        if (number.isConnected && request===serial) number.value=String(data.numero||'Se asignará al guardar');
+                    } catch (_) {
+                        if (number.isConnected && request===serial) number.value='Se asignará al guardar';
+                    }
+                },100);
+            };
+            type?.addEventListener('change',refresh);
+            branch?.addEventListener('change',refresh);
+            // Los autocompletados pueden sugerir una sucursal al seleccionar cliente.
+            form.querySelector('[name="header[cliente_id]"],[name="cliente_id"]')?.addEventListener('change',refresh);
+        });
+    }
+
     function init(root = document) {
+        initFiscalPreview(root);
         initAlerts(root);
         initBranding(root);
         initLiveRefresh(root);

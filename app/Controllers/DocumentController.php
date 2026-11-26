@@ -52,7 +52,7 @@ final class DocumentController
         $raw=\input('tipo_documento_id',0);
         $typeId=filter_var($raw,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
         if($typeId===false) throw new HttpException(422,'Seleccione un tipo de documento válido.');
-        $number=(new InternalNumberingService(\db()))->previewDocument((int)$typeId);
+        $number=(new \App\Services\AutomaticFiscalNumberService(\db()))->preview('documentos',(int)$typeId,max(0,(int)\input('sucursal_id',0)));
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
         echo json_encode(['numero'=>$number,'provisional'=>true],JSON_UNESCAPED_UNICODE);

@@ -47,9 +47,14 @@ final class AutomaticFiscalNumberService
         return max($initial,(int)$st->fetchColumn());
     }
 
-    public function nextAvailable(string $ruc,string $type,string $series,int $initial=1): int
+    public function nextAvailable(string $ruc,string $type,string $series,int $initial=1,bool $lock=true): int
     {
-        $next=$this->lockSeries($ruc,$type,$series,$initial);
+        if($lock){
+            $next=$this->lockSeries($ruc,$type,$series,$initial);
+        }else{
+            $st=$this->pdo->prepare("SELECT siguiente FROM sunat_series_fiscales WHERE ruc_emisor=? AND tipo_cpe=? AND serie=? AND ambiente='PRODUCCION'");
+            $st->execute([$ruc,$type,$series]);$next=max($initial,(int)$st->fetchColumn());
+        }
         $st=$this->pdo->prepare("SELECT COALESCE(MAX(correlativo),0) FROM sunat_emisiones WHERE ruc_emisor=? AND tipo_cpe=? AND serie=? AND ambiente='PRODUCCION'");
         $st->execute([$ruc,$type,$series]);$next=max($next,(int)$st->fetchColumn()+1);
         if((new BayerFiscalReferenceService($this->pdo))->available()){
@@ -71,6 +76,38 @@ final class AutomaticFiscalNumberService
         $st=$this->pdo->prepare($sql);$st->execute($args);$next=max($next,(int)$st->fetchColumn()+1);
         self::format($series,$next);
         return $next;
+    }
+
+    private static function initial(string $type): int
+    {
+        $initial=(int)\env(match($type){'01'=>'SUNAT_CORRELATIVO_INICIAL','03'=>'SUNAT_CORRELATIVO_BOLETA','07'=>'SUNAT_CORRELATIVO_NOTA_CREDITO','08'=>'SUNAT_CORRELATIVO_NOTA_DEBITO','09'=>'SUNAT_CORRELATIVO_GUIA'},'1');
+        return max(1,$initial);
+    }
+
+    /** Vista previa estrictamente de lectura. Si hay varios emisores, requiere sucursal. */
+    public function preview(string $scope,int $typeId=0,int $branchId=0): string
+    {
+        if(!$this->available())return 'Instale la migración 020';
+        if($scope==='documentos'){
+            if($typeId<1)return 'Seleccione tipo de documento';
+            $st=$this->pdo->prepare('SELECT codigo FROM tipos_documento WHERE id=?');
+            $st->execute([$typeId]);$code=$st->fetchColumn();
+            if($code===false)return 'Seleccione tipo de documento';
+            $type=BayerFiscalReferenceService::type((string)$code);
+        }elseif($scope==='guias'){$type='09';}
+        else throw new \InvalidArgumentException('Módulo inválido.');
+        $series=self::series($type);
+        if($branchId>0){
+            $st=$this->pdo->prepare('SELECT e.ruc FROM sucursales s JOIN empresas e ON e.id=s.empresa_id WHERE s.id=? AND s.estado=1');
+            $st->execute([$branchId]);$ruc=(string)$st->fetchColumn();
+        }else{
+            $st=$this->pdo->query('SELECT DISTINCT e.ruc FROM sucursales s JOIN empresas e ON e.id=s.empresa_id WHERE s.estado=1 LIMIT 2');
+            $rucs=$st->fetchAll(PDO::FETCH_COLUMN);
+            if(count($rucs)>1)return 'Seleccione sucursal';
+            $ruc=(string)($rucs[0]??'');
+        }
+        if(!preg_match('/^[0-9]{11}$/D',$ruc)||$ruc==='00000000000')return 'Configure RUC del emisor';
+        return self::format($series,$this->nextAvailable($ruc,$type,$series,self::initial($type),false));
     }
 
     public function advance(string $ruc,string $type,string $series,int $number): void
@@ -104,7 +141,7 @@ final class AutomaticFiscalNumberService
             return;
         }
         $serie=self::series($type);
-        $initial=(int)\env(match($type){'01'=>'SUNAT_CORRELATIVO_INICIAL','03'=>'SUNAT_CORRELATIVO_BOLETA','07'=>'SUNAT_CORRELATIVO_NOTA_CREDITO','08'=>'SUNAT_CORRELATIVO_NOTA_DEBITO','09'=>'SUNAT_CORRELATIVO_GUIA'},'1');
+        $initial=self::initial($type);
         $n=$this->nextAvailable($ruc,$type,$serie,max(1,$initial));
         $st=$this->pdo->prepare("INSERT INTO sunat_numeros_reservados($key,ruc_emisor,tipo_cpe,serie,correlativo) VALUES(?,?,?,?,?)");
         $st->execute([$id,$ruc,$type,$serie,$n]);$this->advance($ruc,$type,$serie,$n);

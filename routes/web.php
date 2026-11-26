@@ -15,7 +15,7 @@ $router->before(static function (string $path): void {
     // de lectura autónoma pueden cerrar la sesión antes de trabajar.
     // Evita que búsquedas y fotografías bloqueen otros clics del mismo usuario.
     if (request_method()==='GET'
-        && in_array($path,['/lookups','/avatar-usuario','/documentos/siguiente-numero'],true)
+        && in_array($path,['/lookups','/avatar-usuario','/documentos/siguiente-numero','/guias/siguiente-numero'],true)
         && session_status()===PHP_SESSION_ACTIVE) {
         session_write_close();
     }
@@ -46,6 +46,7 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
 $router->get('/documentos/siguiente-numero',[DocumentController::class,'nextNumberPreview'],$capture);
 $router->get('/documentos/ver',[DocumentController::class,'show'],$internal);
 $router->post('/documentos/estado-comprobante',[DocumentController::class,'changeVoucherStatus'],$review);
+$router->get('/guias/siguiente-numero',[GuideController::class,'nextNumberPreview'],$capture);
 $router->get('/guias/ver',[GuideController::class,'show'],$internal);
 $router->post('/guias/desde-documento',[GuideController::class,'generateFromDocument'],$capture);
 $router->post('/guias/cliente-ubicacion',[GuideController::class,'saveClientLocation'],$capture);

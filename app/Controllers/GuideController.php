@@ -123,6 +123,15 @@ final class GuideController
         ]);
     }
 
+    public function nextNumberPreview(): void
+    {
+        \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');
+        $number=(new \App\Services\AutomaticFiscalNumberService(\db()))->preview('guias',0,max(0,(int)\input('sucursal_id',0)));
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode(['numero'=>$number,'provisional'=>true],JSON_UNESCAPED_UNICODE);
+    }
+
     public function edit(): void
     {
         \require_role('ADMIN','DIGITADOR'); OperationalPermissionPolicy::require('guides.create');

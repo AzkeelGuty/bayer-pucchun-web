@@ -80,6 +80,11 @@ try{
     $_ENV['SUNAT_SERIE_GUIA']='T001';
     $_ENV['SUNAT_CORRELATIVO_GUIA']='1';
     $automatic=new \App\Services\AutomaticFiscalNumberService($pdo);
+    $beforeCounter=$pdo->query("SELECT siguiente FROM sunat_series_fiscales WHERE ruc_emisor='20123456789' AND tipo_cpe='01' AND serie='F001' AND ambiente='PRODUCCION'")->fetchColumn();
+    ensure($automatic->preview('documentos',1,0)==='F001-00001000','Vista previa al abrir con un solo emisor');
+    ensure($automatic->preview('documentos',1,1)==='F001-00001000','Vista previa por sucursal');
+    ensure($automatic->preview('guias',0,1)==='T001-00001000','Vista previa de guía');
+    ensure($pdo->query("SELECT siguiente FROM sunat_series_fiscales WHERE ruc_emisor='20123456789' AND tipo_cpe='01' AND serie='F001' AND ambiente='PRODUCCION'")->fetchColumn()===$beforeCounter,'Vista previa no consume correlativos');
     $a=$docs->createAutoNumbered($draftHeader,$draftLines,1);
     $b=$docs->createAutoNumbered($draftHeader,$draftLines,1);
     ensure($automatic->labels('documentos',[$a])[$a]==='F001-00001000 · Pendiente de emisión','El contador continúa después de la referencia fiscal existente');
