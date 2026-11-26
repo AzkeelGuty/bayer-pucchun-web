@@ -83,6 +83,11 @@ final class SunatEmissionService
             $st->execute([$documentId]);$header=$st->fetch(PDO::FETCH_ASSOC);
             if(!$header||$header['estado_registro']!=='PUBLICADO'||$header['estado_comprobante']!=='VIGENTE')
                 throw new HttpException(409,'El documento ya no está publicado y vigente.');
+            if($ambiente==='PRODUCCION' && (new BayerFiscalReferenceService($this->pdo))->available()){
+                $external=$this->pdo->prepare('SELECT numero_fiscal FROM bayer_referencias_fiscales WHERE documento_id=?');
+                $external->execute([$documentId]);
+                if($external->fetchColumn())throw new HttpException(409,'Este comprobante ya tiene un número fiscal externo registrado.');
+            }
             if($this->findForDocument($documentId,$ambiente))
                 throw new HttpException(409,'El documento ya tiene un intento SUNAT registrado. Consulte su estado antes de repetir.');
 
@@ -97,6 +102,11 @@ final class SunatEmissionService
             $st->execute([$ruc,'01',$serie,$ambiente]);
             $folio=(int)$st->fetchColumn();
             SunatInvoiceBuilder::documentName($ruc,$serie,$folio);
+            if($ambiente==='PRODUCCION' && (new BayerFiscalReferenceService($this->pdo))->available()){
+                $external=$this->pdo->prepare("SELECT 1 FROM bayer_referencias_fiscales WHERE ruc_emisor=? AND tipo_cpe='01' AND numero_fiscal=?");
+                $external->execute([$ruc,$serie.'-'.str_pad((string)$folio,8,'0',STR_PAD_LEFT)]);
+                if($external->fetchColumn())throw new HttpException(409,'El correlativo fiscal ya existe como referencia externa. Revise la serie y el correlativo.');
+            }
             $st=$this->pdo->prepare(
                 'UPDATE sunat_series_fiscales SET siguiente=? WHERE ruc_emisor=? AND tipo_cpe=? AND serie=? AND ambiente=?'
             );

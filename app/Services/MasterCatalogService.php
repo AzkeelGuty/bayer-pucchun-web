@@ -82,6 +82,7 @@ final class MasterCatalogService
             'vendedores'=>[
                 'title'=>'Vendedores','table'=>'vendedores','unique'=>'codigo',
                 'fields'=>[
+                    'dni'=>['label'=>'DNI del vendedor','type'=>'text','max'=>8,'required'=>false],
                     'codigo'=>['label'=>'Código','type'=>'text','max'=>20,'required'=>true],
                     'nombres'=>['label'=>'Nombres','type'=>'text','max'=>120,'required'=>true],
                     'apellidos'=>['label'=>'Apellidos','type'=>'text','max'=>120,'required'=>false],
@@ -90,6 +91,7 @@ final class MasterCatalogService
                 ],
                 'import'=>[
                     'codigo'=>['description'=>'Código único del vendedor','example'=>'VEN-001','required'=>true],
+                    'dni'=>['description'=>'DNI real del vendedor (8 dígitos)','example'=>'','required'=>false],
                     'nombres'=>['description'=>'Nombres','example'=>'Luis Alberto','required'=>true],
                     'apellidos'=>['description'=>'Apellidos','example'=>'Ramírez Soto','required'=>false],
                     'email'=>['description'=>'Correo electrónico','example'=>'vendedor@ejemplo.pe','required'=>false],
@@ -120,6 +122,7 @@ final class MasterCatalogService
             'almacenes'=>[
                 'title'=>'Almacenes','table'=>'almacenes','unique'=>'codigo',
                 'fields'=>[
+                    'distrito_id'=>['label'=>'Ubicación del almacén','type'=>'select','source'=>'distritos','required'=>false],
                     'sucursal_id'=>['label'=>'Sucursal','type'=>'select','source'=>'sucursales','required'=>true],
                     'codigo'=>['label'=>'Código','type'=>'text','max'=>20,'required'=>true],
                     'nombre'=>['label'=>'Nombre','type'=>'text','max'=>120,'required'=>true],
@@ -130,6 +133,9 @@ final class MasterCatalogService
                     'sucursal_codigo'=>['description'=>'Código de sucursal registrada','example'=>'SUC-01','required'=>true],
                     'codigo'=>['description'=>'Código único del almacén','example'=>'ALM-01','required'=>true],
                     'nombre'=>['description'=>'Nombre','example'=>'Almacén principal','required'=>true],
+                    'departamento'=>['description'=>'Departamento del almacén','example'=>'','required'=>false],
+                    'provincia'=>['description'=>'Provincia del almacén','example'=>'','required'=>false],
+                    'distrito'=>['description'=>'Distrito del almacén','example'=>'','required'=>false],
                     'tipo'=>['description'=>'Tipo de almacén','example'=>'GENERAL','required'=>false],
                     'estado'=>['description'=>'1 activo / 0 inactivo','example'=>'1','required'=>false],
                 ],
@@ -224,7 +230,10 @@ final class MasterCatalogService
     {
         $definitions=self::definitions();
         if(!isset($definitions[$tab])) throw new HttpException(404,'Catálogo no encontrado.');
-        return $definitions[$tab];
+        $definition=$definitions[$tab];
+        if($tab==='vendedores' && !$this->columnExists('vendedores','dni'))unset($definition['fields']['dni'],$definition['import']['dni']);
+        if($tab==='almacenes' && !$this->columnExists('almacenes','distrito_id'))unset($definition['fields']['distrito_id'],$definition['import']['departamento'],$definition['import']['provincia'],$definition['import']['distrito']);
+        return $definition;
     }
 
     public function tabs(): array
@@ -423,6 +432,9 @@ final class MasterCatalogService
                 }
                 if($tab==='productos' && trim((string)($row['stock_actual']??''))!=='')
                     $payload['stock_actual']=trim((string)$row['stock_actual']);
+                // Las plantillas anteriores no deben borrar datos nuevos.
+                if($existing!==null && $tab==='vendedores' && isset($definition['fields']['dni']) && $payload['dni']==='')$payload['dni']=$this->find($tab,$existing)['dni']??'';
+                if($existing!==null && $tab==='almacenes' && isset($definition['fields']['distrito_id']) && $payload['distrito_id']===null)$payload['distrito_id']=$this->find($tab,$existing)['distrito_id']??null;
                 $this->save($tab,$payload,$existing,$actorId);
                 if($existing===null) $inserted++; else $updated++;
             }
@@ -463,7 +475,7 @@ final class MasterCatalogService
             ],
             'vendedores'=>[
                 'codigo'=>$clean('codigo'),'nombres'=>$clean('nombres'),'apellidos'=>$clean('apellidos'),
-                'email'=>$clean('email'),'estado'=>$state($clean('estado')),
+                'dni'=>$clean('dni'),'email'=>$clean('email'),'estado'=>$state($clean('estado')),
             ],
             'sucursales'=>[
                 'empresa_id'=>$this->lookupId('empresas','ruc',$clean('empresa_ruc'),$line,'empresa_ruc'),
@@ -474,6 +486,7 @@ final class MasterCatalogService
             'almacenes'=>[
                 'sucursal_id'=>$this->lookupId('sucursales','codigo',$clean('sucursal_codigo'),$line,'sucursal_codigo'),
                 'codigo'=>$clean('codigo'),'nombre'=>$clean('nombre'),'tipo'=>$clean('tipo'),'estado'=>$state($clean('estado')),
+                'distrito_id'=>$this->resolveGeoImport($clean('departamento'),$clean('provincia'),$clean('distrito'),$line),
             ],
             'unidades'=>[
                 'codigo'=>$clean('codigo'),'nombre'=>$clean('nombre'),'abreviatura'=>$clean('abreviatura'),'factor_base'=>$clean('factor_base'),
@@ -566,7 +579,9 @@ final class MasterCatalogService
             if($type==='email' && $text!=='' && !filter_var($text,FILTER_VALIDATE_EMAIL)){
                 throw new HttpException(422,'Correo electrónico inválido.');
             }
-            $result[$name]=$text==='' && in_array($name,['codigo','tipo_doc','apellidos','email','tipo_art','direccion','tipo','abreviatura','nombre_comercial','sunat_code'],true)
+            if($tab==='vendedores' && $name==='dni' && $text!=='' && !preg_match('/^[0-9]{8}$/D',$text))
+                throw new HttpException(422,'El DNI del vendedor debe contener exactamente 8 dígitos.');
+            $result[$name]=$text==='' && in_array($name,['dni','codigo','tipo_doc','apellidos','email','tipo_art','direccion','tipo','abreviatura','nombre_comercial','sunat_code'],true)
                 ? null
                 : $text;
         }

@@ -29,6 +29,7 @@ final class CatalogTemplateLabels
         'sucursal_codigo'=>'Código de sucursal',
         'precio_venta'=>'Precio de venta (S/)',
         'stock_actual'=>'Cantidad de existencias',
+        'dni'=>'DNI del vendedor',
         'nombres'=>'Nombres',
         'apellidos'=>'Apellidos',
         'email'=>'Correo electrónico',
