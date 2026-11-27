@@ -362,7 +362,7 @@ final class BackofficeController
             'apiStorageIssue'=>$apiStorageIssue,
             'apiTokenTtl'=>(int)\config('app.api_token_ttl',28800),
             'apiBase'=>rtrim((string)\config('app.url'),'\/').'/api/v2/bayer',
-            'apiAuthBase'=>rtrim((string)\config('app.url'),'\/').'/api/v1/auth',
+            'apiAuthBase'=>rtrim((string)\config('app.url'),'\/').'/api/v2/auth',
             'apiCounts'=>$counts,
             'apiDataReady'=>$apiDataReady,
             'apiDataIssue'=>$apiDataIssue,
