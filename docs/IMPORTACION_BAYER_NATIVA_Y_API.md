@@ -301,21 +301,21 @@ Los botones Cancelar de los formularios se mantienen independientes.
 
 ## API REST de los dos sistemas
 
-Se conserva el login Bearer actual (`POST /api/v1/auth/login`), su expiración y las rutas anteriores.
+Se conserva el login Bearer actual (`POST /api/v2/auth/login`), su expiración y las rutas anteriores.
 
 | Ruta GET (Bearer) | Información |
 |---|---|
-| `/api/v1/pucchun/all` | Ventas, guías, stock publicado Pucchún |
+| `/api/v2/bayer/todo` | Ventas, guías, stock publicado Pucchún |
 | `/api/v1/pucchun/sales` | Ventas |
 | `/api/v1/pucchun/shipments` | Guías |
 | `/api/v1/pucchun/inventory` | Snapshots publicados |
-| `/api/v1/pucchun/latest-stock` | Último snapshot publicado por almacén/producto/unidad |
-| `/api/v1/bayer/products` | Productos Bayer activos (automático) |
-| `/api/v1/bayer/reported-inventory` | Histórico mensual Bayer activo, con `stockMarker` |
-| `/api/v1/bayer/prices` | Precios referenciales de productos Bayer activos |
-| `/api/v1/bayer/all` | Tres datasets históricos Pucchún **y** tres nuevos datasets Bayer |
+| `/api/v2/pucchun/stock-actual` | Último snapshot publicado por almacén/producto/unidad |
+| `/api/v2/bayer/productos` | Productos Bayer activos (automático) |
+| `/api/v2/bayer/inventario-reportado` | Histórico mensual Bayer activo, con `stockMarker` |
+| `/api/v2/bayer/precios` | Precios referenciales de productos Bayer activos |
+| `/api/v2/bayer/todo` | Tres datasets históricos Pucchún **y** tres nuevos datasets Bayer |
 
-El endpoint `/api/v1/bayer/all` conserva `sales`, `shipments` e `inventory` para no romper consumidores previos y agrega `bayerProducts`, `bayerInventory` y `bayerPrices`, con identificación de fuentes en `meta.sources`.
+El endpoint `/api/v2/bayer/todo` conserva `sales`, `shipments` e `inventory` para no romper consumidores previos y agrega `bayerProducts`, `bayerInventory` y `bayerPrices`, con identificación de fuentes en `meta.sources`.
 
 Una importación Bayer **no envía información a ningún servidor de Bayer**: se trata de una API de consulta protegida del ERP, no de una integración remota autenticada con plataformas del proveedor.
 
