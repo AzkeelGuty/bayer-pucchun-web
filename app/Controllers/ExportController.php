@@ -25,9 +25,11 @@ final class ExportController
             if($value!=='') $filters[$key]=$value;
         }
         // El rol externo BAYER mantiene su alcance publicado, sin ver catálogos internos.
-        $count=$type==='stock' && !\has_role('BAYER')
-            ? count((new UnifiedStockService())->reportRows($filters))
-            : (new BayerDataService())->countDataset($type,$filters);
+        $dataset=match($type){'documents'=>'facturas','guides'=>'guias','stock'=>'stock'};
+        $count=\input('contrato','')==='v2' ? (new BayerSpanishService(\db()))->countRows($dataset,$filters)
+            : ($type==='stock' && !\has_role('BAYER')
+                ? count((new UnifiedStockService())->reportRows($filters))
+                : (new BayerDataService())->countDataset($type,$filters));
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['success'=>true,'count'=>$count],JSON_UNESCAPED_UNICODE);
         exit;

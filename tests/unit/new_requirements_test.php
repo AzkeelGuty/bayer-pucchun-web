@@ -164,5 +164,11 @@ req(!str_contains($apiEvolution,'/sales') && !str_contains($apiEvolution,'/shipm
 req(str_contains($apiEvolution,'estado_documento=1'),'Panel debe explicar filtros españoles.');
 $apiPanelController=$read('app/Controllers/BackofficeController.php');
 req(str_contains($apiPanelController,"'/api/v2/bayer'") && str_contains($apiPanelController,'->countRows('),'Panel debe usar rutas y contadores v2.');
+$portalData=$read('app/Views/dashboard/bayer/data.php');
+$portalController=$read('app/Controllers/BayerController.php');
+$exportController=$read('app/Controllers/ExportController.php');
+$apiXlsx=$read('app/Services/SimpleXlsxExporter.php');
+req(str_contains($portalController,'BayerSpanishService::fields(') && str_contains($portalController,'->countRows(') && str_contains($portalData,'Datos API v2') && str_contains($portalData,'Reporte operativo'),'Portal debe ofrecer contrato v2 y conservar reportes operativos.');
+req(str_contains($exportController,'BayerSpanishService::fields(') && str_contains($apiXlsx,"$"."apiFields===null&&in_array"),'Excel v2 conserva encabezados sin aplicar agrupación operativa.');
 
 echo "Nuevos requisitos UI/rutas: OK\n";

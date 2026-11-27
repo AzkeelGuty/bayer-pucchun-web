@@ -1,5 +1,8 @@
 # API REST Bayer
 
+> **Integración vigente: API v2 en español.** Para nuevas integraciones utilizar [API Bayer v2 en español](../API_BAYER_V2_ES.md). Autenticación: `POST /api/v1/auth/login`. Consulta: `GET /api/v2/bayer/todo`, `/facturas`, `/guias` y `/stock`. Los ejemplos v1 siguientes se conservan exclusivamente como documentación de compatibilidad para consumidores existentes.
+
+
 La API REST expone únicamente información con estado **PUBLICADO** y requiere autenticación de usuario.
 
 ## Activación

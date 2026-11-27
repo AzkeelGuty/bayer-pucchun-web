@@ -1,5 +1,8 @@
 # API REST Bayer — Integración automática
 
+> **Integración vigente: API v2 en español.** Para nuevas integraciones utilizar [API Bayer v2 en español](API_BAYER_V2_ES.md). Autenticación: `POST /api/v1/auth/login`. Consulta: `GET /api/v2/bayer/todo`, `/facturas`, `/guias` y `/stock`. Los ejemplos v1 siguientes se conservan exclusivamente como documentación de compatibilidad para consumidores existentes.
+
+
 La API permite que el sistema interno de Bayer consulte directamente la información **PUBLICADA** de Pucchún, sin ingresar al portal ni descargar archivos manualmente.
 
 ## Objetivo

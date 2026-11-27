@@ -50,6 +50,12 @@ try{
     ensure(count($sales)===2&&count($guides)===1&&count($stock)===1,'Solo publicados con referencia fiscal en ventas y guías');
     $sale=$api->rows('facturas',['document_status'=>'VIGENTE'])[0];
     ensure(count($sale)===24 && count($guides[0])===21 && count($stock[0])===11,'24, 21 y 11 columnas');
+    foreach(['facturas','guias','stock'] as $dataset){
+        $all=$api->rows($dataset);
+        ensure(array_keys($all[0])===BayerSpanishService::fields($dataset),'Encabezados exactos del portal y exportación: '.$dataset);
+        ensure($api->rows($dataset,[],1,0)===array_slice($all,0,1),'Primera página v2: '.$dataset);
+        ensure($api->rows($dataset,[],1,1)===array_slice($all,1,1),'Segunda página v2: '.$dataset);
+    }
     ensure($sale['numero_documento']==='F001-00000101' && $sale['estado_documento']===1,'Usar correlativo aceptado y estado numérico');
     ensure($api->rows('facturas',['document_status'=>'ANULADO'])[0]['estado_documento']===0,'Estado anulado 0');
     ensure($sale['dni_vendedor']==='01234567' && $sale['ruc_distribuidor']==='20123456789','Identificadores como texto');
