@@ -1,6 +1,6 @@
 # API Bayer v2 en español
 
-La API v1 permanece compatible. Nueva entrega: Bearer obtenido en /api/v1/auth/login y GET /api/v2/bayer/todo, /facturas, /guias, /stock. Facturas incluye los tipos comerciales existentes (factura, boleta, notas). La respuesta usa metadatos y datos. Filtros desde, hasta, sucursal, busqueda y estado_documento (1 vigente, 0 anulado); también acepta nombres v1.
+La API REST utiliza exclusivamente la versión v2. Nueva entrega: Bearer obtenido en /api/v2/auth/login y GET /api/v2/bayer/todo, /facturas, /guias, /stock. Facturas incluye los tipos comerciales existentes (factura, boleta, notas). La respuesta usa metadatos y datos. Filtros desde, hasta, sucursal, busqueda y estado_documento (1 vigente, 0 anulado); también acepta nombres v2.
 
 Aplicar database/migrations/019_integracion_bayer_espanol.sql después de 018. Completar Empresas (RUC y razón social reales), Vendedores (DNI, nombres y apellidos), Sucursales (nombre y ubicación), Almacenes (nombre y ubicación opcional). No se rellenan datos desconocidos con datos ficticios.
 
@@ -22,3 +22,5 @@ En Vista Portal Bayer → Datos, la opción Datos API v2 utiliza los mismos crit
 
 ## Configuración del distribuidor
 El valor inicial del RUC es 00000000000. El administrador lo reemplaza en Catálogos maestros → Empresas → Editar, junto con la razón social. La API consulta estos datos automáticamente, sin cambios de código ni SQL. Mientras el RUC sea provisional, ambos campos se devuelven como nulos. No sustituir el RUC de una empresa con documentos emitidos por el de otra empresa.
+
+Autenticación y revocación: POST /api/v2/auth/login y POST /api/v2/auth/logout. Información: GET /api/v2/bayer. El encabezado X-API-Version indica v2 en todas las respuestas.
