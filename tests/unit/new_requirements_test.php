@@ -165,6 +165,11 @@ req(!str_contains($apiEvolution,'/sales') && !str_contains($apiEvolution,'/shipm
 req(str_contains($apiEvolution,'estado_documento=1'),'Panel debe explicar filtros españoles.');
 $apiPanelController=$read('app/Controllers/BackofficeController.php');
 req(str_contains($apiPanelController,"'/api/v2/bayer'") && str_contains($apiPanelController,'->countRows('),'Panel debe usar rutas y contadores v2.');
+req(str_contains($apiPanelController,"'/api/v2/auth'") && !str_contains($apiPanelController,'/api/v1/'),'El panel debe mostrar la autenticación v2.');
+req(!str_contains($apiEvolution,'/api/v1/'),'La vista no debe anunciar autenticación v1.');
+req(!str_contains($apiController,'/api/v1/') && str_contains($apiController,"VERSION = 'v2'"),'Controlador y respuesta de autenticación deben usar v2.');
+req(str_contains($apiController,"'unidad_medida'=>"),'El contrato debe anunciar la unidad de medida.');
+
 $portalData=$read('app/Views/dashboard/bayer/data.php');
 $portalController=$read('app/Controllers/BayerController.php');
 $exportController=$read('app/Controllers/ExportController.php');
