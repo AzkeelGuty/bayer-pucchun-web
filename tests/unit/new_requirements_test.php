@@ -151,8 +151,9 @@ req(str_contains($performanceMigration,"VALUES (6,'Indices de rendimiento"),'Mig
 req(str_contains($exportPresentation,"\\public_path(ltrim(\$relative, '/'))"),'PDF/XLSX deben resolver logos desde la raíz pública real de cPanel.');
 req(!str_contains($exportPresentation,"base_path('public/'"),'Exportaciones no deben asumir que el Document Root es /public.');
 
-req(str_contains($routes,"/api/v1/auth/login") && str_contains($routes,"/api/v1/auth/logout"),'Faltan endpoints de login/logout API.');
-req(str_contains($routes,"postApi('/api/v1/auth/login"),'El login API debe aceptar POST sin CSRF de sesión web.');
+req(!str_contains($routes,'/api/v1/'),'La API pública utiliza exclusivamente rutas v2.');
+req(str_contains($routes,"/api/v2/auth/login") && str_contains($routes,"/api/v2/auth/logout"),'Faltan endpoints de login/logout API.');
+req(str_contains($routes,"postApi('/api/v2/auth/login"),'El login API debe aceptar POST sin CSRF de sesión web.');
 req(str_contains($apiController,'ApiTokenService') && str_contains($apiController,'Primero inicie sesión'),'La API debe exigir token emitido tras login.');
 req(!str_contains($appConfig,"'api_token' =>"),'No debe quedar token API fijo compartido en configuración.');
 req(!str_contains($apiEvolution,'Token configurado:'),'El panel API no debe seguir mostrando el token fijo antiguo.');
