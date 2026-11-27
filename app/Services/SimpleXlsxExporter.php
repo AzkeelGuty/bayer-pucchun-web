@@ -24,11 +24,12 @@ final class SimpleXlsxExporter
             exit('La extensión ZipArchive es necesaria para generar XLSX.');
         }
 
-        $isGuide=in_array((string)($meta['type']??''),['guides','shipments'],true);
+        $apiFields=$meta['api_fields']??null;
+        $isGuide=$apiFields===null&&in_array((string)($meta['type']??''),['guides','shipments'],true);
         $guideLayout=$isGuide?GuideExcelLayout::build($rows):null;
         $displayRows=$guideLayout['rows']??$rows;
-        $keys=$guideLayout['keys']??ExportPresentation::keys($rows);
-        $labels=$guideLayout['labels']??ExportPresentation::labels($rows);
+        $keys=$apiFields??$guideLayout['keys']??ExportPresentation::keys($rows);
+        $labels=$apiFields??$guideLayout['labels']??ExportPresentation::labels($rows);
         if($guideLayout!==null)$meta['record_count']=
             $guideLayout['guide_count'].' guías · '.$guideLayout['product_lines'].' productos';
         $columnCount=max(8,count($keys),1);
@@ -82,7 +83,7 @@ final class SimpleXlsxExporter
         ],22);
         $sheetRows[]=$this->row(8,[['value'=>'DATOS PUBLICADOS · INFORMACIÓN VALIDADA PARA CONSULTA Y ENTREGA','style'=>5]],24);
 
-        if($displayRows){
+        if($displayRows||$apiFields!==null){
             $headCells=[];
             foreach($labels as $label)$headCells[]=['value'=>$label,'style'=>6];
             $sheetRows[]=$this->row(9,$headCells,28);
@@ -108,13 +109,13 @@ final class SimpleXlsxExporter
                         }
                     }else{
                         $style=$ri%2===0?7:8;
-                        $numeric=in_array($key,['quantity','unitValue','lineTotal'],true)
+                        $numeric=in_array($key,['quantity','unitValue','lineTotal','cantidad','precio_unitario','importe_linea','estado_documento','id_documento_origen'],true)
                             && is_numeric($value);
                         if($numeric){
-                            $style=in_array($key,['unitValue','lineTotal'],true)?10:9;
+                            $style=in_array($key,['unitValue','lineTotal','precio_unitario','importe_linea'],true)?10:9;
                             $cells[]=['value'=>(string)$value,'style'=>$style,'numeric'=>true];
                         }else{
-                            $cells[]=['value'=>ExportPresentation::displayValue($key,$value),
+                            $cells[]=['value'=>$apiFields!==null?(string)($value??''):ExportPresentation::displayValue($key,$value),
                                 'style'=>$style];
                         }
                     }

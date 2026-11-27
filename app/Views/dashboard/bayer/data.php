@@ -34,10 +34,11 @@ $columnLabels=[
     'expirationDate'=>'Vencimiento',
 ];
 
-$dateColumns=['documentDate','stockDate','expirationDate'];
-$longColumns=['dealerName','salesName','branchName','customerName','materialName','warehouseName'];
-$codeColumns=['dealerId','documentTypeId','documentNumber','salesId','branchId','customerId','materialId','measureUnit','warehouseId','batch'];
-$numericColumns=['quantity','unitValue'];
+$isV2=$isV2??false;
+$dateColumns=['documentDate','stockDate','expirationDate','fecha_documento','fecha_stock','fecha_vencimiento'];
+$longColumns=['dealerName','salesName','branchName','customerName','materialName','warehouseName','razon_social_distribuidor','nombre_vendedor','nombre_sucursal','nombre_cliente','nombre_producto','nombre_almacen'];
+$codeColumns=['dealerId','documentTypeId','documentNumber','salesId','branchId','customerId','materialId','measureUnit','warehouseId','batch','ruc_distribuidor','numero_documento','dni_vendedor','codigo_sucursal','numero_documento_cliente','codigo_producto','unidad_medida','codigo_almacen','lote'];
+$numericColumns=['quantity','unitValue','cantidad','precio_unitario','importe_linea','estado_documento'];
 
 $formatValue=static function(string $key,mixed $value) use($dateColumns): string {
     if($value===null || $value==='') return '—';
@@ -45,12 +46,13 @@ $formatValue=static function(string $key,mixed $value) use($dateColumns): string
     if(in_array($key,$dateColumns,true) && preg_match('/^(\\d{4})-(\\d{2})-(\\d{2})$/',$display,$parts)){
         return $parts[3].'/'.$parts[2].'/'.$parts[1];
     }
-    if($key==='quantity') return format_quantity($value);
+    if(in_array($key,['quantity','cantidad'],true)) return format_quantity($value);
     return $display;
 };
 
 $queryParams=array_filter([
     'type'=>$type,
+    'contrato'=>$isV2?'v2':'operativo',
     'from'=>$filters['from']??'',
     'to'=>$filters['to']??'',
     'branch'=>$filters['branch']??'',
@@ -71,7 +73,7 @@ $pageUrl=static function(int $target) use($queryParams): string {
     <div>
         <div class="page-eyebrow"><i class="bi bi-database-check"></i> INFORMACIÓN PUBLICADA</div>
         <h1 class="page-title"><?=e($datasetLabels[$type]??'Datos publicados')?></h1>
-        <p class="page-subtitle">Consulta de solo lectura sobre información validada y publicada.</p>
+        <p class="page-subtitle"><?=$isV2?'Consulta con los mismos datos y encabezados de la API v2.':'Consulta operativa de información publicada.'?></p>
     </div>
     <span class="published-lock"><i class="bi bi-lock-fill me-1"></i> Solo datos publicados</span>
 </section>
@@ -80,25 +82,30 @@ $pageUrl=static function(int $target) use($queryParams): string {
     <div class="card-body">
         <form method="get" action="<?=url('/bayer/datos')?>" class="filter-grid">
             <input type="hidden" name="type" value="<?=e($type)?>">
+            <input type="hidden" name="contrato" value="<?=$isV2?'v2':'operativo'?>">
             <div><label class="form-label" for="from">Desde</label><input class="form-control" id="from" type="date" name="from" value="<?=e($filters['from']??'')?>"></div>
             <div><label class="form-label" for="to">Hasta</label><input class="form-control" id="to" type="date" name="to" value="<?=e($filters['to']??'')?>"></div>
             <div><label class="form-label" for="branch">Sucursal</label><select class="form-select" id="branch" name="branch" data-search-select data-search-placeholder="Escribe código o inicio de la sucursal..." data-search-min="1"><option value="">Todas</option><?php foreach($branches as $b): ?><option value="<?=e($b['codigo'])?>" <?=($filters['branch']??'')===$b['codigo']?'selected':''?>><?=e($b['nombre'])?></option><?php endforeach;?></select></div>
             <?php if($type==='documents'): ?><div><label class="form-label" for="document_status">Comprobante</label><select class="form-select" id="document_status" name="document_status"><option value="">Todos</option><option value="VIGENTE" <?=($filters['document_status']??'')==='VIGENTE'?'selected':''?>>Vigente</option><option value="ANULADO" <?=($filters['document_status']??'')==='ANULADO'?'selected':''?>>Anulado</option></select></div><?php endif; ?>
             <div class="filter-search"><label class="form-label" for="q">Buscar</label><input class="form-control" id="q" name="q" value="<?=e($filters['q']??'')?>" placeholder="Documento, cliente o producto"></div>
-            <div class="filter-buttons"><button class="btn btn-primary btn-with-icon" type="submit"><i class="bi bi-funnel"></i><span>Aplicar filtros</span></button><a class="btn btn-outline-primary btn-with-icon" href="<?=url('/bayer/datos?type='.urlencode($type))?>"><i class="bi bi-x-circle"></i><span>Limpiar</span></a></div>
+            <div class="filter-buttons"><button class="btn btn-primary btn-with-icon" type="submit"><i class="bi bi-funnel"></i><span>Aplicar filtros</span></button><a class="btn btn-outline-primary btn-with-icon" href="<?=url('/bayer/datos?type='.urlencode($type).'&contrato='.($isV2?'v2':'operativo'))?>"><i class="bi bi-x-circle"></i><span>Limpiar</span></a></div>
         </form>
     </div>
 </div>
 
+<div class="d-flex gap-2 mb-3">
+    <a class="btn <?=$isV2?'btn-primary':'btn-outline-primary'?>" href="<?=url('/bayer/datos?'.http_build_query(array_replace($queryParams,['contrato'=>'v2'])))?>">Datos API v2</a>
+    <a class="btn <?=$isV2?'btn-outline-primary':'btn-primary'?>" href="<?=url('/bayer/datos?'.http_build_query(array_replace($queryParams,['contrato'=>'operativo'])))?>">Reporte operativo</a>
+</div>
 <div class="delivery-toolbar portal-delivery-toolbar">
     <div class="delivery-count"><strong><?=number_format($total)?></strong><span> registros publicados<?= $total>0 ? ' · Mostrando '.number_format($firstRow).'–'.number_format($lastRow) : '' ?></span></div>
     <div class="delivery-export">
         <span class="delivery-export-label">Exportar:</span>
-        <div class="format-actions"><?php foreach(['xlsx'=>'bi-file-earmark-spreadsheet','json'=>'bi-braces','txt'=>'bi-filetype-txt','pdf'=>'bi-filetype-pdf'] as $format=>$icon): ?><a href="<?=url('/export?'.$queryBase.'&format='.$format)?>" class="format-chip format-<?=$format?>" title="Descargar en <?=strtoupper($format)?>"><i class="bi <?=e($icon)?>"></i><?=strtoupper($format)?></a><?php endforeach;?></div>
+        <div class="format-actions"><?php foreach(($isV2?['xlsx'=>'bi-file-earmark-spreadsheet','json'=>'bi-braces','txt'=>'bi-filetype-txt']:['xlsx'=>'bi-file-earmark-spreadsheet','json'=>'bi-braces','txt'=>'bi-filetype-txt','pdf'=>'bi-filetype-pdf']) as $format=>$icon): ?><a href="<?=url('/export?'.$queryBase.'&format='.$format)?>" class="format-chip format-<?=$format?>" title="Descargar en <?=strtoupper($format)?>"><i class="bi <?=e($icon)?>"></i><?=strtoupper($format)?></a><?php endforeach;?></div>
     </div>
 </div>
 
-<div class="card published-data-card" data-live-refresh="5000" data-live-refresh-key="bayer-published-data">
+<div class="card published-data-card" data-live-refresh="60000" data-live-refresh-key="bayer-published-data">
     <div class="card-body p-0">
         <?php if(!$rows): ?>
             <div class="empty-state"><i class="bi bi-inbox fs-3 mb-2"></i><strong>No hay resultados publicados.</strong><span>Ajusta el periodo o los filtros de consulta.</span></div>
@@ -107,8 +114,8 @@ $pageUrl=static function(int $target) use($queryParams): string {
                 <table class="table app-table published-table published-table-portal mb-0">
                     <thead>
                         <tr>
-                            <?php foreach(array_keys($rows[0]) as $header): ?>
-                                <th scope="col" title="<?=e((string)$header)?>"><?=e($columnLabels[(string)$header]??ucfirst((string)$header))?></th>
+                            <?php foreach($isV2?$fields:array_keys($rows[0]) as $header): ?>
+                                <th scope="col" title="<?=e((string)$header)?>"><?=e($isV2?(string)$header:($columnLabels[(string)$header]??ucfirst((string)$header)))?></th>
                             <?php endforeach;?>
                         </tr>
                     </thead>

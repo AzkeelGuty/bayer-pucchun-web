@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Services\{BayerDataService,DashboardService};
+use App\Services\{BayerDataService,DashboardService,BayerSpanishService};
 use App\Policies\AccessPolicy;
 use App\Exceptions\HttpException;
 
@@ -35,12 +35,17 @@ final class BayerController
         $filters = $this->filters();
         $service = new BayerDataService();
         $perPage=15;
-        $total=$service->countDataset($type,$filters);
+        $isV2=($_GET['contrato']??'v2')!=='operativo';
+        $dataset=match($type){'documents'=>'facturas','guides'=>'guias','stock'=>'stock'};
+        $spanish=new BayerSpanishService(\db());
+        $total=$isV2?$spanish->countRows($dataset,$filters):$service->countDataset($type,$filters);
         $pages=max(1,(int)ceil($total/$perPage));
         $page=min($pages,max(1,(int)($_GET['page']??1)));
-        $rows=$service->dataset($type,$filters,$perPage,($page-1)*$perPage);
+        $rows=$isV2?$spanish->rows($dataset,$filters,$perPage,($page-1)*$perPage):$service->dataset($type,$filters,$perPage,($page-1)*$perPage);
         \view('dashboard.bayer.data', [
             'rows'=>$rows,
+            'isV2'=>$isV2,
+            'fields'=>$isV2?BayerSpanishService::fields($dataset):[],
             'type'=>$type,
             'filters'=>$filters,
             'branches'=>$service->branches(),

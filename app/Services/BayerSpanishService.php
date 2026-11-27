@@ -19,9 +19,19 @@ final class BayerSpanishService
     private const PEOPLEJOIN=" JOIN clientes c ON c.id=h.cliente_id JOIN vendedores v ON v.id=h.vendedor_id JOIN sucursales s ON s.id=h.sucursal_id JOIN empresas e ON e.id=s.empresa_id";
     private const PRODUCTJOIN=" JOIN productos pr ON pr.id=d.producto_id JOIN unidades_medida um ON um.id=d.unidad_id";
 
-    public function rows(string $dataset,array $filters=[]): array
+    public static function fields(string $dataset): array
     {
-        return $this->queryDataset($dataset,$filters,false);
+        return match($dataset){
+            'facturas'=>explode(' ','ruc_distribuidor razon_social_distribuidor codigo_tipo_documento tipo_documento estado_documento medio_pago numero_documento fecha_documento dni_vendedor nombre_vendedor codigo_sucursal nombre_sucursal tipo_documento_cliente numero_documento_cliente nombre_cliente codigo_producto nombre_producto unidad_medida cantidad precio_unitario importe_linea provincia departamento distrito'),
+            'guias'=>explode(' ','ruc_distribuidor razon_social_distribuidor numero_documento estado_sunat id_documento_origen numero_documento_origen fecha_documento dni_vendedor nombre_vendedor codigo_sucursal nombre_sucursal tipo_documento_cliente numero_documento_cliente nombre_cliente codigo_producto nombre_producto unidad_medida cantidad provincia departamento distrito'),
+            'stock'=>explode(' ','ruc_distribuidor razon_social_distribuidor fecha_stock codigo_almacen nombre_almacen codigo_producto nombre_producto unidad_medida lote cantidad fecha_vencimiento'),
+            default=>throw new \InvalidArgumentException('Conjunto de datos inválido.'),
+        };
+    }
+
+    public function rows(string $dataset,array $filters=[],?int $limit=null,int $offset=0): array
+    {
+        return $this->queryDataset($dataset,$filters,false,$limit,$offset);
     }
 
     /** Cuenta las mismas filas que entrega v2, sin descargar sus detalles. */
@@ -30,7 +40,7 @@ final class BayerSpanishService
         return $this->queryDataset($dataset,$filters,true);
     }
 
-    private function queryDataset(string $dataset,array $filters,bool $countOnly): array|int
+    private function queryDataset(string $dataset,array $filters,bool $countOnly,?int $limit=null,int $offset=0): array|int
     {
         if(!(new BayerFiscalReferenceService($this->pdo))->available())throw new HttpException(503,'Debe aplicar la migración 019 de integración Bayer.');
         $params=[];$where=["h.estado_registro='PUBLICADO'"];
@@ -62,7 +72,8 @@ final class BayerSpanishService
         }
         $projection=$countOnly?'COUNT(*)':$select;
         $order=$countOnly?'':" ORDER BY $date DESC,h.id DESC,d.id";
-        $st=$this->pdo->prepare("SELECT $projection FROM $from WHERE ".implode(' AND ',$where).$order);
+        $paging=!$countOnly&&$limit!==null?' LIMIT '.max(1,min(1000,$limit)).' OFFSET '.max(0,$offset):'';
+        $st=$this->pdo->prepare("SELECT $projection FROM $from WHERE ".implode(' AND ',$where).$order.$paging);
         $st->execute($params);
         if($countOnly)return (int)$st->fetchColumn();
         $rows=$st->fetchAll(PDO::FETCH_ASSOC);
