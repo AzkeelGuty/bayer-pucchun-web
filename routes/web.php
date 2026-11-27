@@ -117,25 +117,17 @@ $router->get('/bayer/datos',[BayerController::class,'data'],$published);
 $router->get('/bayer/exportaciones',[BayerController::class,'exports'],$published);
 $router->get('/bayer/descargas',[BayerController::class,'downloads'],$published);
 $router->get('/export',[ExportController::class,'export'],$published);
-$router->postApi('/api/v1/auth/login',[ApiController::class,'login']);
-$router->postApi('/api/v1/auth/logout',[ApiController::class,'logout']);
+$router->postApi('/api/v2/auth/login',[ApiController::class,'login']);
+$router->postApi('/api/v2/auth/logout',[ApiController::class,'logout']);
 $router->get('/api/v2/bayer/todo',[ApiController::class,'todoEs']);
 $router->get('/api/v2/bayer/facturas',[ApiController::class,'facturasEs']);
 $router->get('/api/v2/bayer/guias',[ApiController::class,'guiasEs']);
 $router->get('/api/v2/bayer/stock',[ApiController::class,'stockEs']);
 $router->post('/sunat/referencia-bayer',[\App\Controllers\BayerFiscalReferenceController::class,'save'],[new RoleMiddleware(['ADMIN'])]);
-$router->get('/api/v1/bayer',[ApiController::class,'info']);
-$router->get('/api/v1/bayer/all',[ApiController::class,'all']);
-$router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
-$router->get('/api/v1/bayer/shipments',[ApiController::class,'shipments']);
-$router->get('/api/v1/bayer/inventory',[ApiController::class,'inventory']);
-$router->get('/api/v1/bayer/products',[ApiController::class,'bayerProducts']);
-$router->get('/api/v1/bayer/reported-inventory',[ApiController::class,'bayerReportedInventory']);
-$router->get('/api/v1/bayer/prices',[ApiController::class,'bayerPrices']);
-// Rutas explícitas Pucchún: conservar las antiguas para integraciones vigentes.
-$router->get('/api/v1/pucchun/all',[ApiController::class,'pucchunAll']);
-$router->get('/api/v1/pucchun/sales',[ApiController::class,'sales']);
-$router->get('/api/v1/pucchun/shipments',[ApiController::class,'shipments']);
-$router->get('/api/v1/pucchun/inventory',[ApiController::class,'inventory']);
-$router->get('/api/v1/pucchun/latest-stock',[ApiController::class,'pucchunLatestStock']);
+$router->get('/api/v2/bayer',[ApiController::class,'info']);
+$router->get('/api/v2/bayer/productos',[ApiController::class,'bayerProducts']);
+$router->get('/api/v2/bayer/inventario-reportado',[ApiController::class,'bayerReportedInventory']);
+$router->get('/api/v2/bayer/precios',[ApiController::class,'bayerPrices']);
+// Consulta complementaria de existencias Pucchún.
+$router->get('/api/v2/pucchun/stock-actual',[ApiController::class,'pucchunLatestStock']);
 
