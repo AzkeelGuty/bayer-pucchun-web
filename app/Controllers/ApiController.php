@@ -113,7 +113,8 @@ final class ApiController
                 ],
                 'optionalFilters'=>['desde','hasta','sucursal','busqueda','estado_documento'],
                 'quantityModel'=>[
-                    'cantidad'=>'Número entero de productos o presentaciones.',=>'Unidad del catálogo/presentación del producto.',
+                    'cantidad'=>'Número entero de productos o presentaciones.',
+                    'unidad_medida'=>'Unidad del catálogo/presentación del producto.',
                 ],
             ],
         ]);
