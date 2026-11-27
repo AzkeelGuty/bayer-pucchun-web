@@ -43,6 +43,10 @@ try{
     $refs->save('guias',1,'T001-205',2,true,1);
     $api=new BayerSpanishService($pdo);
     $sales=$api->rows('facturas');$guides=$api->rows('guias');$stock=$api->rows('stock');
+    foreach(['facturas','guias','stock'] as $dataset){
+        ensure($api->countRows($dataset)===count($api->rows($dataset)),'Contador panel v2 coincide con filas: '.$dataset);
+        ensure($api->countRows($dataset,['from'=>'2026-11-13'])===count($api->rows($dataset,['from'=>'2026-11-13'])),'Contador con filtros coincide: '.$dataset);
+    }
     ensure(count($sales)===2&&count($guides)===1&&count($stock)===1,'Solo publicados con referencia fiscal en ventas y guías');
     $sale=$api->rows('facturas',['document_status'=>'VIGENTE'])[0];
     ensure(count($sale)===24 && count($guides[0])===21 && count($stock[0])===11,'24, 21 y 11 columnas');

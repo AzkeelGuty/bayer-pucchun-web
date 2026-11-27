@@ -21,6 +21,17 @@ final class BayerSpanishService
 
     public function rows(string $dataset,array $filters=[]): array
     {
+        return $this->queryDataset($dataset,$filters,false);
+    }
+
+    /** Cuenta las mismas filas que entrega v2, sin descargar sus detalles. */
+    public function countRows(string $dataset,array $filters=[]): int
+    {
+        return $this->queryDataset($dataset,$filters,true);
+    }
+
+    private function queryDataset(string $dataset,array $filters,bool $countOnly): array|int
+    {
         if(!(new BayerFiscalReferenceService($this->pdo))->available())throw new HttpException(503,'Debe aplicar la migración 019 de integración Bayer.');
         $params=[];$where=["h.estado_registro='PUBLICADO'"];
         if($dataset==='facturas'){
@@ -49,8 +60,12 @@ final class BayerSpanishService
             $where[]="($number LIKE ? OR $search LIKE ? OR pr.codigo LIKE ? OR pr.nombre LIKE ?)";
             $like=$filters['q'].'%';array_push($params,$like,$like,$like,$like);
         }
-        $st=$this->pdo->prepare("SELECT $select FROM $from WHERE ".implode(' AND ',$where)." ORDER BY $date DESC,h.id DESC,d.id");
-        $st->execute($params);$rows=$st->fetchAll(PDO::FETCH_ASSOC);
+        $projection=$countOnly?'COUNT(*)':$select;
+        $order=$countOnly?'':" ORDER BY $date DESC,h.id DESC,d.id";
+        $st=$this->pdo->prepare("SELECT $projection FROM $from WHERE ".implode(' AND ',$where).$order);
+        $st->execute($params);
+        if($countOnly)return (int)$st->fetchColumn();
+        $rows=$st->fetchAll(PDO::FETCH_ASSOC);
         foreach($rows as &$row){
             $quantity=\quantity_integer_value($row['cantidad'],$dataset==='stock');
             if($quantity!==null)$row['cantidad']=$quantity;

@@ -6,7 +6,7 @@ namespace App\Controllers;
 use App\Exceptions\HttpException;
 use App\Policies\AccessPolicy;
 use App\Repositories\{DocumentRepository,GuideRepository,StockRepository};
-use App\Services\{ApiTokenService,MasterCatalogService};
+use App\Services\{ApiTokenService,MasterCatalogService,BayerSpanishService};
 
 final class BackofficeController
 {
@@ -332,11 +332,20 @@ final class BackofficeController
     {
         \require_role('ADMIN','SUPERVISOR','GERENCIA');
 
-        $counts=[
-            'sales'=>(int)\db()->query("SELECT COUNT(*) FROM documentos_detalle d JOIN documentos_cabecera h ON h.id=d.documento_id WHERE h.estado_registro='PUBLICADO'")->fetchColumn(),
-            'shipments'=>(int)\db()->query("SELECT COUNT(*) FROM guias_detalle d JOIN guias_cabecera h ON h.id=d.guia_id WHERE h.estado_registro='PUBLICADO'")->fetchColumn(),
-            'inventory'=>(int)\db()->query("SELECT COUNT(*) FROM stock_detalle d JOIN stock_cabecera h ON h.id=d.stock_id WHERE h.estado_registro='PUBLICADO'")->fetchColumn(),
-        ];
+        $counts=[];
+        $apiDataReady=true;
+        $apiDataIssue=null;
+        try{
+            $service=new BayerSpanishService(\db());
+            foreach(['facturas','guias','stock'] as $dataset){
+                $counts[$dataset]=$service->countRows($dataset);
+            }
+        }catch(\Throwable $error){
+            $counts=[];
+            $apiDataReady=false;
+            $apiDataIssue=$error instanceof HttpException ? $error->getMessage() : 'No se pudo consultar la información de la API v2.';
+            if(!($error instanceof HttpException))\log_event('api_panel_v2_error',['type'=>get_class($error)]);
+        }
 
         $apiStorageReady=true;
         $apiStorageIssue=null;
@@ -352,9 +361,11 @@ final class BackofficeController
             'apiStorageReady'=>$apiStorageReady,
             'apiStorageIssue'=>$apiStorageIssue,
             'apiTokenTtl'=>(int)\config('app.api_token_ttl',28800),
-            'apiBase'=>rtrim((string)\config('app.url'),'\/').'/api/v1/bayer',
+            'apiBase'=>rtrim((string)\config('app.url'),'\/').'/api/v2/bayer',
             'apiAuthBase'=>rtrim((string)\config('app.url'),'\/').'/api/v1/auth',
             'apiCounts'=>$counts,
+            'apiDataReady'=>$apiDataReady,
+            'apiDataIssue'=>$apiDataIssue,
         ]);
     }
 }

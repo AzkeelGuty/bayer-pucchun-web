@@ -159,5 +159,10 @@ req(!str_contains($apiEvolution,'Token configurado:'),'El panel API no debe segu
 req(!str_contains($apiEvolution,'API_TOKEN'),'El panel API no debe pedir API_TOKEN en .env.');
 req(str_contains($apiEvolution,'Usuario + Bearer temporal'),'El panel API debe explicar la autenticación nueva.');
 req(str_contains($apiEvolution,'/login'),'El panel API debe mostrar el endpoint de login.');
+req(str_contains($apiEvolution,'/todo') && str_contains($apiEvolution,'/facturas') && str_contains($apiEvolution,'/guias') && str_contains($apiEvolution,'/stock'),'Panel debe anunciar rutas v2.');
+req(!str_contains($apiEvolution,'/sales') && !str_contains($apiEvolution,'/shipments') && !str_contains($apiEvolution,'/inventory'),'No mostrar rutas de extracción antiguas.');
+req(str_contains($apiEvolution,'estado_documento=1'),'Panel debe explicar filtros españoles.');
+$apiPanelController=$read('app/Controllers/BackofficeController.php');
+req(str_contains($apiPanelController,"'/api/v2/bayer'") && str_contains($apiPanelController,'->countRows('),'Panel debe usar rutas y contadores v2.');
 
 echo "Nuevos requisitos UI/rutas: OK\n";
