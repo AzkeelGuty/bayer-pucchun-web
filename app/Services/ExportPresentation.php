@@ -6,10 +6,19 @@ namespace App\Services;
 final class ExportPresentation
 {
     private const LABELS = [
+        'source' => 'Origen',
+        'stockStatus' => 'Estado del stock',
+        'customerDocumentType' => 'Tipo documento cliente',
+        'sourceDocumentNumber' => 'Documento de origen',
+        'sourceDocumentId' => 'ID documento origen',
+        'sunatStatus' => 'Estado SUNAT',
+        'paymentMethod' => 'Medio de pago',
+        'lineTotal' => 'Importe de línea (S/)',
         'dealerId' => 'RUC empresa',
         'dealerName' => 'Empresa',
         'documentTypeId' => 'Cód. tipo doc.',
         'documentType' => 'Tipo de documento',
+        'documentStatus' => 'Estado del comprobante',
         'documentNumber' => 'N.º documento',
         'documentDate' => 'Fecha documento',
         'salesId' => 'Cód. vendedor',
@@ -21,12 +30,12 @@ final class ExportPresentation
         'materialId' => 'Cód. producto',
         'materialName' => 'Producto',
         'measureUnit' => 'Unidad',
-        'quantity' => 'Cantidad',
+        'quantity' => 'Cantidad de productos',
         'unitValue' => 'Valor unitario',
         'province' => 'Provincia',
         'department' => 'Departamento',
         'district' => 'Distrito',
-        'stockDate' => 'Fecha de stock',
+        'stockDate' => 'Fecha / período de inventario',
         'warehouseId' => 'Cód. almacén',
         'warehouseName' => 'Almacén',
         'batch' => 'Lote',
@@ -63,9 +72,9 @@ final class ExportPresentation
     {
         if ($value === null || $value === '') return '—';
         if ($key === 'quantity') {
-            return number_format((float)$value, 3, '.', ',');
+            return \format_quantity($value);
         }
-        if ($key === 'unitValue') {
+        if (in_array($key,['unitValue','lineTotal'],true)) {
             return number_format((float)$value, 2, '.', ',');
         }
         return (string)$value;
@@ -79,6 +88,7 @@ final class ExportPresentation
             'to' => 'Hasta',
             'branch' => 'Sucursal',
             'q' => 'Búsqueda',
+            'document_status' => 'Estado del comprobante',
         ];
         $parts = [];
         foreach ($filters as $key => $value) {
@@ -92,9 +102,9 @@ final class ExportPresentation
     {
         $available = array_flip(self::keys($rows));
         $preferred = match ($type) {
-            'documents', 'sales' => ['documentNumber','documentDate','customerName','salesName','branchName','materialName','measureUnit','quantity','unitValue','district','province','department'],
-            'guides', 'shipments' => ['documentNumber','documentDate','customerName','salesName','branchName','materialName','measureUnit','quantity','district','province','department'],
-            'stock', 'inventory' => ['stockDate','branchName','warehouseName','materialName','measureUnit','batch','quantity','expirationDate'],
+            'documents', 'sales' => ['documentNumber','documentDate','documentStatus','customerDocumentType','customerId','customerName','salesName','branchName','materialId','materialName','measureUnit','quantity','unitValue','lineTotal','district','province','department'],
+            'guides', 'shipments' => ['documentNumber','documentDate','sourceDocumentNumber','customerDocumentType','customerId','customerName','salesName','branchName','materialId','materialName','measureUnit','quantity','district','province','department'],
+            'stock', 'inventory' => ['source','materialId','materialName','warehouseName','measureUnit','quantity','stockDate','stockStatus'],
             default => self::keys($rows),
         };
         return array_values(array_filter($preferred,static fn(string $key): bool => isset($available[$key])));
@@ -105,7 +115,9 @@ final class ExportPresentation
         $brand = \branding();
         $logoPath = static function (mixed $relative): ?string {
             if (!is_string($relative) || trim($relative) === '') return null;
-            $absolute = \base_path('public/' . ltrim($relative, '/'));
+            // Los logos se guardan en la raíz pública real. En cPanel puede ser
+            // public_html (BAYER_PUBLIC_ROOT), no necesariamente <proyecto>/public.
+            $absolute = \public_path(ltrim($relative, '/'));
             return is_file($absolute) ? $absolute : null;
         };
 
@@ -118,7 +130,7 @@ final class ExportPresentation
             'generated_by' => (string)($user['nombre'] ?? $user['email'] ?? 'Usuario autorizado'),
             'generated_at' => $generatedAt ?: date('Y-m-d H:i:s'),
             'record_count' => count($rows),
-            'status' => 'Información publicada',
+            'status' => $type==='stock' ? 'Pucchún publicado / inventario informado Bayer' : 'Información publicada',
             'filters' => self::filtersLabel($filters),
             'primary_color' => ltrim((string)($brand['primary_color'] ?? '#075B9F'), '#'),
             'accent_color' => ltrim((string)($brand['accent_color'] ?? '#168C5B'), '#'),

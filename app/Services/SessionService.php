@@ -21,8 +21,12 @@ final class SessionService
             'lifetime' => 0, 'path' => '/', 'secure' => $secure,
             'httponly' => true, 'samesite' => 'Lax',
         ]);
+        $bpSessionStarted=microtime(true);
         if (!session_start()) {
             throw new \RuntimeException('Session unavailable');
+        }
+        if (filter_var(\env('BP_PERFORMANCE_DIAGNOSTICS',false),FILTER_VALIDATE_BOOLEAN)) {
+            $GLOBALS['bp_session_ms']=(microtime(true)-$bpSessionStarted)*1000;
         }
     }
 

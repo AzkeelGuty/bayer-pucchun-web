@@ -10,5 +10,6 @@ return [
     'login_max_attempts' => (int) env('LOGIN_MAX_ATTEMPTS', 5),
     'login_window' => (int) env('LOGIN_WINDOW', 900),
     'api_enabled' => filter_var(env('API_ENABLED', false), FILTER_VALIDATE_BOOL),
-    'api_token' => env('API_TOKEN', ''),
+    'api_token_ttl' => (int) env('API_TOKEN_TTL', 28800),
+    'asset_version' => env('APP_ASSET_VERSION', '20261117-perf1'),
 ];

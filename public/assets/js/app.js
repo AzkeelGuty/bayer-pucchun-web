@@ -1,3 +1,4 @@
+// Dashboard assets: mantener colores diferenciados y comportamiento visual vigente.
 (() => {
     const body = document.body;
     const toggle = document.getElementById('sidebarToggle');
@@ -195,75 +196,99 @@
 
     refreshBrandPreview();
 
+    // La actualización de tablas y la búsqueda incremental se coordinan
+    // exclusivamente desde soft-page-init.js y navigation.js.
+    // Eliminar los temporizadores duplicados evita peticiones HTML innecesarias.
+    document.addEventListener('click',(event)=>{
+        const clear=event.target.closest?.('[data-master-search-clear]');
+        if(!clear)return;
+        const form=clear.closest('[data-master-search-form]');
+        const input=form?.querySelector('input[name="q"]');
+        if(!(input instanceof HTMLInputElement))return;
+        event.preventDefault();
+        input.value='';
+        input.focus({preventScroll:true});
+        input.dispatchEvent(new Event('input',{bubbles:true}));
+    });
+
     /*
-     * Actualización automática de tablas.
-     * Pensado para hosting compartido: polling ligero, sin WebSockets ni recarga completa.
-     * Solo se ejecuta mientras la pestaña del navegador está visible.
+     * Diálogo de observación.
+     * Se usa en Documentos, Guías y Stock para evitar popovers dentro de tablas.
      */
-    const liveElements = Array.from(document.querySelectorAll('[data-live-refresh][data-live-refresh-key]'));
-    const liveRefreshMap = new Map();
+    if (!window.BP_WORKFLOW_DIALOG_BOUND) {
+        window.BP_WORKFLOW_DIALOG_BOUND = true;
 
-    const refreshLiveElement = async (element) => {
-        if (!element || !element.isConnected || document.hidden) return;
-        const key = element.dataset.liveRefreshKey;
-        if (!key || liveRefreshMap.get(key)) return;
-
-        liveRefreshMap.set(key, true);
-        try {
-            const response = await fetch(window.location.href, {
-                method: 'GET',
-                credentials: 'same-origin',
-                cache: 'no-store',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Cache-Control': 'no-cache'
-                }
-            });
-            if (!response.ok) return;
-
-            const html = await response.text();
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            const fresh = doc.querySelector('[data-live-refresh-key="' + CSS.escape(key) + '"]');
-            if (!fresh) return;
-
-            const currentHtml = element.innerHTML;
-            if (currentHtml !== fresh.innerHTML) {
-                element.innerHTML = fresh.innerHTML;
-                element.dataset.liveUpdatedAt = new Date().toISOString();
+        const resetWorkflowDialog = (dialog) => {
+            const reason = dialog?.querySelector('[data-workflow-dialog-reason]');
+            const counter = dialog?.querySelector('[data-workflow-reason-count]');
+            if (reason) {
+                reason.value = '';
+                reason.setCustomValidity('');
             }
-        } catch (_) {
-            // Una caída temporal de red no debe interrumpir la pantalla.
-        } finally {
-            liveRefreshMap.set(key, false);
-        }
-    };
-
-    liveElements.forEach((element) => {
-        const interval = Math.max(2000, Number(element.dataset.liveRefresh || 5000));
-        const schedule = () => {
-            window.setTimeout(async () => {
-                if (element.isConnected) {
-                    await refreshLiveElement(element);
-                    schedule();
-                }
-            }, interval);
+            if (counter) counter.textContent = '0';
         };
-        schedule();
-    });
 
-    // Después de generar una exportación, refrescar el historial sin F5.
-    document.querySelectorAll('a.export-format, .format-actions a').forEach((link) => {
-        link.addEventListener('click', () => {
-            liveElements.forEach((element) => {
-                window.setTimeout(() => refreshLiveElement(element), 450);
-                window.setTimeout(() => refreshLiveElement(element), 1400);
-            });
+        const closeWorkflowDialog = (dialog) => {
+            if (!dialog) return;
+            resetWorkflowDialog(dialog);
+            if (dialog.open) dialog.close();
+        };
+
+        document.addEventListener('click', (event) => {
+            const opener = event.target.closest?.('[data-workflow-dialog-open]');
+            if (opener) {
+                event.preventDefault();
+                const id = opener.getAttribute('data-workflow-dialog-open');
+                const dialog = id ? document.getElementById(id) : null;
+                if (!(dialog instanceof HTMLDialogElement)) return;
+
+                document.querySelectorAll('dialog[data-workflow-dialog][open]').forEach((openDialog) => {
+                    if (openDialog !== dialog) closeWorkflowDialog(openDialog);
+                });
+
+                resetWorkflowDialog(dialog);
+                if (!dialog.open) dialog.showModal();
+                window.setTimeout(() => dialog.querySelector('[data-workflow-dialog-reason]')?.focus(), 30);
+                return;
+            }
+
+            const closer = event.target.closest?.('[data-workflow-dialog-close]');
+            if (closer) {
+                event.preventDefault();
+                closeWorkflowDialog(closer.closest('dialog[data-workflow-dialog]'));
+                return;
+            }
+
+            const dialog = event.target.closest?.('dialog[data-workflow-dialog]');
+            if (dialog && event.target === dialog) {
+                closeWorkflowDialog(dialog);
+            }
         });
-    });
 
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) liveElements.forEach((element) => refreshLiveElement(element));
-    });
+        document.addEventListener('input', (event) => {
+            const reason = event.target.closest?.('[data-workflow-dialog-reason]');
+            if (!reason) return;
+            const counter = reason.closest('dialog[data-workflow-dialog]')?.querySelector('[data-workflow-reason-count]');
+            if (counter) counter.textContent = String(reason.value.length);
+        });
+
+        document.addEventListener('submit', (event) => {
+            const form = event.target.closest?.('.workflow-dialog-form');
+            if (!form) return;
+            const reason = form.querySelector('[data-workflow-dialog-reason]');
+            if (!reason) return;
+
+            const value = reason.value.trim();
+            if (value.length < 3) {
+                event.preventDefault();
+                reason.setCustomValidity('Escribe un motivo de observación claro.');
+                reason.reportValidity();
+                reason.focus();
+            } else {
+                reason.setCustomValidity('');
+            }
+        }, true);
+    }
 
     if (!window.dashboardData || typeof Chart === 'undefined') return;
 
@@ -355,6 +380,15 @@
 
     const topCanvas = document.getElementById('topChart');
     if (topCanvas) {
+        const topColors = top.map((_, index) => {
+            const palette = ['#075b9f','#f59e0b','#7c3aed','#d92d20','#0891b2','#c2410c','#4f46e5','#be185d','#65a30d','#0f766e'];
+            if (index < palette.length) return palette[index];
+
+            // Si aparecen más productos, generamos tonos distintos para evitar barras repetidas.
+            const hue = Math.round((index * 137.508) % 360);
+            return `hsl(${hue} 68% 44%)`;
+        });
+
         new Chart(topCanvas, {
             type: 'bar',
             data: {
@@ -362,7 +396,7 @@
                 datasets: [{
                     label: 'Cantidad',
                     data: top.map(item => Number(item.cantidad)),
-                    backgroundColor: green,
+                    backgroundColor: topColors,
                     borderRadius: 8,
                     borderSkipped: false
                 }]
@@ -380,3 +414,114 @@
         });
     }
 })();
+
+
+// Confirmación centralizada para acciones masivas de workflow.
+document.addEventListener('submit', function (event) {
+    const form = event.target.closest?.('[data-bulk-workflow]');
+    if (!form) return;
+    const label = form.dataset.bulkLabel || 'procesar todos los registros';
+    if (!window.confirm('¿Confirmas que deseas ' + label + '? Esta acción se aplicará a todos los registros elegibles del módulo.')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+}, true);
+
+
+// Confirmación para borrado de catálogos maestros.
+document.addEventListener('submit', function (event) {
+    const form = event.target.closest?.('[data-master-delete]');
+    if (!form) return;
+    const label = form.dataset.masterLabel || 'este registro';
+    const logicalDelete = form.dataset.masterDeleteMode === 'deactivate';
+    const message = logicalDelete
+        ? '¿Eliminar "' + label + '" de las homologaciones activas? El registro quedará inactivo y se conservará su historial.'
+        : '¿Eliminar "' + label + '"? Esta acción no se puede deshacer. Si el registro está en uso, el sistema impedirá eliminarlo.';
+    if (!window.confirm(message)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    }
+}, true);
+
+
+// Control de acciones supervisadas: el motivo debe ser obligatorio al observar.
+// Se usa delegación para que siga funcionando tras la navegación interna.
+document.addEventListener('change', (event) => {
+    const select=event.target.closest?.('[data-workflow-status]');
+    if (!select) return;
+    const form=select.closest('[data-workflow-supervised]');
+    if (!form) return;
+    const needsReason=['OBSERVADO','ANULADO'].includes(select.value);
+    const reason=form.querySelector('[data-workflow-reason]');
+    if (reason) {
+        reason.required=needsReason;
+        reason.placeholder=needsReason ? 'Motivo obligatorio para observar' : 'Motivo si aplica';
+    }
+    const action=form.querySelector('button[type="submit"]');
+    if (action) {
+        action.classList.remove('btn-app-blue','btn-app-green','btn-app-amber');
+        action.classList.add(select.value==='PUBLICADO' ? 'btn-app-green' :
+            needsReason ? 'btn-app-amber' : 'btn-app-blue');
+    }
+});
+
+
+// Filtros GET: al elegir una opción del desplegable se aplica de inmediato.
+// Solo afecta formularios de consulta; nunca formularios de edición/POST.
+document.addEventListener('change', (event) => {
+    const select = event.target?.closest?.('select');
+    if (!select || select.hasAttribute('data-no-filter-autosubmit')) return;
+    const form = select.form;
+    if (!form || form.method.toLowerCase() !== 'get') return;
+    if (form.hasAttribute('data-no-filter-autosubmit')) return;
+    const queryForm = form.matches('[data-master-search-form], [data-stock-unified-filter]') ||
+        form.querySelector('button[type="submit"], button:not([type]), input[type="submit"]');
+    if (!queryForm && !select.hasAttribute('data-filter-autosubmit')) return;
+    // Un cambio de filtro empieza en la primera página; conserva las otras opciones.
+    form.querySelectorAll('input[name="page"], input[name="stock_pagina"]').forEach((input) => {
+        input.value = '1';
+    });
+    if (typeof form.requestSubmit === 'function') form.requestSubmit();
+    else form.submit();
+});
+
+
+// Edición manual de precios Bayer: cálculos de apoyo, sin determinar la tasa
+// tributaria por defecto. El servidor siempre valida los importes guardados.
+document.addEventListener('input', (event) => {
+    const field=event.target;
+    const form=field?.closest?.('[data-bayer-price-editor]');
+    if (!form) return;
+    if (!['bayer-precio-neto','bayer-precio-igv','bayer-precio-final'].includes(field.id)) return;
+    const net=form.querySelector('#bayer-precio-neto');
+    const vat=form.querySelector('#bayer-precio-igv');
+    const gross=form.querySelector('#bayer-precio-final');
+    if (!net || !vat || !gross) return;
+    const rate=vat.value.trim()==='' ? NaN : Number(vat.value);
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100) return;
+    if (field===gross) {
+        if (gross.value.trim()==='') return;
+        const amount=Number(gross.value);
+        if (Number.isFinite(amount) && amount>=0)
+            net.value=(amount/(1+rate/100)).toFixed(2);
+        return;
+    }
+    if (net.value.trim()==='') return;
+    const amount=Number(net.value);
+    if (Number.isFinite(amount) && amount>=0)
+        gross.value=(amount*(1+rate/100)).toFixed(2);
+});
+
+
+// Cantidad Bayer: solo es obligatoria cuando se elige registrar una cifra.
+document.addEventListener('change',(event)=>{
+    const select=event.target?.closest?.('[data-bayer-stock-action]');
+    if(!select)return;
+    const form=select.closest('form');
+    const wrap=form?.querySelector('[data-bayer-stock-qty-wrap]');
+    const amount=wrap?.querySelector('[name="inventario_cantidad"]');
+    if(!wrap||!amount)return;
+    const numeric=select.value==='CANTIDAD';
+    wrap.hidden=!numeric;
+    amount.required=numeric;
+});

@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Exceptions\HttpException;
-use App\Services\{BayerDataService,ExportPresentation,SimpleXlsxExporter,SimplePdfExporter};
+use App\Services\{BayerDataService,BayerSpanishService,UnifiedStockService,ExportPresentation,SimpleXlsxExporter,SimplePdfExporter};
 
 final class ExportController
 {
@@ -20,13 +20,18 @@ final class ExportController
         $type=(string)\input('type','documents');
         if(!in_array($type,['documents','guides','stock'],true)) throw new HttpException(422,'Dataset inválido.');
         $filters=[];
-        foreach(['from','to','branch','q'] as $key){
+        foreach(['from','to','branch','q','document_status','fuente','estado','almacen_id','bajo'] as $key){
             $value=trim((string)\input($key,''));
             if($value!=='') $filters[$key]=$value;
         }
-        $rows=(new BayerDataService())->dataset($type,$filters);
+        // El rol externo BAYER mantiene su alcance publicado, sin ver catálogos internos.
+        $dataset=match($type){'documents'=>'facturas','guides'=>'guias','stock'=>'stock'};
+        $count=\input('contrato','')==='v2' ? (new BayerSpanishService(\db()))->countRows($dataset,$filters)
+            : ($type==='stock' && !\has_role('BAYER')
+                ? count((new UnifiedStockService())->reportRows($filters))
+                : (new BayerDataService())->countDataset($type,$filters));
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['success'=>true,'count'=>count($rows)],JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success'=>true,'count'=>$count],JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -40,23 +45,35 @@ final class ExportController
         if(!in_array($format,['xlsx','json','txt','pdf'],true)) throw new HttpException(422,'Formato inválido.');
 
         $filters=[];
-        foreach(['from','to','branch','q'] as $key){
+        foreach(['from','to','branch','q','document_status','fuente','estado','almacen_id','bajo'] as $key){
             $value=trim((string)\input($key,''));
             if($value!=='') $filters[$key]=$value;
         }
 
         $started=microtime(true);
-        $rows=(new BayerDataService())->dataset($type,$filters);
+        $isV2=\input('contrato','')==='v2';
+        if($isV2 && $format==='pdf')throw new HttpException(422,'PDF disponible en reporte operativo.');
+        $dataset=match($type){'documents'=>'facturas','guides'=>'guias','stock'=>'stock'};
+        $rows=$isV2?(new BayerSpanishService(\db()))->rows($dataset,$filters):($type==='stock' && !\has_role('BAYER')
+            ? (new UnifiedStockService())->reportRows($filters)
+            : (new BayerDataService())->completeDataset($type,$filters,$format==='xlsx' && $type==='guides'));
         $generatedAt=date('Y-m-d H:i:s');
         $meta=ExportPresentation::metadata($type,$filters,$rows,(array)\auth_user(),$generatedAt);
 
         $slug=match($type){
             'documents'=>'documentos',
             'guides'=>'guias_remision',
-            'stock'=>'stock',
+            'stock'=>'stock_consolidado',
             default=>$type,
         };
-        $base='pucchun_'.$slug.'_'.date('Ymd_His');
+        if($isV2){
+            $meta['api_fields']=BayerSpanishService::fields($dataset);
+            $meta['title']='API v2 · '.ExportPresentation::datasetTitle($type);
+            $meta['status']='Datos disponibles en API v2';
+            $meta['api_dataset']=$dataset;
+            $filters['contrato']='v2';
+        }
+        $base='pucchun_'.($isV2?'api_v2_':'').$slug.'_'.date('Ymd_His');
         $filename=$base.'.'.$format;
         $meta['filename']=$filename;
         $meta['format']=strtoupper($format);
@@ -77,6 +94,10 @@ final class ExportController
     {
         header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="'.$filename.'"');
+        if(isset($meta['api_dataset'])){
+            echo json_encode(['metadatos'=>['version_api'=>'v2','conjunto'=>$meta['api_dataset'],'fecha_generacion'=>date(DATE_ATOM),'total_registros'=>count($rows)],'datos'=>$rows],JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+            exit;
+        }
         $payload=[
             'meta'=>[
                 'sistema'=>$meta['system'],
@@ -120,6 +141,11 @@ final class ExportController
         echo "DATOS PUBLICADOS\n";
         echo $line."\n";
 
+        if(isset($meta['api_fields'])){
+            echo implode(' | ',$meta['api_fields'])."\n".$line."\n";
+            foreach($rows as $row)echo implode(' | ',array_map(static fn($key)=>str_replace(["\r","\n","\t"],' ',(string)($row[$key]??'')),$meta['api_fields']))."\n";
+            exit;
+        }
         if(!$rows){
             echo "Sin datos para los filtros seleccionados.\n";
             echo $bar."\n";

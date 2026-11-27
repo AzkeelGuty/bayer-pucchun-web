@@ -1,15 +1,15 @@
-# API REST futura
-Está implementada como capa opcional y deshabilitada por defecto.
+# API REST Bayer–Pucchún v2
 
-`.env`:
-`API_ENABLED=true`
-`API_TOKEN=<token seguro>`
+La integración utiliza exclusivamente rutas `/api/v2/`. Consultar el [contrato de datos en español](../API_BAYER_V2_ES.md) para los 56 campos, filtros y criterios de entrega.
 
-Endpoints:
-- `GET /api/v1/bayer/sales?from=YYYY-MM-DD&to=YYYY-MM-DD`
-- `GET /api/v1/bayer/shipments?from=YYYY-MM-DD&to=YYYY-MM-DD`
-- `GET /api/v1/bayer/inventory?from=YYYY-MM-DD&to=YYYY-MM-DD`
+| Método | Ruta | Función |
+|---|---|---|
+| POST | `/api/v2/auth/login` | Autenticación y token temporal |
+| POST | `/api/v2/auth/logout` | Revocación del token |
+| GET | `/api/v2/bayer` | Información de integración |
+| GET | `/api/v2/bayer/todo` | Consulta consolidada |
+| GET | `/api/v2/bayer/facturas` | Facturas y documentos |
+| GET | `/api/v2/bayer/guias` | Guías |
+| GET | `/api/v2/bayer/stock` | Stock |
 
-Header: `Authorization: Bearer <API_TOKEN>`.
-
-Para producción corporativa futura se recomienda migrar a OAuth2 Client Credentials, rate limiting e IP allowlist.
+El inicio de sesión conserva `auth.access_token`; enviar `Authorization: Bearer <token>` en las consultas. Los conjuntos principales devuelven `metadatos` y `datos`. Los filtros son `desde`, `hasta`, `sucursal`, `busqueda` y `estado_documento` (1 vigente, 0 anulado). Las respuestas de autenticación e información conservan `meta` y `auth` o `data`, con `apiVersion: v2`.

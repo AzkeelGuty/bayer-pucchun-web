@@ -24,20 +24,32 @@ final class SimpleXlsxExporter
             exit('La extensión ZipArchive es necesaria para generar XLSX.');
         }
 
-        $keys=ExportPresentation::keys($rows);
-        $labels=ExportPresentation::labels($rows);
+        $apiFields=$meta['api_fields']??null;
+        $isGuide=$apiFields===null&&in_array((string)($meta['type']??''),['guides','shipments'],true);
+        $guideLayout=$isGuide?GuideExcelLayout::build($rows):null;
+        $displayRows=$guideLayout['rows']??$rows;
+        $keys=$apiFields??$guideLayout['keys']??ExportPresentation::keys($rows);
+        $labels=$apiFields??$guideLayout['labels']??ExportPresentation::labels($rows);
+        if($guideLayout!==null)$meta['record_count']=
+            $guideLayout['guide_count'].' guías · '.$guideLayout['product_lines'].' productos';
         $columnCount=max(8,count($keys),1);
         $dataColumnCount=max(1,count($keys));
         $lastCol=$this->col($dataColumnCount);
         $sheetLastCol=$this->col($columnCount);
         $images=$this->prepareImages($meta);
 
-        $titleEndIndex=$images ? max(4,$columnCount-5) : $columnCount;
+        $titleEndIndex=$images ? max(4,$columnCount-count($images)) : $columnCount;
         $titleEndCol=$this->col($titleEndIndex);
 
         $sheetRows=[];
-        $sheetRows[]=$this->row(1,[['value'=>(string)($meta['title']??'Reporte de datos'),'style'=>1]],34);
-        $sheetRows[]=$this->row(2,[['value'=>(string)($meta['system']??'Pucchún Data Hub').' · '.(string)($meta['partner']??'Bayer'),'style'=>2]],22);
+        // La franja azul también cubre las celdas de los logotipos.
+        $banner1=array_fill(0,$columnCount,['value'=>'','style'=>1]);
+        $banner2=array_fill(0,$columnCount,['value'=>'','style'=>2]);
+        $banner1[0]=['value'=>(string)($meta['title']??'Reporte de datos'),'style'=>1];
+        $banner2[0]=['value'=>(string)($meta['system']??'Pucchún Data Hub')
+            .' · '.(string)($meta['partner']??'Bayer'),'style'=>2];
+        $sheetRows[]=$this->row(1,$banner1,34);
+        $sheetRows[]=$this->row(2,$banner2,22);
         $sheetRows[]=$this->row(3,[],9);
 
         // Bloque de metadata en dos columnas visuales.
@@ -71,34 +83,52 @@ final class SimpleXlsxExporter
         ],22);
         $sheetRows[]=$this->row(8,[['value'=>'DATOS PUBLICADOS · INFORMACIÓN VALIDADA PARA CONSULTA Y ENTREGA','style'=>5]],24);
 
-        if($keys){
-            $cells=[];
-            foreach($labels as $label) $cells[]=['value'=>$label,'style'=>6];
-            $sheetRows[]=$this->row(9,$cells,27);
-
+        if($displayRows||$apiFields!==null){
+            $headCells=[];
+            foreach($labels as $label)$headCells[]=['value'=>$label,'style'=>6];
+            $sheetRows[]=$this->row(9,$headCells,28);
             $rowNum=10;
-            foreach($rows as $ri=>$row){
+            foreach($displayRows as $ri=>$record){
+                $kind=(string)($record['_kind']??'detail');
                 $cells=[];
                 foreach($keys as $key){
-                    $value=$row[$key]??null;
-                    $style=$ri%2===0?7:8;
-                    $numeric=in_array($key,['quantity','unitValue'],true) && is_numeric($value);
-                    if($numeric){
-                        $style=$key==='unitValue'?10:9;
-                        $cells[]=['value'=>(string)$value,'style'=>$style,'numeric'=>true];
+                    $value=$record[$key]??null;
+                    if($isGuide){
+                        $style=match($kind){
+                            'guide'=>11,'total'=>12,default=>$ri%2===0?7:8
+                        };
+                        $numeric=in_array($key,['quantity','unitValue','lineTotal','taxAmount','finalTotal'],true)
+                            && is_numeric($value) && in_array($kind,['detail','total'],true);
+                        if($numeric){
+                            $isQuantity=$key==='quantity';
+                            $cells[]=['value'=>(string)$value,
+                                'style'=>$kind==='total'?($isQuantity?14:15):($isQuantity?9:10),
+                                'numeric'=>true];
+                        }else{
+                            $cells[]=['value'=>$value===null?'':(string)$value,'style'=>$style];
+                        }
                     }else{
-                        // Identificadores permanecen como texto y no se transforman a notación científica.
-                        $cells[]=['value'=>ExportPresentation::displayValue($key,$value),'style'=>$style];
+                        $style=$ri%2===0?7:8;
+                        $numeric=in_array($key,['quantity','unitValue','lineTotal','cantidad','precio_unitario','importe_linea','estado_documento','id_documento_origen'],true)
+                            && is_numeric($value);
+                        if($numeric){
+                            $style=in_array($key,['unitValue','lineTotal','precio_unitario','importe_linea'],true)?10:9;
+                            $cells[]=['value'=>(string)$value,'style'=>$style,'numeric'=>true];
+                        }else{
+                            $cells[]=['value'=>$apiFields!==null?(string)($value??''):ExportPresentation::displayValue($key,$value),
+                                'style'=>$style];
+                        }
                     }
                 }
-                $sheetRows[]=$this->row($rowNum,$cells,21);
+                $sheetRows[]=$this->row($rowNum,$cells,$isGuide&&$kind==='guide'?29:($isGuide&&$kind==='total'?30:22));
                 $rowNum++;
             }
         }else{
-            $sheetRows[]=$this->row(9,[['value'=>'Sin datos para los filtros seleccionados.','style'=>7]],26);
+            $sheetRows[]=$this->row(9,[['value'=>'Sin datos para los filtros seleccionados.',
+                'style'=>7]],26);
         }
 
-        $cols=$this->columnsXml($rows,$keys,$labels,$columnCount);
+        $cols=$this->columnsXml($displayRows,$keys,$labels,$columnCount);
         $mergeRefs=[
             'A1:'.$titleEndCol.'1',
             'A2:'.$titleEndCol.'2',
@@ -112,8 +142,8 @@ final class SimpleXlsxExporter
         foreach($mergeRefs as $ref) $mergeXml.='<mergeCell ref="'.$ref.'"/>';
         $mergeXml.='</mergeCells>';
 
-        $filterXml=$keys ? '<autoFilter ref="A9:'.$lastCol.(9+count($rows)).'"/>' : '';
-        $dimension='A1:'.$sheetLastCol.max(9,9+count($rows));
+        $filterXml=$displayRows && !$isGuide ? '<autoFilter ref="A9:'.$lastCol.(9+count($displayRows)).'"/>' : '';
+        $dimension='A1:'.$sheetLastCol.max(9,9+count($displayRows));
 
         $drawingXml='';
         $drawingRelXml='';
@@ -235,7 +265,8 @@ final class SimpleXlsxExporter
                 foreach(array_slice($rows,0,150) as $row){
                     $max=max($max,mb_strlen(ExportPresentation::displayValue($key,$row[$key]??null)));
                 }
-                $width=min(34,max(11,$max+2));
+                $cap=$key==='destination' ? 50 : 34;
+                $width=min($cap,max(11,$max+2));
             }else{
                 $width=14;
             }
@@ -252,13 +283,14 @@ final class SimpleXlsxExporter
 
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             .'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-            .'<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.000"/><numFmt numFmtId="165" formatCode="#,##0.00"/></numFmts>'
-            .'<fonts count="5">'
+            .'<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0.000"/><numFmt numFmtId="165" formatCode="#,##0.00"/><numFmt numFmtId="166" formatCode="#,##0"/></numFmts>'
+            .'<fonts count="6">'
             .'<font><sz val="10"/><name val="Calibri"/></font>'
             .'<font><b/><sz val="20"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
             .'<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
             .'<font><b/><sz val="10"/><color rgb="FF17324D"/><name val="Calibri"/></font>'
             .'<font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>'
+            .'<font><b/><sz val="10"/><color rgb="FF0B3C68"/><name val="Calibri"/></font>'
             .'</fonts>'
             .'<fills count="7">'
             .'<fill><patternFill patternType="none"/></fill>'
@@ -271,7 +303,7 @@ final class SimpleXlsxExporter
             .'</fills>'
             .'<borders count="2"><border/><border><left style="thin"><color rgb="FFD9E6EF"/></left><right style="thin"><color rgb="FFD9E6EF"/></right><top style="thin"><color rgb="FFD9E6EF"/></top><bottom style="thin"><color rgb="FFD9E6EF"/></bottom></border></borders>'
             .'<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-            .'<cellXfs count="11">'
+            .'<cellXfs count="16">'
             .'<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
             .'<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf>'
             .'<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf>'
@@ -283,6 +315,11 @@ final class SimpleXlsxExporter
             .'<xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>'
             .'<xf numFmtId="164" fontId="0" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"/>'
             .'<xf numFmtId="165" fontId="0" fillId="5" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"/>'
+            .'<xf numFmtId="0" fontId="5" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>'
+            .'<xf numFmtId="0" fontId="4" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>'
+            .'<xf numFmtId="164" fontId="4" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>'
+            .'<xf numFmtId="166" fontId="4" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>'
+            .'<xf numFmtId="165" fontId="4" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>'
             .'</cellXfs>'
             .'<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
             .'</styleSheet>';
@@ -385,12 +422,13 @@ final class SimpleXlsxExporter
         $rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
 
-        $baseCol=max(0,$columnCount-4);
+        // Insertar ambas marcas dentro de las dos últimas columnas del propio reporte.
+        $baseCol=max(0,$columnCount-count($images));
         foreach($images as $i=>$image){
             $relId=$i+1;
-            $col=$baseCol+($i*2);
-            $maxW=92;
-            $maxH=48;
+            $col=$baseCol+$i;
+            $maxW=52;
+            $maxH=46;
             $ratio=min($maxW/max(1,$image['width']),$maxH/max(1,$image['height']));
             $width=max(24,(int)round($image['width']*$ratio));
             $height=max(20,(int)round($image['height']*$ratio));
@@ -398,12 +436,12 @@ final class SimpleXlsxExporter
             $cy=$height*9525;
 
             $drawing.='<xdr:oneCellAnchor>'
-                .'<xdr:from><xdr:col>'.$col.'</xdr:col><xdr:colOff>30000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>25000</xdr:rowOff></xdr:from>'
+                .'<xdr:from><xdr:col>'.$col.'</xdr:col><xdr:colOff>75000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>95000</xdr:rowOff></xdr:from>'
                 .'<xdr:ext cx="'.$cx.'" cy="'.$cy.'"/>'
                 .'<xdr:pic>'
                 .'<xdr:nvPicPr><xdr:cNvPr id="'.$relId.'" name="'.$this->xmlEsc((string)$image['label']).'"/><xdr:cNvPicPr/></xdr:nvPicPr>'
                 .'<xdr:blipFill><a:blip r:embed="rId'.$relId.'"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
-                .'<xdr:spPr><a:xfrm/><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>'
+                .'<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'.$cx.'" cy="'.$cy.'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>'
                 .'</xdr:pic><xdr:clientData/>'
                 .'</xdr:oneCellAnchor>';
 

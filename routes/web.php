@@ -1,15 +1,23 @@
 <?php
-use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController};
+use App\Controllers\{AuthController,DashboardController,DocumentController,GuideController,StockController,BayerController,ExportController,ApiController,BrandingController,BackofficeController,UserAdminController,MasterDataController,HomologationController,LookupController,SunatController,BayerCatalogController};
 use App\Middleware\{AuthMiddleware,RoleMiddleware};
 use App\Policies\AccessPolicy;
 
 $router->before(static function (string $path): void {
     (new AuthMiddleware())->refresh();
-    if (preg_match('~^/(documentos|guias|stock|dashboard|usuarios|roles|permisos|maestros|homologaciones|validacion|publicaciones|reportes|configuracion|auditoria|evolucion)(/|$)~', $path)) {
+    if (preg_match('~^/(documentos|guias|stock|dashboard|usuarios|roles|permisos|maestros|homologaciones|validacion|publicaciones|reportes|configuracion|auditoria|evolucion|lookups|sunat|bayer-productos)(/|$)~', $path)) {
         require_role(...AccessPolicy::INTERNAL);
     }
     if (preg_match('~^/(usuarios|roles|permisos|configuracion)(/|$)~', $path)) {
         require_role('ADMIN');
+    }
+    // Tras refrescar autenticación y comprobar el alcance, los endpoints
+    // de lectura autónoma pueden cerrar la sesión antes de trabajar.
+    // Evita que búsquedas y fotografías bloqueen otros clics del mismo usuario.
+    if (request_method()==='GET'
+        && in_array($path,['/lookups','/avatar-usuario','/documentos/siguiente-numero','/guias/siguiente-numero'],true)
+        && session_status()===PHP_SESSION_ACTIVE) {
+        session_write_close();
     }
 });
 $internal = [new RoleMiddleware(AccessPolicy::INTERNAL)];
@@ -22,6 +30,7 @@ $router->get('/login',[AuthController::class,'showLogin']);
 $router->post('/login',[AuthController::class,'login']);
 $router->post('/logout',[AuthController::class,'logout'],[new AuthMiddleware()]);
 $router->get('/dashboard',[DashboardController::class,'index'],$internal);
+$router->get('/lookups',[LookupController::class,'search'],$internal);
 
 foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::class,'stock'=>StockController::class] as $path=>$controller) {
     $router->get('/'.$path,[$controller,'index'],$internal);
@@ -31,14 +40,52 @@ foreach (['documentos'=>DocumentController::class,'guias'=>GuideController::clas
     $router->post('/'.$path.'/actualizar',[$controller,'update'],$capture);
     $router->post('/'.$path.'/eliminar',[$controller,'destroy'],$capture);
     $router->post('/'.$path.'/estado',[$controller,'changeStatus'],$review);
+    $router->post('/'.$path.'/estado-masivo',[$controller,'bulkStatus'],$review);
 }
 
+$router->get('/documentos/siguiente-numero',[DocumentController::class,'nextNumberPreview'],$capture);
 $router->get('/documentos/ver',[DocumentController::class,'show'],$internal);
+$router->post('/documentos/estado-comprobante',[DocumentController::class,'changeVoucherStatus'],$review);
+$router->get('/guias/siguiente-numero',[GuideController::class,'nextNumberPreview'],$capture);
 $router->get('/guias/ver',[GuideController::class,'show'],$internal);
+$router->post('/guias/desde-documento',[GuideController::class,'generateFromDocument'],$capture);
+$router->post('/guias/cliente-ubicacion',[GuideController::class,'saveClientLocation'],$capture);
 $router->get('/stock/ver',[StockController::class,'show'],$internal);
 
 $router->get('/maestros',[BackofficeController::class,'masters'],$internal);
+$router->get('/maestros/nuevo',[MasterDataController::class,'create'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/guardar',[MasterDataController::class,'store'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/maestros/editar',[MasterDataController::class,'edit'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/actualizar',[MasterDataController::class,'update'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/eliminar',[MasterDataController::class,'destroy'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/maestros/importar',[MasterDataController::class,'importPage'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/maestros/importar',[MasterDataController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/maestros/plantilla',[MasterDataController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
+// Inventario y catálogo del proveedor Bayer: fuente separada del stock físico Pucchún.
+$router->get('/bayer-productos',[BayerCatalogController::class,'index'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/editar',[BayerCatalogController::class,'form'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/guardar',[BayerCatalogController::class,'save'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/importar',[BayerCatalogController::class,'importPage'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/analizar',[BayerCatalogController::class,'analyze'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/importar',[BayerCatalogController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/importar/cancelar',[BayerCatalogController::class,'discardImport'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/plantilla',[BayerCatalogController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/precios/importar',[BayerCatalogController::class,'pricesPage'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/ver',[BayerCatalogController::class,'detail'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/estado',[BayerCatalogController::class,'status'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/publicar-todo',[BayerCatalogController::class,'publishAll'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/bayer-productos/eliminar',[BayerCatalogController::class,'confirmDelete'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/bayer-productos/eliminar',[BayerCatalogController::class,'delete'],[new RoleMiddleware(['ADMIN'])]);
+
 $router->get('/homologaciones',[BackofficeController::class,'homologations'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/homologaciones/nuevo',[HomologationController::class,'create'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/homologaciones/editar',[HomologationController::class,'edit'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/homologaciones/guardar',[HomologationController::class,'store'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/homologaciones/actualizar',[HomologationController::class,'update'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/homologaciones/desactivar',[HomologationController::class,'deactivate'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/homologaciones/importar',[HomologationController::class,'importPage'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/homologaciones/importar',[HomologationController::class,'import'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/homologaciones/plantilla',[HomologationController::class,'template'],[new RoleMiddleware(['ADMIN'])]);
 $router->get('/validacion',[BackofficeController::class,'validation'],[new RoleMiddleware(['ADMIN','SUPERVISOR'])]);
 $router->get('/publicaciones',[BackofficeController::class,'publications'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
 $router->get('/reportes',[BackofficeController::class,'reports'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
@@ -47,7 +94,20 @@ $router->get('/seguridad',[BackofficeController::class,'security'],[new RoleMidd
 $router->post('/seguridad/usuarios/guardar',[UserAdminController::class,'store'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/seguridad/usuarios/estado',[UserAdminController::class,'status'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/seguridad/usuarios/rol',[UserAdminController::class,'role'],[new RoleMiddleware(['ADMIN'])]);
+
+$router->get('/seguridad/usuarios/editar',[UserAdminController::class,'edit'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/seguridad/usuarios/actualizar',[UserAdminController::class,'update'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/seguridad/usuarios/password',[UserAdminController::class,'resetPassword'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/mi-perfil',[UserAdminController::class,'profile'],[new AuthMiddleware()]);
+$router->post('/mi-perfil/actualizar',[UserAdminController::class,'updateProfile'],[new AuthMiddleware()]);
+$router->post('/mi-perfil/password',[UserAdminController::class,'changeMyPassword'],[new AuthMiddleware()]);
+$router->get('/avatar-usuario',[UserAdminController::class,'photo'],[new AuthMiddleware()]);
 $router->get('/evolucion',[BackofficeController::class,'evolution'],[new RoleMiddleware(['ADMIN','SUPERVISOR','GERENCIA'])]);
+
+// El emisor SUNAT es una acción tributaria independiente de validar/publicar.
+$router->get('/sunat',[SunatController::class,'index'],[new RoleMiddleware(['ADMIN'])]);
+$router->post('/sunat/emitir',[SunatController::class,'emit'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/sunat/descargar',[SunatController::class,'download'],[new RoleMiddleware(['ADMIN'])]);
 
 $router->get('/configuracion/identidad',[BrandingController::class,'index'],[new RoleMiddleware(['ADMIN'])]);
 $router->post('/configuracion/identidad',[BrandingController::class,'update'],[new RoleMiddleware(['ADMIN'])]);
@@ -57,6 +117,17 @@ $router->get('/bayer/datos',[BayerController::class,'data'],$published);
 $router->get('/bayer/exportaciones',[BayerController::class,'exports'],$published);
 $router->get('/bayer/descargas',[BayerController::class,'downloads'],$published);
 $router->get('/export',[ExportController::class,'export'],$published);
-$router->get('/api/v1/bayer/sales',[ApiController::class,'sales']);
-$router->get('/api/v1/bayer/shipments',[ApiController::class,'shipments']);
-$router->get('/api/v1/bayer/inventory',[ApiController::class,'inventory']);
+$router->postApi('/api/v2/auth/login',[ApiController::class,'login']);
+$router->postApi('/api/v2/auth/logout',[ApiController::class,'logout']);
+$router->get('/api/v2/bayer/todo',[ApiController::class,'todoEs']);
+$router->get('/api/v2/bayer/facturas',[ApiController::class,'facturasEs']);
+$router->get('/api/v2/bayer/guias',[ApiController::class,'guiasEs']);
+$router->get('/api/v2/bayer/stock',[ApiController::class,'stockEs']);
+$router->post('/sunat/referencia-bayer',[\App\Controllers\BayerFiscalReferenceController::class,'save'],[new RoleMiddleware(['ADMIN'])]);
+$router->get('/api/v2/bayer',[ApiController::class,'info']);
+$router->get('/api/v2/bayer/productos',[ApiController::class,'bayerProducts']);
+$router->get('/api/v2/bayer/inventario-reportado',[ApiController::class,'bayerReportedInventory']);
+$router->get('/api/v2/bayer/precios',[ApiController::class,'bayerPrices']);
+// Consulta complementaria de existencias Pucchún.
+$router->get('/api/v2/pucchun/stock-actual',[ApiController::class,'pucchunLatestStock']);
+

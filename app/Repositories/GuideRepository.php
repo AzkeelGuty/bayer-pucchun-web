@@ -9,7 +9,60 @@ class GuideRepository extends OperationalRepository
     protected const DETAIL = 'guias_detalle';
     protected const PARENT_KEY = 'guia_id';
     protected const HEADER_FIELDS = ['numero', 'fecha', 'cliente_id', 'vendedor_id', 'sucursal_id'];
-    protected const OPTIONAL_FIELDS = ['departamento_id', 'provincia_id', 'distrito_id'];
+    protected const OPTIONAL_FIELDS = ['departamento_id', 'provincia_id', 'distrito_id','precio_igv_modalidad'];
+    protected const DETAIL_FIELDS = ['producto_id','unidad_id','cantidad','valor_unitario'];
+
+    protected function normalize(array $header,array $details): array
+    {
+        $mode=$header['precio_igv_modalidad']??null;
+        if($mode!==null && !in_array($mode,['INCLUIDO','ADICIONAL'],true))
+            throw new \InvalidArgumentException('Modalidad de IGV inválida en guía.');
+        $header['precio_igv_modalidad']=$mode;
+        \App\Services\CommercialTotalsService::summarize($details,$mode);
+        return parent::normalize($header,$details);
+    }
+
+
+    /** Una guía nueva recibe un número interno, independiente de la emisión GRE. */
+    public function createAutoNumbered(array $header,array $details,int $actorId): int
+    {
+        return $this->atomic(function () use($header,$details,$actorId): int {
+            $header['numero']=(new \App\Services\InternalNumberingService($this->pdo))->nextGuide();
+            $id=parent::create($header,$details,$actorId);
+            (new \App\Services\AutomaticFiscalNumberService($this->pdo))->reserve('guias',$id);
+            return $id;
+        });
+    }
+
+    /** Creación y registro fiscal externo en una única transacción. */
+    public function createWithFiscalReference(array $header,array $details,int $actorId,string $number,bool $confirmed): int
+    {
+        return $this->atomic(function () use($header,$details,$actorId,$number,$confirmed): int {
+            $header['numero']=(new \App\Services\InternalNumberingService($this->pdo))->nextGuide();
+            $id=parent::create($header,$details,$actorId);
+            (new \App\Services\BayerFiscalReferenceService($this->pdo))->save('guias',$id,$number,null,$confirmed,$actorId,true);
+            return $id;
+        });
+    }
+
+    public function updateDraft(int $id,int $expectedVersion,array $header,array $details,int $actorId): int
+    {
+        return $this->atomic(function () use($id,$expectedVersion,$header,$details,$actorId): int {
+            $version=parent::updateDraft($id,$expectedVersion,$header,$details,$actorId);
+            (new \App\Services\BayerFiscalReferenceService($this->pdo))->assertIdentity('guias',$id);
+            $automatic=new \App\Services\AutomaticFiscalNumberService($this->pdo);
+            if($automatic->find('guias',$id))$automatic->reserve('guias',$id);
+            return $version;
+        });
+    }
+
+    public function findBySourceDocument(int $documentId): ?int
+    {
+        if($documentId<1) return null;
+        $st=$this->execute('SELECT id FROM guias_cabecera WHERE documento_origen_id=? LIMIT 1',[$documentId]);
+        $id=$st->fetchColumn();
+        return $id===false?null:(int)$id;
+    }
 
     public function findByNumber(string $number): ?array
     {
