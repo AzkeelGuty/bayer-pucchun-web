@@ -1,55 +1,15 @@
-# API REST Bayer
+# API REST Bayer–Pucchún v2
 
-> **Integración vigente: API v2 en español.** Para nuevas integraciones utilizar [API Bayer v2 en español](../API_BAYER_V2_ES.md). Autenticación: `POST /api/v1/auth/login`. Consulta: `GET /api/v2/bayer/todo`, `/facturas`, `/guias` y `/stock`. Los ejemplos v1 siguientes se conservan exclusivamente como documentación de compatibilidad para consumidores existentes.
+La integración utiliza exclusivamente rutas `/api/v2/`. Consultar el [contrato de datos en español](../API_BAYER_V2_ES.md) para los 56 campos, filtros y criterios de entrega.
 
+| Método | Ruta | Función |
+|---|---|---|
+| POST | `/api/v2/auth/login` | Autenticación y token temporal |
+| POST | `/api/v2/auth/logout` | Revocación del token |
+| GET | `/api/v2/bayer` | Información de integración |
+| GET | `/api/v2/bayer/todo` | Consulta consolidada |
+| GET | `/api/v2/bayer/facturas` | Facturas y documentos |
+| GET | `/api/v2/bayer/guias` | Guías |
+| GET | `/api/v2/bayer/stock` | Stock |
 
-La API REST expone únicamente información con estado **PUBLICADO** y requiere autenticación de usuario.
-
-## Activación
-
-```env
-API_ENABLED=true
-API_TOKEN_TTL=28800
-```
-
-En instalaciones existentes ejecutar primero:
-
-```text
-database/migrations/005_api_tokens.sql
-database/migrations/008_estado_comprobante.sql
-```
-
-## Flujo de autenticación
-
-1. Enviar email y contraseña a `POST /api/v1/auth/login`.
-2. El sistema valida que la cuenta esté activa y tenga rol **ADMIN, SUPERVISOR, GERENCIA o BAYER**.
-3. La API devuelve un Bearer token temporal.
-4. Enviar ese token en `Authorization: Bearer <token>` para consultar los endpoints.
-5. `POST /api/v1/auth/logout` revoca el token.
-
-No se usa un `API_TOKEN` fijo en el archivo `.env`.
-
-## Endpoints
-
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/logout`
-- `GET /api/v1/bayer`
-- `GET /api/v1/bayer/all`
-- `GET /api/v1/bayer/sales?from=YYYY-MM-DD&to=YYYY-MM-DD`
-- `GET /api/v1/bayer/shipments?from=YYYY-MM-DD&to=YYYY-MM-DD`
-- `GET /api/v1/bayer/inventory?from=YYYY-MM-DD&to=YYYY-MM-DD`
-
-La cantidad se interpreta como **conteo entero de productos/presentaciones**. La especificación completa, filtros, ejemplos y códigos HTTP están en `docs/API_REST_BAYER.md`.
-
-
-## Estado del comprobante
-
-Los documentos publicados incluyen `documentStatus` con valores `VIGENTE` o `ANULADO`. Este campo es independiente del estado del flujo interno del ERP.
-
-Filtro opcional para documentos/ventas:
-
-```text
-GET /api/v1/bayer/sales?document_status=ANULADO
-```
-
-La migración `008_estado_comprobante.sql` también incorpora Factura (01), Boleta (03), Nota de crédito (07) y Nota de débito (08).
+El inicio de sesión conserva `auth.access_token`; enviar `Authorization: Bearer <token>` en las consultas. Los conjuntos principales devuelven `metadatos` y `datos`. Los filtros son `desde`, `hasta`, `sucursal`, `busqueda` y `estado_documento` (1 vigente, 0 anulado). Las respuestas de autenticación e información conservan `meta` y `auth` o `data`, con `apiVersion: v2`.
