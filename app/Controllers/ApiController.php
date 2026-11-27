@@ -11,7 +11,7 @@ use Throwable;
 
 final class ApiController
 {
-    private const VERSION = 'v1';
+    private const VERSION = 'v2';
 
     private string $requestId;
     private ?array $apiUser=null;
@@ -96,8 +96,8 @@ final class ApiController
                 'name'=>'Bayer Pucchún REST API',
                 'publishedOnly'=>true,
                 'authentication'=>[
-                    'login'=>'POST /api/v1/auth/login',
-                    'logout'=>'POST /api/v1/auth/logout',
+                    'login'=>'POST /api/v2/auth/login',
+                    'logout'=>'POST /api/v2/auth/logout',
                     'scheme'=>'Bearer',
                     'expiresInSeconds'=>(int)\config('app.api_token_ttl',28800),
                 ],
@@ -106,24 +106,14 @@ final class ApiController
                     '/api/v2/bayer/facturas',
                     '/api/v2/bayer/guias',
                     '/api/v2/bayer/stock',
-                    '/api/v1/bayer/all',
-                    '/api/v1/bayer/sales',
-                    '/api/v1/bayer/shipments',
-                    '/api/v1/bayer/inventory',
-                    '/api/v1/bayer/products',
-                    '/api/v1/bayer/reported-inventory',
-                    '/api/v1/bayer/prices',
-                    '/api/v1/pucchun/all',
-                    '/api/v1/pucchun/sales',
-                    '/api/v1/pucchun/shipments',
-                    '/api/v1/pucchun/inventory',
-                    '/api/v1/pucchun/latest-stock',
+                    '/api/v2/bayer/productos',
+                    '/api/v2/bayer/inventario-reportado',
+                    '/api/v2/bayer/precios',
+                    '/api/v2/pucchun/stock-actual',
                 ],
-                'optionalFilters'=>['from','to','branch','q','document_status'],
+                'optionalFilters'=>['desde','hasta','sucursal','busqueda','estado_documento'],
                 'quantityModel'=>[
-                    'quantity'=>'Número entero de productos o presentaciones.',
-                    'quantityUnit'=>'NIU',
-                    'measureUnit'=>'Unidad del catálogo/presentación del producto.',
+                    'cantidad'=>'Número entero de productos o presentaciones.',=>'Unidad del catálogo/presentación del producto.',
                 ],
             ],
         ]);
@@ -426,7 +416,7 @@ final class ApiController
         if(!preg_match('/^Bearer\s+(.+)$/i',trim($authorization),$match)){
             $this->recordAccess('api_unauthorized');
             header('WWW-Authenticate: Bearer realm="Bayer Pucchun API"');
-            $this->error('UNAUTHORIZED','Primero inicie sesión en /api/v1/auth/login y envíe el token Bearer obtenido.',401);
+            $this->error('UNAUTHORIZED','Primero inicie sesión en /api/v2/auth/login y envíe el token Bearer obtenido.',401);
         }
 
         $token=trim($match[1]);
